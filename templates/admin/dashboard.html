@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Administracija - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-gear"></i> Administratorska plošča</h1>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-person-check"></i> Uporabniki za odobritev</h5>
+            </div>
+            <div class="card-body">
+                {% if pending_users %}
+                    {% for user in pending_users %}
+                    <div class="card mb-2">
+                        <div class="card-body py-2">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <strong>{{ user.name }}</strong><br>
+                                    <small class="text-muted">{{ user.email }}</small><br>
+                                    <small class="text-muted">Registriran: {{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                </div>
+                                <div class="col-auto">
+                                    <button class="btn btn-success btn-sm me-1" disabled>
+                                        Odobri
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" disabled>
+                                        Zavrni
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">Ni uporabnikov za odobritev.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-bar-chart"></i> Statistike</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Skupaj uporabnikov:</strong> <span class="badge bg-primary">{{ pending_users|length }}</span></p>
+                <p><strong>Čaka odobritev:</strong> <span class="badge bg-warning">{{ pending_users|length }}</span></p>
+                <p class="text-muted">Več statistik bo na voljo v prihodnjih različicah.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-tools"></i> Sistemske nastavitve</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Sistemske nastavitve bodo dodane v prihodnjih različicah.</p>
+                <button class="btn btn-secondary" disabled>Upravljanje vsebin</button>
+                <button class="btn btn-secondary ms-2" disabled>Nastavitve sistema</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

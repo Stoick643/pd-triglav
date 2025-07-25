@@ -60,17 +60,20 @@ flask db migrate -m "Description"
 flask db upgrade
 
 # Seed test data
-python scripts/seed_db.py
+python3 scripts/seed_db.py
 ```
 
 ### Development Server
 ```bash
 # Run Flask development server
-flask run
+python3 app.py
 
-# Run with debug mode
+# Alternative using flask command
 export FLASK_ENV=development
 flask run --debug
+
+# Or using flask run
+flask run
 ```
 
 ### Testing

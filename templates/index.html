@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Domov - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Hero Section -->
+    <div class="col-12">
+        <div class="jumbotron bg-light p-5 rounded mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-4">Dobrodošli v PD Triglav!</h1>
+                    <p class="lead">
+                        Planinsko društvo za ljubitelje gora, narave in druženja. 
+                        Odkrivajte slovenski gorski svet z nami.
+                    </p>
+                    {% if not current_user.is_authenticated %}
+                    <div class="mt-4">
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-3">
+                            Pridruži se nam
+                        </a>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">
+                            Prijava
+                        </a>
+                    </div>
+                    {% elif current_user.is_pending() %}
+                    <div class="alert alert-warning mt-4">
+                        <i class="bi bi-clock"></i>
+                        Vaša registracija čaka na odobritev administratorja.
+                    </div>
+                    {% else %}
+                    <div class="mt-4">
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg">
+                            Pojdi na nadzorno ploščo
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4 text-center">
+                    <i class="bi bi-mountain display-1 text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Quick Info for Non-Members -->
+    {% if not current_user.is_authenticated or current_user.is_pending() %}
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-info-circle text-primary"></i> O društvu
+                </h5>
+                <p class="card-text">
+                    PD Triglav združuje planince iz vse Slovenije. Organiziramo izlete, 
+                    tečaje in družabne dogodke.
+                </p>
+                <a href="{{ url_for('main.about') }}" class="btn btn-outline-primary">Več o nas</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-calendar-event text-success"></i> Prihajajoči izleti
+                </h5>
+                <p class="card-text">
+                    Redno organiziramo izlete za različne stopnje pripravljenosti. 
+                    Pridruži se nam!
+                </p>
+                {% if not current_user.is_authenticated %}
+                <small class="text-muted">Prijavi se za dostop do programa izletov.</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-people text-info"></i> Skupnost
+                </h5>
+                <p class="card-text">
+                    Naša skupnost šteje preko 200 članov. Delimo izkušnje in 
+                    fotografije z naših izletov.
+                </p>
+                {% if not current_user.is_authenticated %}
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-info">Registriraj se</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Member Content -->
+    {% if current_user.is_authenticated and current_user.can_access_content() %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-calendar3"></i> Prihajajoči izleti</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Trenutno ni objavljenih izletov.</p>
+                <!-- This will be populated when we implement trips -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-chat-dots"></i> Zadnje objave</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Ni novih objav.</p>
+                <!-- This will be populated when we implement trip reports -->
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Historical Event Section (placeholder for future LLM integration) -->
+{% if current_user.is_authenticated and current_user.can_access_content() %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="bi bi-clock-history"></i> Zgodilo se je danes</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    <em>Ta sekcija bo prikazovala zgodovinske planinske dogodke z današnjim datumom.</em>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

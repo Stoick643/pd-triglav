@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}O klubu - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h1>O Planinskem društvu Triglav</h1>
+        
+        <div class="card mt-4">
+            <div class="card-body">
+                <h3>Naša zgodovina</h3>
+                <p>
+                    Planinsko društvo Triglav je bilo ustanovljeno z namenom združevanja 
+                    ljubiteljev gora in narave. Naša skupnost šteje preko 200 aktivnih 
+                    članov, ki redno sodelujejo na izletih in dogodkih.
+                </p>
+                
+                <h3>Kaj počnemo</h3>
+                <ul>
+                    <li><strong>Organiziramo izlete</strong> za različne stopnje pripravljenosti</li>
+                    <li><strong>Delimo izkušnje</strong> in fotografije z naših potovanj</li>
+                    <li><strong>Vzdržujemo skupnost</strong> planincev in ljubiteljev narave</li>
+                    <li><strong>Ponujamo podporo</strong> pri načrtovanju lastnih izletov</li>
+                </ul>
+                
+                <h3>Kako se pridružiti</h3>
+                <p>
+                    Članstvo je odprto za vse ljubitelje gora. Registrirajte se na naši 
+                    spletni strani in počakajte na odobritev administratorja. Po odobritvi 
+                    boste imeli dostop do:
+                </p>
+                <ul>
+                    <li>Objav o prihodnjih izletih</li>
+                    <li>Poročil z opravljenih izletov</li>
+                    <li>Fotografij in spominov</li>
+                    <li>Komunikacije z drugimi člani</li>
+                </ul>
+                
+                {% if not current_user.is_authenticated %}
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                        Pridruži se nam
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

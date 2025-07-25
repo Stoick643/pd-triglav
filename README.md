@@ -47,12 +47,13 @@ cp .env.example .env
 5. **Database setup**
 ```bash
 flask db upgrade
-python scripts/seed_db.py  # Creates test users
+python3 scripts/seed_db.py  # Creates test users
 ```
 
 6. **Run the application**
 ```bash
-flask run
+python3 app.py
+# Or alternatively: flask run
 ```
 
 Visit `http://localhost:5000` to access the application.

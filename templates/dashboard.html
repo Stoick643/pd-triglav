@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Nadzorna plošča - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Dobrodošli, {{ current_user.name }}!</h1>
+        <p class="lead">Vaša vloga: {{ current_user.role.value.replace('_', ' ').title() }}</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-calendar3"></i> Prihajajoči izleti</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Trenutno ni objavljenih izletov.</p>
+                <!-- This will be populated when we implement trips -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-journal-text"></i> Moji poročila</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Niste še napisali nobenega poročila.</p>
+                <!-- This will be populated when we implement trip reports -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-images"></i> Zadnje fotografije</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Ni novih fotografij.</p>
+                <!-- This will be populated when we implement photos -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_trip_leader() %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5><i class="bi bi-person-badge"></i> Vodnik izletov</h5>
+            </div>
+            <div class="card-body">
+                <p>Kot vodnik izletov lahko:</p>
+                <ul>
+                    <li>Objavljate nove izlete</li>
+                    <li>Upravljate s prijavljenimi udeleženci</li>
+                    <li>Moderirate komentarje na vaših izletih</li>
+                </ul>
+                <button class="btn btn-success" disabled>Objavi nov izlet (kmalu)</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if current_user.is_admin() %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning">
+                <h5><i class="bi bi-gear"></i> Administrator</h5>
+            </div>
+            <div class="card-body">
+                <p>Administratorske funkcije:</p>
+                <a href="{{ url_for('main.admin') }}" class="btn btn-warning">
+                    Pojdi na admin ploščo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
