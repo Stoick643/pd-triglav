@@ -200,6 +200,26 @@ class Trip(db.Model):
         """Get all trips led by specific user"""
         return Trip.query.filter_by(leader_id=leader_id).order_by(Trip.trip_date.desc()).all()
     
+    @staticmethod
+    def auto_complete_past_trips():
+        """Auto-complete announced trips that have passed their date"""
+        from datetime import date
+        
+        past_announced_trips = Trip.query.filter(
+            Trip.trip_date < date.today(),
+            Trip.status == TripStatus.ANNOUNCED
+        ).all()
+        
+        completed_count = 0
+        for trip in past_announced_trips:
+            trip.status = TripStatus.COMPLETED
+            completed_count += 1
+        
+        if completed_count > 0:
+            db.session.commit()
+        
+        return completed_count
+    
     def to_dict(self):
         """Convert trip to dictionary for JSON serialization"""
         return {

@@ -3,7 +3,8 @@
 import pytest
 import tempfile
 import os
-from app import create_app, db
+from app import create_app
+from models.user import db
 from config import TestingConfig
 from models.user import User, UserRole
 
@@ -73,7 +74,20 @@ def auth(client):
 @pytest.fixture
 def test_users(app):
     """Create test users in database"""
+    def _get_users():
+        """Function to get fresh user instances from database"""
+        return {
+            'admin': User.query.filter_by(email='admin@test.com').first(),
+            'member': User.query.filter_by(email='member@test.com').first(),
+            'trip_leader': User.query.filter_by(email='leader@test.com').first(),
+            'pending': User.query.filter_by(email='pending@test.com').first()
+        }
+    
     with app.app_context():
+        # Check if users already exist
+        if User.query.filter_by(email='admin@test.com').first():
+            return _get_users()
+        
         # Admin user
         admin = User.create_user(
             email='admin@test.com',
@@ -114,9 +128,4 @@ def test_users(app):
         
         db.session.commit()
         
-        return {
-            'admin': admin,
-            'member': member,
-            'trip_leader': trip_leader,
-            'pending': pending
-        }
+        return _get_users()

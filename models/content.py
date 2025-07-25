@@ -7,6 +7,9 @@ class TripReport(db.Model):
     """Trip report model for sharing experiences and photos"""
     
     __tablename__ = 'trip_reports'
+    __table_args__ = (
+        db.UniqueConstraint('trip_id', 'author_id', name='unique_trip_report_per_author'),
+    )
     
     # Primary key
     id = db.Column(db.Integer, primary_key=True)
