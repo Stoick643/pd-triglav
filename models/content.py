@@ -220,12 +220,13 @@ class Photo(db.Model):
 
 class CommentType(Enum):
     """Comment type enumeration"""
+    TRIP = 'trip'            # Trip announcement comments
     TRIP_REPORT = 'trip_report'
     PHOTO = 'photo'
 
 
 class Comment(db.Model):
-    """Comment model for trip reports and photos"""
+    """Comment model for trip announcements, trip reports and photos"""
     
     __tablename__ = 'comments'
     
@@ -238,7 +239,8 @@ class Comment(db.Model):
     # Comment type and target
     comment_type = db.Column(db.Enum(CommentType), nullable=False)
     
-    # Foreign keys (polymorphic - either trip_report_id or photo_id will be set)
+    # Foreign keys (polymorphic - one of these will be set based on comment_type)
+    trip_id = db.Column(db.Integer, db.ForeignKey('trips.id'), nullable=True)
     trip_report_id = db.Column(db.Integer, db.ForeignKey('trip_reports.id'), nullable=True)
     photo_id = db.Column(db.Integer, db.ForeignKey('photos.id'), nullable=True)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -254,7 +256,12 @@ class Comment(db.Model):
     author = db.relationship('User', backref='comments', lazy=True)
     
     def __repr__(self):
-        target = 'report' if self.trip_report_id else 'photo'
+        if self.trip_id:
+            target = 'trip'
+        elif self.trip_report_id:
+            target = 'report'
+        else:
+            target = 'photo'
         return f'<Comment by {self.author.name} on {target}>'
     
     def can_edit(self, user):
@@ -263,10 +270,26 @@ class Comment(db.Model):
     
     def can_delete(self, user):
         """Check if user can delete this comment"""
-        return (user.id == self.author_id or 
-                user.is_admin() or
-                (self.trip_report and user.id == self.trip_report.author_id) or
-                (self.photo and user.id == self.photo.trip_report.author_id))
+        # Import here to avoid circular imports
+        from models.trip import Trip
+        
+        if user.id == self.author_id or user.is_admin():
+            return True
+        
+        # Trip leaders can delete comments on their trip announcements
+        if self.trip_id:
+            trip = Trip.query.get(self.trip_id)
+            return trip and user.id == trip.leader_id
+        
+        # Trip report authors can delete comments on their reports
+        if self.trip_report_id:
+            return user.id == self.trip_report.author_id
+        
+        # Photo owners can delete comments on their photos
+        if self.photo_id:
+            return user.id == self.photo.trip_report.author_id
+        
+        return False
     
     @staticmethod
     def get_recent_comments(limit=10):
@@ -274,6 +297,14 @@ class Comment(db.Model):
         return Comment.query.filter_by(is_approved=True)\
             .order_by(Comment.created_at.desc())\
             .limit(limit).all()
+    
+    @staticmethod
+    def get_comments_for_trip(trip_id):
+        """Get all approved comments for a trip announcement"""
+        return Comment.query.filter_by(
+            trip_id=trip_id,
+            is_approved=True
+        ).order_by(Comment.created_at).all()
     
     @staticmethod
     def get_comments_for_report(trip_report_id):

@@ -33,6 +33,53 @@
                         <a class="nav-link" href="{{ url_for('main.about') }}">O klubu</a>
                     </li>
                     
+                    <!-- Trip navigation -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-mountain"></i> Izleti
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('trips.list_trips') }}">
+                                <i class="bi bi-list"></i> Objave izletov
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('trips.calendar') }}">
+                                <i class="bi bi-calendar3"></i> Koledar izletov
+                            </a></li>
+                            {% if current_user.is_authenticated %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('trips.dashboard') }}">
+                                <i class="bi bi-person-lines-fill"></i> Moji izleti
+                            </a></li>
+                            {% if current_user.role.value in ['trip_leader', 'admin'] %}
+                            <li><a class="dropdown-item" href="{{ url_for('trips.create_trip') }}">
+                                <i class="bi bi-plus-circle"></i> Nova objava
+                            </a></li>
+                            {% endif %}
+                            {% endif %}
+                        </ul>
+                    </li>
+                    
+                    <!-- Trip reports navigation -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-journal-text"></i> Poročila
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('reports.list_reports') }}">
+                                <i class="bi bi-journal-text"></i> Vsa poročila
+                            </a></li>
+                            {% if current_user.is_authenticated %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reports.my_reports') }}">
+                                <i class="bi bi-person-lines-fill"></i> Moja poročila
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reports.create_report') }}">
+                                <i class="bi bi-plus-circle"></i> Novo poročilo
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    
                     {% if current_user.is_authenticated and current_user.can_access_content() %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('main.dashboard') }}">Nadzorna plošča</a>

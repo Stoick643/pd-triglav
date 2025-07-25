@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Vodnik - Moji izleti - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h2 mb-0">Moji izleti</h1>
+                    <p class="text-muted">Upravljajte svoje objave izletov in sodelovanja</p>
+                </div>
+                <a href="{{ url_for('trips.create_trip') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Nova objava
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Led trips -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-badge me-2"></i>Moje objave ({{ led_trips|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if led_trips %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Naslov</th>
+                                        <th>Datum</th>
+                                        <th>Udeleženci</th>
+                                        <th>Status</th>
+                                        <th>Komentarji</th>
+                                        <th>Dejanja</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for trip in led_trips %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="text-decoration-none">
+                                                <strong>{{ trip.title }}</strong>
+                                            </a>
+                                            <br>
+                                            <small class="text-muted">{{ trip.destination }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="{% if trip.is_past %}text-muted{% endif %}">
+                                                {{ trip.trip_date.strftime('%d.%m.%Y') }}
+                                            </span>
+                                            {% if trip.meeting_time %}
+                                            <br><small class="text-muted">{{ trip.meeting_time.strftime('%H:%M') }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">{{ trip.confirmed_participants_count }}</span>
+                                            {% if trip.max_participants %}
+                                                / {{ trip.max_participants }}
+                                            {% endif %}
+                                            {% if trip.waitlist_count > 0 %}
+                                                <br><small class="text-warning">+{{ trip.waitlist_count }} čakalna</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if trip.is_past %}
+                                                <span class="badge bg-secondary">Preteklo</span>
+                                            {% elif trip.status.value == 'cancelled' %}
+                                                <span class="badge bg-danger">Odpovedan</span>
+                                            {% elif trip.is_full %}
+                                                <span class="badge bg-warning">Zaseden</span>
+                                            {% else %}
+                                                <span class="badge bg-primary">Aktiven</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if trip.comment_count > 0 %}
+                                                <span class="badge bg-info">{{ trip.comment_count }}</span>
+                                            {% else %}
+                                                <span class="text-muted">0</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="btn btn-outline-primary" title="Poglej">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('trips.edit_trip', trip_id=trip.id) }}" class="btn btn-outline-secondary" title="Uredi">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-mountain display-3 text-muted"></i>
+                            <h4 class="mt-3 text-muted">Še nimate objavljenih izletov</h4>
+                            <p class="text-muted">Ustvarite svoj prvi izlet in povabite člane!</p>
+                            <a href="{{ url_for('trips.create_trip') }}" class="btn btn-primary mt-2">
+                                <i class="bi bi-plus-circle me-2"></i>Ustvari prvi izlet
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- My participations -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-person-check me-2"></i>Moje udeležbe
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if my_participations %}
+                        {% for participation in my_participations %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div class="flex-grow-1">
+                                <a href="{{ url_for('trips.view_trip', trip_id=participation.trip.id) }}" class="text-decoration-none">
+                                    <div class="fw-semibold">{{ participation.trip.title }}</div>
+                                </a>
+                                <small class="text-muted">{{ participation.trip.trip_date.strftime('%d.%m.%Y') }}</small>
+                            </div>
+                            <div>
+                                {% if participation.status.value == 'confirmed' %}
+                                    <span class="badge bg-success">Potrjen</span>
+                                {% elif participation.status.value == 'waitlisted' %}
+                                    <span class="badge bg-warning">Čakalna</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ participation.status.value }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-person-x display-4"></i>
+                            <p class="mt-2 mb-0">Niste prijavljeni na nobene izlete</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Quick stats -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>Statistika
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h4 text-primary mb-0">{{ led_trips|length }}</div>
+                            <small class="text-muted">Objave</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 text-success mb-0">
+                                {% set total_participants = led_trips|sum(attribute='confirmed_participants_count') %}
+                                {{ total_participants }}
+                            </div>
+                            <small class="text-muted">Udeležencev</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h4 text-info mb-0">
+                                {% set total_comments = led_trips|sum(attribute='comment_count') %}
+                                {{ total_comments }}
+                            </div>
+                            <small class="text-muted">Komentarji</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 text-warning mb-0">{{ my_participations|length }}</div>
+                            <small class="text-muted">Udeležbe</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

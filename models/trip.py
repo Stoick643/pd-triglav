@@ -78,6 +78,7 @@ class Trip(db.Model):
     leader = db.relationship('User', backref='led_trips', lazy=True)
     participants = db.relationship('TripParticipant', backref='trip', lazy=True, cascade='all, delete-orphan')
     reports = db.relationship('TripReport', backref='trip', lazy=True, cascade='all, delete-orphan')
+    comments = db.relationship('Comment', backref='trip', lazy=True, cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Trip {self.title} - {self.trip_date}>'
@@ -111,6 +112,11 @@ class Trip(db.Model):
         """Check if users can still sign up for this trip"""
         return (self.status == TripStatus.ANNOUNCED and 
                 not self.is_past)
+    
+    @property
+    def comment_count(self):
+        """Get count of approved comments on this trip"""
+        return len([c for c in self.comments if c.is_approved])
     
     def get_participant_status(self, user):
         """Get user's participation status for this trip"""
@@ -233,6 +239,7 @@ class Trip(db.Model):
             'leader': self.leader.name,
             'confirmed_participants': self.confirmed_participants_count,
             'waitlist_count': self.waitlist_count,
+            'comment_count': self.comment_count,
             'status': self.status.value,
             'can_signup': self.can_signup
         }

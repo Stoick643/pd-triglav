@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Koledar izletov - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h2 mb-0">Koledar izletov</h1>
+                    <p class="text-muted">Pregled prihajaočih planinskih izletov po datumih</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('trips.list_trips') }}" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-list"></i> Seznam
+                    </a>
+                    {% if current_user.is_authenticated and current_user.role.value in ['trip_leader', 'admin'] %}
+                    <a href="{{ url_for('trips.create_trip') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Nova objava
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Calendar legend -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-center align-items-center flex-wrap">
+                        <small class="me-4">
+                            <span class="badge bg-success me-1">●</span> Lahka tura
+                        </small>
+                        <small class="me-4">
+                            <span class="badge bg-warning me-1">●</span> Srednje zahtevna
+                        </small>
+                        <small class="me-4">
+                            <span class="badge bg-danger me-1">●</span> Zahtevna
+                        </small>
+                        <small class="me-4">
+                            <span class="badge bg-dark me-1">●</span> Zelo zahtevna
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Calendar view -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div id="calendar-container">
+                        {% if events %}
+                            <div class="row">
+                                {% for event in events %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card border-start border-4 border-{{ 'success' if 'easy' in event.className else 'warning' if 'moderate' in event.className else 'danger' if 'difficult' in event.className else 'dark' }}">
+                                        <div class="card-body py-3">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="card-title mb-0">
+                                                    <a href="{{ event.url }}" class="text-decoration-none">
+                                                        {{ event.title }}
+                                                    </a>
+                                                </h6>
+                                                {% set difficulty_parts = event.description.split(' - ') %}
+                                                {% if difficulty_parts|length > 1 %}
+                                                <span class="badge bg-{{ 'success' if 'easy' in event.className else 'warning' if 'moderate' in event.className else 'danger' if 'difficult' in event.className else 'dark' }} ms-2">
+                                                    {{ difficulty_parts[1] }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <p class="card-text small text-muted mb-2">
+                                                <i class="bi bi-geo-alt me-1"></i>
+                                                {% set difficulty_parts = event.description.split(' - ') %}
+                                                {{ difficulty_parts[0] if difficulty_parts else event.description }}
+                                            </p>
+                                            
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-calendar me-1"></i>
+                                                    {{ event.start }}
+                                                </small>
+                                                <a href="{{ event.url }}" class="btn btn-sm btn-outline-primary">
+                                                    Podrobnosti
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="bi bi-calendar-x display-1 text-muted"></i>
+                                <h3 class="mt-3 text-muted">Ni najdenih izletov</h3>
+                                <p class="text-muted">Trenutno ni objavljenih prihajaočih izletov.</p>
+                                {% if current_user.is_authenticated and current_user.role.value in ['trip_leader', 'admin'] %}
+                                <a href="{{ url_for('trips.create_trip') }}" class="btn btn-primary mt-3">
+                                    <i class="bi bi-plus-circle me-2"></i>Objavi prvi izlet
+                                </a>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-4 {
+    border-width: 4px !important;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+</style>
+
+<!-- Future enhancement: Add JavaScript calendar library -->
+<!--
+<script>
+// TODO: Integrate with FullCalendar.js or similar library
+// for interactive calendar with drag/drop, different views, etc.
+</script>
+-->
+{% endblock %}

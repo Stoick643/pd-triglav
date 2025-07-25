@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Moja poročila - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h2 mb-0">Moja poročila</h1>
+                    <p class="text-muted">Upravlja svoja poročila o izletih</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('reports.list_reports') }}" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-list me-2"></i>Vsa poročila
+                    </a>
+                    {% if available_trips %}
+                    <a href="{{ url_for('reports.create_report') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Novo poročilo
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary">{{ reports|length }}</h3>
+                            <p class="text-muted mb-0">Skupaj poročil</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success">{{ reports|selectattr('is_published')|list|length }}</h3>
+                            <p class="text-muted mb-0">Objavljenih</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning">{{ reports|rejectattr('is_published')|list|length }}</h3>
+                            <p class="text-muted mb-0">Osnutkov</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-info">{{ available_trips|length }}</h3>
+                            <p class="text-muted mb-0">Na voljo za poročilo</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available trips for reports -->
+            {% if available_trips %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil-square me-2"></i>Izleti za poročilo
+                        <span class="badge bg-info">{{ available_trips|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Izleti, na katerih ste sodelovali in za katere še nimate napisanega poročila:</p>
+                    <div class="row">
+                        {% for trip in available_trips %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-start border-primary border-4">
+                                <div class="card-body py-3">
+                                    <h6 class="card-title">{{ trip.title }}</h6>
+                                    <p class="card-text small text-muted mb-2">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ trip.destination }}
+                                    </p>
+                                    <p class="card-text small text-muted mb-3">
+                                        <i class="bi bi-calendar me-1"></i>{{ trip.trip_date.strftime('%d.%m.%Y') }}
+                                    </p>
+                                    <a href="{{ url_for('reports.create_report', trip_id=trip.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-plus me-1"></i>Napiši poročilo
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- My reports -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-journal-text me-2"></i>Moja poročila
+                        <span class="badge bg-primary">{{ reports|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if reports %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Naslov</th>
+                                        <th>Izlet</th>
+                                        <th>Status</th>
+                                        <th>Komentarji</th>
+                                        <th>Ustvarjeno</th>
+                                        <th>Nazadnje urejeno</th>
+                                        <th class="text-end">Dejanja</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for report in reports %}
+                                    <tr class="{% if not report.is_published %}table-warning{% endif %}">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {% if report.featured %}
+                                                    <i class="bi bi-star-fill text-warning me-2" title="Označeno poročilo"></i>
+                                                {% endif %}
+                                                <div>
+                                                    <a href="{{ url_for('reports.view_report', report_id=report.id) }}" class="text-decoration-none fw-bold">
+                                                        {{ report.title }}
+                                                    </a>
+                                                    {% if report.summary %}
+                                                    <br><small class="text-muted">{{ report.summary[:60] }}{% if report.summary|length > 60 %}...{% endif %}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>{{ report.trip.title }}</strong>
+                                                <br><small class="text-muted">{{ report.trip.destination }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if report.is_published %}
+                                                <span class="badge bg-success">Objavljeno</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">Osnutek</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if report.comment_count > 0 %}
+                                                <span class="badge bg-info">{{ report.comment_count }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small>{{ report.created_at.strftime('%d.%m.%Y') }}</small>
+                                        </td>
+                                        <td>
+                                            {% if report.updated_at and report.updated_at != report.created_at %}
+                                                <small>{{ report.updated_at.strftime('%d.%m.%Y') }}</small>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('reports.view_report', report_id=report.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary" title="Poglej">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('reports.edit_report', report_id=report.id) }}" 
+                                                   class="btn btn-sm btn-outline-secondary" title="Uredi">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                        onclick="confirmDelete({{ report.id }}, '{{ report.title }}')" title="Izbriši">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-journal-x display-1 text-muted"></i>
+                            <h4 class="mt-3 text-muted">Še nimate napisanih poročil</h4>
+                            <p class="text-muted">Začnite deliti svoje planinske izkušnje s skupnostjo!</p>
+                            
+                            {% if available_trips %}
+                            <a href="{{ url_for('reports.create_report') }}" class="btn btn-primary mt-3">
+                                <i class="bi bi-plus-circle me-2"></i>Napišite prvo poročilo
+                            </a>
+                            {% else %}
+                            <p class="text-muted">
+                                Za pisanje poročil se morate udeležiti izletov.
+                                <a href="{{ url_for('trips.list_trips') }}">Prebrskai prihajaojče izlete</a>.
+                            </p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Potrdite brisanje</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Ali ste prepričani, da želite izbrisati poročilo <strong id="reportTitle"></strong>?</p>
+                <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>To dejanje ni mogoče razveljaviti.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Prekliči</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Izbriši poročilo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(reportId, reportTitle) {
+    document.getElementById('reportTitle').textContent = reportTitle;
+    document.getElementById('deleteForm').action = `/reports/${reportId}/delete`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// Add some interactivity for table rows
+document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't trigger on button clicks
+            if (e.target.closest('.btn')) return;
+            
+            const link = row.querySelector('a[href*="/reports/"]');
+            if (link) {
+                window.location.href = link.href;
+            }
+        });
+        
+        row.style.cursor = 'pointer';
+    });
+});
+</script>
+
+<style>
+.table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.border-4 {
+    border-width: 4px !important;
+}
+
+.card:hover {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease-in-out;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

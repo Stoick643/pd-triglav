@@ -43,6 +43,12 @@ def create_app(config_class=Config):
     from routes.auth import bp as auth_bp, init_oauth
     app.register_blueprint(auth_bp, url_prefix='/auth')
     
+    from routes.trips import bp as trips_bp
+    app.register_blueprint(trips_bp, url_prefix='/trips')
+    
+    from routes.reports import bp as reports_bp
+    app.register_blueprint(reports_bp, url_prefix='/reports')
+    
     # Initialize OAuth
     init_oauth(app)
     

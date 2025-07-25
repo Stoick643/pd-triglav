@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report.title }} - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Header with trip info -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-2">
+                                    <li class="breadcrumb-item"><a href="{{ url_for('reports.list_reports') }}">Poročila</a></li>
+                                    <li class="breadcrumb-item active">{{ report.title }}</li>
+                                </ol>
+                            </nav>
+                            
+                            <h1 class="h2 mb-2">{{ report.title }}</h1>
+                            
+                            {% if not report.is_published %}
+                                <span class="badge bg-secondary mb-2">Osnutek</span>
+                            {% endif %}
+                            
+                            {% if report.featured %}
+                                <span class="badge bg-warning text-dark mb-2">
+                                    <i class="bi bi-star-fill me-1"></i>Označeno poročilo
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Action buttons -->
+                        {% if current_user.is_authenticated %}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                {% if current_user.id == report.author_id or current_user.is_admin() %}
+                                    <li><a class="dropdown-item" href="{{ url_for('reports.edit_report', report_id=report.id) }}">
+                                        <i class="bi bi-pencil me-2"></i>Uredi poročilo
+                                    </a></li>
+                                    {% if current_user.is_admin() %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ url_for('reports.toggle_featured', report_id=report.id) }}" class="d-inline">
+                                            <button type="submit" class="dropdown-item">
+                                                <i class="bi bi-star{% if report.featured %}-fill{% endif %} me-2"></i>
+                                                {% if report.featured %}Odznači{% else %}Označi{% endif %} kot zanimivo
+                                            </button>
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ url_for('reports.delete_report', report_id=report.id) }}" class="d-inline"
+                                              onsubmit="return confirm('Ali ste prepričani, da želite izbrisati to poročilo?')">
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="bi bi-trash me-2"></i>Izbriši poročilo
+                                            </button>
+                                        </form>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Trip information -->
+                    {% if report.trip %}
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center text-primary mb-2">
+                                <i class="bi bi-mountain me-2"></i>
+                                <strong>{{ report.trip.title }}</strong>
+                                <span class="ms-2 badge bg-{{ 'success' if report.trip.difficulty.value == 'easy' else 'warning' if report.trip.difficulty.value == 'moderate' else 'danger' if report.trip.difficulty.value == 'difficult' else 'dark' }}">
+                                    {% if report.trip.difficulty.value == 'easy' %}Lahka tura
+                                    {% elif report.trip.difficulty.value == 'moderate' %}Srednje zahtevna
+                                    {% elif report.trip.difficulty.value == 'difficult' %}Zahtevna
+                                    {% else %}Zelo zahtevna
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <p class="text-muted mb-2">
+                                <i class="bi bi-geo-alt me-1"></i>{{ report.trip.destination }}
+                            </p>
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-calendar me-1"></i>{{ report.trip.trip_date.strftime('%A, %d. %B %Y') }}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="text-muted small">
+                                <div><i class="bi bi-person me-1"></i>{{ report.author.name }}</div>
+                                <div><i class="bi bi-clock me-1"></i>{{ report.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                                {% if report.updated_at and report.updated_at != report.created_at %}
+                                <div><i class="bi bi-pencil me-1"></i>Posodobljeno {{ report.updated_at.strftime('%d.%m.%Y') }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Podatki o izletu niso na voljo.
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Summary if available -->
+                    {% if report.summary %}
+                    <div class="alert alert-light border-start border-primary border-4">
+                        <h6 class="alert-heading">Povzetek</h6>
+                        <p class="mb-0">{{ report.summary }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Conditions info -->
+            {% if report.weather_conditions or report.trail_conditions %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>Razmere</h5>
+                    <div class="row">
+                        {% if report.weather_conditions %}
+                        <div class="col-md-6">
+                            <h6 class="text-primary"><i class="bi bi-cloud-sun me-1"></i>Vreme</h6>
+                            <p class="mb-0">{{ report.weather_conditions }}</p>
+                        </div>
+                        {% endif %}
+                        {% if report.trail_conditions %}
+                        <div class="col-md-6">
+                            <h6 class="text-primary"><i class="bi bi-signpost me-1"></i>Stanje poti</h6>
+                            <p class="mb-0">{{ report.trail_conditions }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Main content -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="report-content">
+                        {{ report.content|replace('\n', '<br>')|safe }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comments section -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-dots me-2"></i>Komentarji 
+                        <span class="badge bg-secondary">{{ comments|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Add comment form for authenticated users -->
+                    {% if comment_form %}
+                    <form method="POST" action="{{ url_for('reports.add_comment', report_id=report.id) }}" class="mb-4">
+                        {{ comment_form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ comment_form.content.label(class="form-label") }}
+                            {{ comment_form.content(class="form-control", rows="3", placeholder="Delite svoje mnenje o tem poročilu...") }}
+                            {% for error in comment_form.content.errors %}
+                                <div class="form-text text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            {{ comment_form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                    <hr>
+                    {% endif %}
+                    
+                    <!-- Display comments -->
+                    {% if comments %}
+                        {% for comment in comments %}
+                        <div class="comment mb-3 {% if not comment.is_approved %}opacity-50{% endif %}">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        {{ comment.author.name[0].upper() }}
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div>
+                                            <strong>{{ comment.author.name }}</strong>
+                                            <small class="text-muted ms-2">{{ comment.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                            {% if not comment.is_approved %}
+                                                <span class="badge bg-warning text-dark ms-2">Čaka na odobritev</span>
+                                            {% endif %}
+                                        </div>
+                                        {% if current_user.is_authenticated and (current_user.is_admin() or current_user.id == comment.author_id) %}
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                <i class="bi bi-three-dots"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                {% if current_user.is_admin() and not comment.is_approved %}
+                                                <li><a class="dropdown-item" href="#"><i class="bi bi-check me-2"></i>Odobri</a></li>
+                                                {% endif %}
+                                                <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Izbriši</a></li>
+                                            </ul>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="comment-content">
+                                        {{ comment.content|replace('\n', '<br>')|safe }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% if not loop.last %}<hr>{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-chat display-1 text-muted"></i>
+                            <h5 class="mt-2 text-muted">Še ni komentarjev</h5>
+                            <p class="text-muted">Bodite prvi, ki boste komentirali to poročilo!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.report-content {
+    line-height: 1.7;
+    font-size: 1.1rem;
+}
+
+.comment {
+    border-left: 3px solid transparent;
+    padding-left: 15px;
+    margin-left: -15px;
+    transition: border-color 0.3s ease;
+}
+
+.comment:hover {
+    border-left-color: var(--bs-primary);
+}
+
+.comment-content {
+    line-height: 1.5;
+}
+</style>
+{% endblock %}

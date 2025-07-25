@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Uredi {{ trip.title }} - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="bi bi-pencil me-2"></i>Uredi objavo izleta
+                    </h3>
+                    <p class="text-muted mb-0">{{ trip.title }} - {{ trip.trip_date.strftime('%d.%m.%Y') }}</p>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Basic Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-muted mb-3">Osnovni podatki</h5>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                {{ form.title.label(class="form-label required") }}
+                                {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else "")) }}
+                                {% for error in form.title.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-8 mb-3">
+                                {{ form.destination.label(class="form-label required") }}
+                                {{ form.destination(class="form-control" + (" is-invalid" if form.destination.errors else "")) }}
+                                {% for error in form.destination.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                {{ form.difficulty.label(class="form-label required") }}
+                                {{ form.difficulty(class="form-select" + (" is-invalid" if form.difficulty.errors else "")) }}
+                                {% for error in form.difficulty.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                {{ form.description.label(class="form-label") }}
+                                {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows="4", placeholder="Opišite izlet, pot, razglede, posebnosti...") }}
+                                {% for error in form.description.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Schedule -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-muted mb-3">Urnik</h5>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                {{ form.trip_date.label(class="form-label required") }}
+                                {{ form.trip_date(class="form-control" + (" is-invalid" if form.trip_date.errors else "")) }}
+                                {% for error in form.trip_date.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                {{ form.meeting_time.label(class="form-label") }}
+                                {{ form.meeting_time(class="form-control" + (" is-invalid" if form.meeting_time.errors else "")) }}
+                                {% for error in form.meeting_time.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                {{ form.return_time.label(class="form-label") }}
+                                {{ form.return_time(class="form-control" + (" is-invalid" if form.return_time.errors else "")) }}
+                                {% for error in form.return_time.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                {{ form.meeting_point.label(class="form-label") }}
+                                {{ form.meeting_point(class="form-control" + (" is-invalid" if form.meeting_point.errors else ""), placeholder="Npr. Pokljuka - Rudno polje, parkirišče pri koči...") }}
+                                {% for error in form.meeting_point.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Details -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-muted mb-3">Dodatne podrobnosti</h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.max_participants.label(class="form-label") }}
+                                {{ form.max_participants(class="form-control" + (" is-invalid" if form.max_participants.errors else ""), placeholder="Pustite prazno za neomejeno") }}
+                                <div class="form-text">
+                                    Največ udeležencev (brez volje)
+                                    {% if trip.confirmed_participants_count > 0 %}
+                                        <br><strong>Opozorilo:</strong> Trenutno je prijavljenih {{ trip.confirmed_participants_count }} oseb.
+                                    {% endif %}
+                                </div>
+                                {% for error in form.max_participants.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.cost_per_person.label(class="form-label") }}
+                                <div class="input-group">
+                                    {{ form.cost_per_person(class="form-control" + (" is-invalid" if form.cost_per_person.errors else ""), placeholder="0.00") }}
+                                    <span class="input-group-text">€</span>
+                                </div>
+                                <div class="form-text">Stroški prevoza, vstopnin, itd.</div>
+                                {% for error in form.cost_per_person.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                {{ form.equipment_needed.label(class="form-label") }}
+                                {{ form.equipment_needed(class="form-control" + (" is-invalid" if form.equipment_needed.errors else ""), rows="3", placeholder="Planinska oprema, čelada, dereze, pohodne palice...") }}
+                                {% for error in form.equipment_needed.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Participants Warning -->
+                        {% if trip.confirmed_participants_count > 0 or trip.waitlist_count > 0 %}
+                        <div class="alert alert-warning" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Opozorilo:</strong> 
+                            Na ta izlet je trenutno prijavljenih {{ trip.confirmed_participants_count }} oseb
+                            {% if trip.waitlist_count > 0 %} in {{ trip.waitlist_count }} na čakalni listi{% endif %}.
+                            Večje spremembe lahko vplivajo na udeležence.
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Form Actions -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <small class="text-muted">
+                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    Spremembe bodo takoj vidne vsem članom
+                                                </small>
+                                            </div>
+                                            
+                                            <div>
+                                                <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="btn btn-outline-secondary me-2">
+                                                    Prekliči
+                                                </a>
+                                                {{ form.submit(class="btn btn-primary", value="Shrani spremembe") }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.required::after {
+    content: " *";
+    color: red;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+}
+</style>
+{% endblock %}
