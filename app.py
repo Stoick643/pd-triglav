@@ -23,8 +23,10 @@ def create_app(config_class=Config):
     login_manager.login_message = 'Prosim prijavite se za dostop do te strani.'
     login_manager.login_message_category = 'info'
     
-    # Import models (needed for migrations)
+    # Import models (needed for database creation)
     from models.user import User
+    from models.trip import Trip, TripParticipant
+    from models.content import TripReport, Photo, Comment
     
     # User loader for Flask-Login
     @login_manager.user_loader
@@ -35,8 +37,11 @@ def create_app(config_class=Config):
     from routes.main import bp as main_bp
     app.register_blueprint(main_bp)
     
-    from routes.auth import bp as auth_bp
+    from routes.auth import bp as auth_bp, init_oauth
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    
+    # Initialize OAuth
+    init_oauth(app)
     
     # Create database tables
     with app.app_context():

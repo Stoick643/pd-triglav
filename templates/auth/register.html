@@ -47,6 +47,13 @@
                 <div class="text-center">
                     <p>Že imate račun? <a href="{{ url_for('auth.login') }}">Prijavite se</a></p>
                 </div>
+                
+                <!-- Google OAuth registration -->
+                <div class="d-grid mt-3">
+                    <a href="{{ url_for('auth.google_login') }}" class="btn btn-outline-danger">
+                        <i class="bi bi-google"></i> Registracija z Google
+                    </a>
+                </div>
             </div>
         </div>
     </div>
