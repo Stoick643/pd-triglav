@@ -40,13 +40,34 @@
 python3 -m venv venv
 source venv/bin/activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install pip-tools and sync dependencies
+pip install pip-tools
+pip-sync requirements.txt
 
 # Environment variables
 cp .env.example .env
 # Edit .env with actual values
 ```
+
+### Dependency Management (pip-tools)
+```bash
+# Add new dependency
+echo "new-package" >> requirements.in
+pip-compile requirements.in
+pip-sync requirements.txt
+
+# Update all dependencies to latest versions
+pip-compile --upgrade requirements.in
+pip-sync requirements.txt
+
+# Generate requirements.txt from requirements.in
+pip-compile requirements.in
+
+# Sync environment to match requirements.txt exactly
+pip-sync requirements.txt
+```
+
+**Important**: Always edit `requirements.in`, never `requirements.txt` directly.
 
 ### Database Operations
 ```bash

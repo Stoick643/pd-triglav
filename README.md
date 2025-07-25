@@ -33,9 +33,10 @@ python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. **Install dependencies**
+3. **Install pip-tools and dependencies**
 ```bash
-pip install -r requirements.txt
+pip install pip-tools
+pip-sync requirements.txt
 ```
 
 4. **Environment setup**
@@ -115,18 +116,55 @@ pd-triglav/
 
 ## Development
 
+### Dependency Management
+
+This project uses **pip-tools** for deterministic dependency management:
+
+```bash
+# Add new dependency
+echo "new-package" >> requirements.in
+pip-compile requirements.in
+
+# Update all dependencies
+pip-compile --upgrade requirements.in
+
+# Sync your environment with exact versions
+pip-sync requirements.txt
+
+# Install pip-tools (if not installed)
+pip install pip-tools
+```
+
+**Important**: Always edit `requirements.in` for dependencies, never `requirements.txt` directly.
+
 ### Running Tests
 ```bash
+# Run all tests
 pytest tests/
+
+# Run with coverage
+pytest --cov=. tests/
+
+# Run specific test file
+pytest tests/test_trip_model.py
 ```
 
 ### Database Migrations
+
+This project uses **Flask-Migrate** for database schema management:
+
 ```bash
-# Create migration
+# Initialize migrations (first time only)
+flask db init
+
+# Create migration after model changes
 flask db migrate -m "Description of changes"
 
-# Apply migration
+# Apply migrations to database
 flask db upgrade
+
+# Downgrade to previous migration
+flask db downgrade
 ```
 
 ### Code Quality

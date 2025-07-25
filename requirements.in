@@ -1,0 +1,18 @@
+# requirements.in
+
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-Login
+Flask-WTF
+Authlib
+requests
+psycopg2-binary
+python-dotenv
+Pillow
+boto3
+Flask-Mail
+pytest
+pytest-flask
+pytest-cov
+coverage

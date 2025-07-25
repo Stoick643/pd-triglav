@@ -229,9 +229,16 @@ def main():
     with app.app_context():
         print("🌱 Zaganjam polnjenje testnih podatkov...\n")
         
-        # Create tables if they don't exist
-        db.create_all()
-        print("📊 Tabele v bazi so pripravljene.")
+        # Check if database is initialized
+        try:
+            # Try to query users table to check if migrations are applied
+            User.query.first()
+            print("📊 Baza podatkov je pripravljena (Flask-Migrate).")
+        except Exception as e:
+            print("❌ Baza podatkov ni inicializirana!")
+            print("   Prosim zaženite: flask db upgrade")
+            print(f"   Napaka: {e}")
+            return
         
         # Seed users first
         seed_users()
@@ -250,6 +257,7 @@ def main():
         print("   Čakajoči:    pending@pd-triglav.si / password123")
         
         print("\n🚀 Za zagon aplikacije uporabite: python3 app.py")
+        print("💡 Za upravljanje baze uporabite: flask db migrate, flask db upgrade")
 
 
 if __name__ == '__main__':

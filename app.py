@@ -1,9 +1,11 @@
 from flask import Flask, render_template
 from flask_login import LoginManager
+from flask_migrate import Migrate
 from config import Config
 
 # Initialize Flask extensions
 login_manager = LoginManager()
+migrate = Migrate()
 
 
 def create_app(config_class=Config):
@@ -17,6 +19,7 @@ def create_app(config_class=Config):
     # Initialize extensions with app
     db.init_app(app)
     login_manager.init_app(app)
+    migrate.init_app(app, db)
     
     # Configure Flask-Login
     login_manager.login_view = 'auth.login'
@@ -43,9 +46,8 @@ def create_app(config_class=Config):
     # Initialize OAuth
     init_oauth(app)
     
-    # Create database tables
-    with app.app_context():
-        db.create_all()
+    # Database tables are now managed by Flask-Migrate
+    # Use 'flask db upgrade' to create/update tables
     
     return app
 
