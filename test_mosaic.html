@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Mosaic Test - PD Triglav</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --pd-primary: #1e7e34;
+            --pd-surface-primary: #ffffff;
+            --pd-surface-secondary: #f8f9fa;
+            --pd-border-light: #dee2e6;
+            --pd-border-dark: #495057;
+            --pd-text-muted: #6c757d;
+            --bs-primary: #1e7e34;
+        }
+        
+        [data-theme="dark"] {
+            --pd-surface-primary: #212529;
+            --pd-surface-secondary: #343a40;
+            --pd-border-light: #495057;
+            --pd-border-dark: #6c757d;
+        }
+        
+        /* Photo mosaic layout styles */
+        .photo-mosaic {
+            display: grid;
+            gap: 8px;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        /* Default grid layout (fallback) */
+        .photo-mosaic {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-auto-rows: 200px;
+        }
+
+        .photo-tile {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.375rem;
+            background: var(--pd-surface-secondary);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .photo-tile:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        .photo-link {
+            display: block;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-decoration: none;
+            overflow: hidden;
+        }
+
+        .photo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+            border: none;
+        }
+
+        .photo-link:hover .photo-img {
+            transform: scale(1.08);
+        }
+
+        /* Photo overlay for captions and metadata */
+        .photo-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+            color: white;
+            padding: 1rem 0.75rem 0.75rem;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            opacity: 0;
+        }
+
+        .photo-link:hover .photo-overlay {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .photo-caption-overlay {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+            line-height: 1.3;
+        }
+
+        .photo-meta-overlay {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+
+        /* Mosaic layout patterns for different photo counts */
+
+        /* Single photo - full width, cinema aspect */
+        .photo-mosaic[data-photo-count="1"] {
+            grid-template-columns: 1fr;
+            grid-template-rows: 300px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Two photos - side by side or stacked */
+        .photo-mosaic[data-photo-count="2"] {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 250px;
+        }
+
+        /* Three photos - one large, two small */
+        .photo-mosaic[data-photo-count="3"] {
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: 250px 250px;
+            grid-template-areas: 
+                "main secondary1"
+                "main secondary2";
+        }
+
+        .photo-mosaic[data-photo-count="3"] .photo-tile:first-child {
+            grid-area: main;
+        }
+
+        .photo-mosaic[data-photo-count="3"] .photo-tile:nth-child(2) {
+            grid-area: secondary1;
+        }
+
+        .photo-mosaic[data-photo-count="3"] .photo-tile:nth-child(3) {
+            grid-area: secondary2;
+        }
+
+        /* Four photos - 2x2 grid */
+        .photo-mosaic[data-photo-count="4"] {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 200px 200px;
+        }
+
+        /* Five photos - feature + 2x2 grid */
+        .photo-mosaic[data-photo-count="5"] {
+            grid-template-columns: 2fr 1fr 1fr;
+            grid-template-rows: 200px 200px;
+            grid-template-areas: 
+                "main secondary1 secondary2"
+                "main secondary3 secondary4";
+        }
+
+        .photo-mosaic[data-photo-count="5"] .photo-tile:first-child {
+            grid-area: main;
+        }
+
+        .photo-mosaic[data-photo-count="5"] .photo-tile:nth-child(2) {
+            grid-area: secondary1;
+        }
+
+        .photo-mosaic[data-photo-count="5"] .photo-tile:nth-child(3) {
+            grid-area: secondary2;
+        }
+
+        .photo-mosaic[data-photo-count="5"] .photo-tile:nth-child(4) {
+            grid-area: secondary3;
+        }
+
+        .photo-mosaic[data-photo-count="5"] .photo-tile:nth-child(5) {
+            grid-area: secondary4;
+        }
+
+        /* More than 5 photos - dynamic masonry-style grid */
+        .photo-mosaic[data-photo-count^="6"],
+        .photo-mosaic[data-photo-count^="7"],
+        .photo-mosaic[data-photo-count^="8"],
+        .photo-mosaic[data-photo-count^="9"],
+        .photo-mosaic[data-photo-count="10"] {
+            grid-template-columns: repeat(3, 1fr);
+            grid-auto-rows: 180px;
+        }
+
+        .test-section {
+            margin: 2rem 0;
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .photo-mosaic {
+                gap: 4px;
+            }
+            
+            .photo-mosaic[data-photo-count="2"] {
+                grid-template-columns: 1fr;
+                grid-template-rows: 200px 200px;
+            }
+            
+            .photo-mosaic[data-photo-count="3"] {
+                grid-template-columns: 1fr;
+                grid-template-rows: 200px 150px 150px;
+                grid-template-areas: 
+                    "main"
+                    "secondary1"
+                    "secondary2";
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-4">
+        <h1 class="mb-4">Photo Mosaic Layout Test</h1>
+
+        <!-- 1 Photo Test -->
+        <div class="test-section">
+            <h3>1 Photo Layout</h3>
+            <div class="photo-mosaic" data-photo-count="1">
+                <div class="photo-tile" data-aspect-ratio="1.5">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/600x400/4CAF50/FFFFFF?text=Photo+1" class="photo-img" alt="Test Photo 1">
+                        <div class="photo-overlay">
+                            <div class="photo-overlay-content">
+                                <div class="photo-caption-overlay">Beautiful mountain view</div>
+                                <div class="photo-meta-overlay">600×400 • 2.1 MB</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2 Photos Test -->
+        <div class="test-section">
+            <h3>2 Photos Layout</h3>
+            <div class="photo-mosaic" data-photo-count="2">
+                <div class="photo-tile" data-aspect-ratio="1.3">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/400x300/2196F3/FFFFFF?text=Photo+1" class="photo-img" alt="Test Photo 1">
+                        <div class="photo-overlay">
+                            <div class="photo-overlay-content">
+                                <div class="photo-caption-overlay">Summit panorama</div>
+                                <div class="photo-meta-overlay">400×300 • 1.2 MB</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="0.8">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/300x400/FF9800/FFFFFF?text=Photo+2" class="photo-img" alt="Test Photo 2">
+                        <div class="photo-overlay">
+                            <div class="photo-overlay-content">
+                                <div class="photo-caption-overlay">Climbing route</div>
+                                <div class="photo-meta-overlay">300×400 • 1.8 MB</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3 Photos Test -->
+        <div class="test-section">
+            <h3>3 Photos Layout (Facebook-style)</h3>
+            <div class="photo-mosaic" data-photo-count="3">
+                <div class="photo-tile" data-aspect-ratio="1.6">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/800x500/E91E63/FFFFFF?text=Main+Photo" class="photo-img" alt="Main Photo">
+                        <div class="photo-overlay">
+                            <div class="photo-overlay-content">
+                                <div class="photo-caption-overlay">Main summit shot</div>
+                                <div class="photo-meta-overlay">800×500 • 3.2 MB</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="1.0">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/400x400/9C27B0/FFFFFF?text=Photo+2" class="photo-img" alt="Photo 2">
+                        <div class="photo-overlay">
+                            <div class="photo-overlay-content">
+                                <div class="photo-caption-overlay">Base camp</div>
+                                <div class="photo-meta-overlay">400×400 • 1.5 MB</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="1.2">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/400x333/607D8B/FFFFFF?text=Photo+3" class="photo-img" alt="Photo 3">
+                        <div class="photo-overlay">
+                            <div class="photo-overlay-content">
+                                <div class="photo-caption-overlay">Trail marker</div>
+                                <div class="photo-meta-overlay">400×333 • 1.1 MB</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5 Photos Test -->
+        <div class="test-section">
+            <h3>5 Photos Layout (Featured + Grid)</h3>
+            <div class="photo-mosaic" data-photo-count="5">
+                <div class="photo-tile" data-aspect-ratio="1.4">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/700x500/795548/FFFFFF?text=Featured" class="photo-img" alt="Featured Photo">
+                        <div class="photo-overlay">
+                            <div class="photo-overlay-content">
+                                <div class="photo-caption-overlay">Featured: Amazing sunrise</div>
+                                <div class="photo-meta-overlay">700×500 • 2.8 MB</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="1.0">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/300x300/F44336/FFFFFF?text=2" class="photo-img" alt="Photo 2">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="1.1">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/300x273/3F51B5/FFFFFF?text=3" class="photo-img" alt="Photo 3">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="0.9">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/270x300/009688/FFFFFF?text=4" class="photo-img" alt="Photo 4">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="1.3">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/390x300/FF5722/FFFFFF?text=5" class="photo-img" alt="Photo 5">
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8 Photos Test -->
+        <div class="test-section">
+            <h3>8 Photos Layout (Masonry Grid)</h3>
+            <div class="photo-mosaic" data-photo-count="8">
+                <div class="photo-tile" data-aspect-ratio="1.5">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=1" class="photo-img" alt="Photo 1">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="0.8">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/240x300/2196F3/FFFFFF?text=2" class="photo-img" alt="Photo 2">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="1.2">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/300x250/FF9800/FFFFFF?text=3" class="photo-img" alt="Photo 3">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="1.0">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/300x300/E91E63/FFFFFF?text=4" class="photo-img" alt="Photo 4">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="1.6">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/320x200/9C27B0/FFFFFF?text=5" class="photo-img" alt="Photo 5">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="0.7">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/210x300/607D8B/FFFFFF?text=6" class="photo-img" alt="Photo 6">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="1.1">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/330x300/795548/FFFFFF?text=7" class="photo-img" alt="Photo 7">
+                    </a>
+                </div>
+                <div class="photo-tile" data-aspect-ratio="0.9">
+                    <a href="#" class="photo-link">
+                        <img src="https://via.placeholder.com/270x300/FF5722/FFFFFF?text=8" class="photo-img" alt="Photo 8">
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button class="btn btn-secondary" onclick="toggleTheme()">Toggle Dark Theme</button>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            document.documentElement.setAttribute('data-theme', 
+                document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+            );
+        }
+    </script>
+</body>
+</html>

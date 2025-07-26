@@ -1,5 +1,6 @@
 """Forms for trip management"""
 
+from flask import current_app
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, MultipleFileField, FileAllowed, FileSize
 from wtforms import StringField, TextAreaField, DateField, TimeField, SelectField, IntegerField, FloatField, SubmitField
@@ -189,16 +190,50 @@ class TripReportForm(FlaskForm):
     save_draft = SubmitField('Shrani osnutek')
     
     def validate_photos(self, field):
-        """Custom validation for photo uploads"""
+        """Custom validation for photo uploads with configuration"""
         if field.data:
-            # Limit number of photos
-            if len(field.data) > 10:
-                raise ValidationError('Lahko naložite največ 10 fotografij naenkrat.')
+            # Get configuration values
+            max_photos = getattr(current_app.config, 'MAX_PHOTOS_PER_REPORT', 10)
+            max_photo_size = getattr(current_app.config, 'MAX_PHOTO_SIZE', 10*1024*1024)
+            allowed_extensions = getattr(current_app.config, 'ALLOWED_PHOTO_EXTENSIONS', {'jpg', 'jpeg', 'png', 'gif'})
             
             # Check if any files are actually uploaded
             uploaded_files = [f for f in field.data if f.filename != '']
+            
+            # Limit number of photos
+            if len(uploaded_files) > max_photos:
+                raise ValidationError(f'Lahko naložite največ {max_photos} fotografij naenkrat.')
+            
+            # Validate each uploaded file
+            total_size = 0
+            for file in uploaded_files:
+                if file.filename:
+                    # Check file extension
+                    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+                    if file_ext not in allowed_extensions:
+                        allowed_str = ', '.join(allowed_extensions).upper()
+                        raise ValidationError(f'Dovoljene so samo slike ({allowed_str}).')
+                    
+                    # Check individual file size
+                    file.seek(0, 2)  # Seek to end
+                    file_size = file.tell()
+                    file.seek(0)  # Reset to beginning
+                    
+                    if file_size > max_photo_size:
+                        max_mb = max_photo_size // (1024 * 1024)
+                        raise ValidationError(f'Velikost slike "{file.filename}" presega {max_mb} MB.')
+                    
+                    total_size += file_size
+            
+            # Check total upload size (additional safety check)
+            max_total = getattr(current_app.config, 'MAX_CONTENT_LENGTH', 100*1024*1024)
+            if total_size > max_total:
+                max_total_mb = max_total // (1024 * 1024)
+                current_total_mb = total_size // (1024 * 1024)
+                raise ValidationError(f'Skupna velikost fotografij ({current_total_mb} MB) presega dovoljeno ({max_total_mb} MB).')
+            
+            # Remove empty file entries
             if len(uploaded_files) != len(field.data):
-                # Remove empty file entries
                 field.data = uploaded_files
 
 

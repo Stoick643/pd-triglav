@@ -199,17 +199,32 @@
                     <div class="card-body">
                         <div class="mb-3">
                             {{ form.photos.label(class="form-label") }}
-                            {{ form.photos(class="form-control" + (" is-invalid" if form.photos.errors else ""), multiple=true, accept="image/*") }}
+                            {{ form.photos(class="form-control" + (" is-invalid" if form.photos.errors else ""), multiple=true, accept="image/*", id="photo-upload-input") }}
                             {% for error in form.photos.errors %}
                                 <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
                             <div class="form-text">{{ form.photos.description }}</div>
+                            
+                            <!-- Upload status -->
+                            <div id="upload-status" class="mt-2" style="display: none;">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <div class="progress">
+                                            <div id="upload-progress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted ms-2"><span id="upload-text">Pripravljam...</span></small>
+                                </div>
+                            </div>
                         </div>
+                        
+                        <!-- Photo validation alerts -->
+                        <div id="photo-validation-alerts"></div>
                         
                         <!-- Photo preview area -->
                         <div id="photo-preview" class="row g-2" style="display: none;">
                             <div class="col-12">
-                                <small class="text-muted">Predogled izbranih fotografij:</small>
+                                <small class="text-muted">Predogled izbranih fotografij (<span id="photo-count">0</span>/10, <span id="total-size">0</span> MB):</small>
                             </div>
                         </div>
                     </div>
@@ -269,47 +284,185 @@ function insertText(startTag, endTag) {
     textarea.focus();
 }
 
-// Photo preview functionality
+// Enhanced photo validation and preview functionality
 document.addEventListener('DOMContentLoaded', function() {
-    const photoInput = document.getElementById('photos');
+    const photoInput = document.getElementById('photo-upload-input');
     const previewArea = document.getElementById('photo-preview');
+    const alertsArea = document.getElementById('photo-validation-alerts');
+    const photoCount = document.getElementById('photo-count');
+    const totalSize = document.getElementById('total-size');
+    const submitButton = document.querySelector('button[type="submit"]');
+    
+    // Configuration (should match server-side limits)
+    const MAX_PHOTOS = 10;
+    const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
     
     if (photoInput) {
         photoInput.addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
+            validateAndPreviewPhotos(files);
+        });
+    }
+    
+    function validateAndPreviewPhotos(files) {
+        // Clear previous alerts and previews
+        alertsArea.innerHTML = '';
+        const existingPreviews = previewArea.querySelectorAll('.photo-preview-item');
+        existingPreviews.forEach(item => item.remove());
+        
+        if (files.length === 0) {
+            previewArea.style.display = 'none';
+            updateCounts(0, 0);
+            return;
+        }
+        
+        const validFiles = [];
+        const errors = [];
+        let totalFileSize = 0;
+        
+        // Validate each file
+        files.forEach((file, index) => {
+            const fileSizeMB = file.size / 1024 / 1024;
             
-            if (files.length === 0) {
-                previewArea.style.display = 'none';
+            // Check file count
+            if (validFiles.length >= MAX_PHOTOS) {
+                errors.push(`Lahko naložite največ ${MAX_PHOTOS} fotografij. Dodatne fotografije so bile preskočene.`);
                 return;
             }
             
-            // Clear previous previews
-            const existingPreviews = previewArea.querySelectorAll('.photo-preview-item');
-            existingPreviews.forEach(item => item.remove());
+            // Check file type
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                errors.push(`"${file.name}": Nepodprt format. Dovoljeni so JPG, PNG, GIF.`);
+                return;
+            }
             
-            // Show preview area
+            // Check individual file size
+            if (file.size > MAX_PHOTO_SIZE) {
+                errors.push(`"${file.name}": Prevelika datoteka (${fileSizeMB.toFixed(1)} MB). Maksimalno 10 MB.`);
+                return;
+            }
+            
+            validFiles.push(file);
+            totalFileSize += file.size;
+        });
+        
+        // Check total size
+        if (totalFileSize > MAX_TOTAL_SIZE) {
+            const totalMB = totalFileSize / 1024 / 1024;
+            const maxTotalMB = MAX_TOTAL_SIZE / 1024 / 1024;
+            errors.push(`Skupna velikost fotografij (${totalMB.toFixed(1)} MB) presega dovoljeno (${maxTotalMB} MB).`);
+        }
+        
+        // Display errors
+        if (errors.length > 0) {
+            showValidationErrors(errors);
+        }
+        
+        // Update file input with valid files only
+        if (validFiles.length !== files.length) {
+            updateFileInput(validFiles);
+        }
+        
+        // Update counts
+        updateCounts(validFiles.length, totalFileSize);
+        
+        // Generate previews for valid files
+        if (validFiles.length > 0) {
             previewArea.style.display = 'block';
+            generatePreviews(validFiles);
+        } else {
+            previewArea.style.display = 'none';
+        }
+    }
+    
+    function showValidationErrors(errors) {
+        const errorHtml = errors.map(error => 
+            `<div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>${error}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`
+        ).join('');
+        alertsArea.innerHTML = errorHtml;
+    }
+    
+    function updateCounts(count, size) {
+        if (photoCount) photoCount.textContent = count;
+        if (totalSize) totalSize.textContent = (size / 1024 / 1024).toFixed(1);
+    }
+    
+    function updateFileInput(validFiles) {
+        // Create new FileList with valid files
+        const dt = new DataTransfer();
+        validFiles.forEach(file => dt.items.add(file));
+        photoInput.files = dt.files;
+    }
+    
+    function generatePreviews(files) {
+        files.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'col-md-3 col-sm-4 col-6 photo-preview-item';
+                
+                const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
+                const fileName = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
+                
+                previewItem.innerHTML = `
+                    <div class="card">
+                        <img src="${e.target.result}" class="card-img-top" style="height: 120px; object-fit: cover;" alt="Preview" loading="lazy">
+                        <div class="card-body p-2">
+                            <small class="text-muted d-block text-truncate" title="${file.name}">${fileName}</small>
+                            <small class="text-muted">${fileSizeMB} MB</small>
+                            <button type="button" class="btn btn-sm btn-outline-danger mt-1 w-100" onclick="removePhoto(${index})">
+                                <i class="bi bi-trash"></i> Odstrani
+                            </button>
+                        </div>
+                    </div>
+                `;
+                previewArea.appendChild(previewItem);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // Make removePhoto function global
+    window.removePhoto = function(index) {
+        const files = Array.from(photoInput.files);
+        files.splice(index, 1);
+        validateAndPreviewPhotos(files);
+    };
+    
+    // Add upload progress simulation when form is submitted
+    const form = document.querySelector('form');
+    if (form && submitButton) {
+        form.addEventListener('submit', function(e) {
+            const uploadStatus = document.getElementById('upload-status');
+            const uploadProgress = document.getElementById('upload-progress');
+            const uploadText = document.getElementById('upload-text');
             
-            files.forEach((file, index) => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const previewItem = document.createElement('div');
-                        previewItem.className = 'col-md-3 col-sm-4 col-6 photo-preview-item';
-                        previewItem.innerHTML = `
-                            <div class="card">
-                                <img src="${e.target.result}" class="card-img-top" style="height: 120px; object-fit: cover;" alt="Preview">
-                                <div class="card-body p-2">
-                                    <small class="text-muted">${file.name}</small><br>
-                                    <small class="text-muted">${(file.size / 1024 / 1024).toFixed(1)} MB</small>
-                                </div>
-                            </div>
-                        `;
-                        previewArea.appendChild(previewItem);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
+            if (photoInput.files.length > 0) {
+                uploadStatus.style.display = 'block';
+                submitButton.disabled = true;
+                
+                // Simulate upload progress
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress > 90) progress = 90;
+                    
+                    uploadProgress.style.width = progress + '%';
+                    uploadText.textContent = `Nalagam fotografije... ${Math.round(progress)}%`;
+                }, 200);
+                
+                // The actual form submission will complete when ready
+                setTimeout(() => {
+                    clearInterval(interval);
+                    uploadProgress.style.width = '100%';
+                    uploadText.textContent = 'Zaključujem...';
+                }, 1000);
+            }
         });
     }
 });

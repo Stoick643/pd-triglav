@@ -4,7 +4,7 @@ services:
     env: python
     plan: free # Or your desired plan
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "flask db upgrade && gunicorn 'app:create_app()'"
+    startCommand: "flask db upgrade && gunicorn 'app:create_app()' --timeout 300 --max-requests-jitter 50"
     envVars:
       - key: FLASK_APP
         value: app:create_app()

@@ -51,7 +51,12 @@ class Config:
     # Application settings
     POSTS_PER_PAGE = 10
     PHOTOS_PER_PAGE = 20
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB file upload limit
+    MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB total upload limit for multiple photos
+    
+    # Photo upload settings
+    MAX_PHOTOS_PER_REPORT = 10
+    MAX_PHOTO_SIZE = 10 * 1024 * 1024  # 10MB per individual photo
+    ALLOWED_PHOTO_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
 
 
 class DevelopmentConfig(Config):
