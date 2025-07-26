@@ -28,6 +28,20 @@ services:
         sync: false
 
 databases:
-  - name: pd-triglav-db
-    databaseName: pd_triglav
+  - name: pd-triglav-2864
+    databaseName: pd_triglav_2864
     plan: free # Or your desired plan
+
+jobs:
+  - type: job
+    name: seed-db
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python scripts/seed_db.py"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pd-triglav-2864
+          property: connectionString
+      - key: FLASK_ENV
+        value: production
