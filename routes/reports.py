@@ -147,7 +147,6 @@ def create_report(trip_id=None):
             return redirect(url_for('reports.create_report'))
         
         # Verify the trip exists
-        from models.trip import Trip
         selected_trip = Trip.query.get(selected_trip_id)
         if not selected_trip:
             flash('Izbrani izlet ne obstaja.', 'error')
