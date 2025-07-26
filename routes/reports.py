@@ -60,7 +60,10 @@ def list_reports():
 @bp.route('/<int:report_id>')
 def view_report(report_id):
     """Display individual trip report with comments"""
-    report = TripReport.query.options(joinedload(TripReport.trip)).filter_by(id=report_id).first_or_404()
+    report = TripReport.query.options(
+        joinedload(TripReport.trip),
+        joinedload(TripReport.photos)
+    ).filter_by(id=report_id).first_or_404()
     
     # Check if report is published or user is author/admin
     if not report.is_published:
