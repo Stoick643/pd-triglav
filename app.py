@@ -52,6 +52,26 @@ def create_app(config_class=Config):
     # Initialize OAuth
     init_oauth(app)
     
+    # Add custom Jinja2 filters
+    @app.template_filter('markdown')
+    def markdown_filter(text):
+        """Simple Markdown filter for basic formatting"""
+        if not text:
+            return ''
+        
+        import re
+        
+        # Convert **bold** to <strong>bold</strong>
+        text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
+        
+        # Convert *italic* to <em>italic</em>
+        text = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', text)
+        
+        # Convert line breaks to <br> tags
+        text = text.replace('\n', '<br>')
+        
+        return text
+    
     # Database tables are now managed by Flask-Migrate
     # Use 'flask db upgrade' to create/update tables
     

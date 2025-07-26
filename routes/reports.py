@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from datetime import datetime
 from sqlalchemy import or_, desc
+from sqlalchemy.orm import joinedload
 
 from models.user import db, User, UserRole
 from models.trip import Trip
@@ -22,8 +23,8 @@ def list_reports():
     completed_trips = Trip.query.filter(Trip.status.in_(['completed', 'announced'])).order_by(Trip.trip_date.desc()).all()
     form.trip_id.choices = [('', 'Vsi izleti')] + [(trip.id, f"{trip.title} ({trip.trip_date.strftime('%d.%m.%Y')})") for trip in completed_trips]
     
-    # Base query for published reports
-    query = TripReport.query.filter_by(is_published=True)
+    # Base query for published reports with eager loading of trip relationship
+    query = TripReport.query.options(joinedload(TripReport.trip)).filter_by(is_published=True)
     
     # Apply filters if form is submitted
     if form.validate_on_submit():
@@ -58,7 +59,7 @@ def list_reports():
 @bp.route('/<int:report_id>')
 def view_report(report_id):
     """Display individual trip report with comments"""
-    report = TripReport.query.get_or_404(report_id)
+    report = TripReport.query.options(joinedload(TripReport.trip)).filter_by(id=report_id).first_or_404()
     
     # Check if report is published or user is author/admin
     if not report.is_published:
@@ -145,6 +146,13 @@ def create_report(trip_id=None):
             flash('Morate izbrati izlet za poročilo.', 'error')
             return redirect(url_for('reports.create_report'))
         
+        # Verify the trip exists
+        from models.trip import Trip
+        selected_trip = Trip.query.get(selected_trip_id)
+        if not selected_trip:
+            flash('Izbrani izlet ne obstaja.', 'error')
+            return redirect(url_for('reports.create_report'))
+        
         report = TripReport(
             title=form.title.data,
             summary=form.summary.data,
@@ -181,7 +189,7 @@ def create_report(trip_id=None):
 @login_required
 def edit_report(report_id):
     """Edit existing trip report"""
-    report = TripReport.query.get_or_404(report_id)
+    report = TripReport.query.options(joinedload(TripReport.trip)).filter_by(id=report_id).first_or_404()
     
     # Only author or admin can edit
     if not (current_user.id == report.author_id or current_user.is_admin()):
@@ -219,7 +227,7 @@ def edit_report(report_id):
 @login_required
 def delete_report(report_id):
     """Delete trip report"""
-    report = TripReport.query.get_or_404(report_id)
+    report = TripReport.query.options(joinedload(TripReport.trip)).filter_by(id=report_id).first_or_404()
     
     # Only author or admin can delete
     if not (current_user.id == report.author_id or current_user.is_admin()):
@@ -248,7 +256,7 @@ def toggle_featured(report_id):
         flash('Samo administratorji lahko označujejo poročila.', 'error')
         return abort(403)
     
-    report = TripReport.query.get_or_404(report_id)
+    report = TripReport.query.options(joinedload(TripReport.trip)).filter_by(id=report_id).first_or_404()
     
     try:
         report.featured = not report.featured
@@ -268,7 +276,7 @@ def toggle_featured(report_id):
 @login_required
 def add_comment(report_id):
     """Add comment to trip report"""
-    report = TripReport.query.get_or_404(report_id)
+    report = TripReport.query.options(joinedload(TripReport.trip)).filter_by(id=report_id).first_or_404()
     
     # Check if report is published
     if not report.is_published and current_user.id != report.author_id and not current_user.is_admin():
@@ -302,8 +310,8 @@ def add_comment(report_id):
 @login_required
 def my_reports():
     """User's personal trip reports dashboard"""
-    # Get user's reports (published and drafts)
-    reports = TripReport.query.filter_by(author_id=current_user.id)\
+    # Get user's reports (published and drafts) with eager loading
+    reports = TripReport.query.options(joinedload(TripReport.trip)).filter_by(author_id=current_user.id)\
         .order_by(desc(TripReport.created_at)).all()
     
     # Get trips user can write reports for

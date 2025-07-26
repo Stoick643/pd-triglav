@@ -27,12 +27,18 @@
                                     <small class="text-muted">Registriran: {{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
                                 </div>
                                 <div class="col-auto">
-                                    <button class="btn btn-success btn-sm me-1" disabled>
-                                        Odobri
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" disabled>
-                                        Zavrni
-                                    </button>
+                                    <form method="POST" action="{{ url_for('main.approve_user', user_id=user.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-success btn-sm me-1" 
+                                                onclick="return confirm('Ali ste prepričani, da želite odobriti uporabnika {{ user.name }}?')">
+                                            <i class="bi bi-check-circle me-1"></i>Odobri
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('main.reject_user', user_id=user.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-danger btn-sm" 
+                                                onclick="return confirm('Ali ste prepričani, da želite zavrniti in odstraniti uporabnika {{ user.name }}? To dejanje ni mogoče razveljaviti.')">
+                                            <i class="bi bi-x-circle me-1"></i>Zavrni
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -51,8 +57,13 @@
                 <h5><i class="bi bi-bar-chart"></i> Statistike</h5>
             </div>
             <div class="card-body">
-                <p><strong>Skupaj uporabnikov:</strong> <span class="badge bg-primary">{{ pending_users|length }}</span></p>
-                <p><strong>Čaka odobritev:</strong> <span class="badge bg-warning">{{ pending_users|length }}</span></p>
+                <p><strong>Čaka na odobritev:</strong> <span class="badge bg-warning">{{ pending_users|length }}</span></p>
+                {% if pending_users|length > 0 %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    {{ pending_users|length }} uporabnik{% if pending_users|length > 1 %}ov{% endif %} čaka na vašo odobritev.
+                </div>
+                {% endif %}
                 <p class="text-muted">Več statistik bo na voljo v prihodnjih različicah.</p>
             </div>
         </div>

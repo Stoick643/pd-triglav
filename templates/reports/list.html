@@ -83,12 +83,19 @@
                                     {% endif %}
                                 </div>
                                 
+                                {% if report.trip %}
                                 <p class="card-text text-primary mb-2">
                                     <i class="bi bi-mountain me-1"></i>
                                     <strong>{{ report.trip.title }}</strong>
                                     <br>
                                     <small class="text-muted">{{ report.trip.destination }} • {{ report.trip.trip_date.strftime('%d.%m.%Y') }}</small>
                                 </p>
+                                {% else %}
+                                <p class="card-text text-warning mb-2">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    <strong>Podatki o izletu niso na voljo</strong>
+                                </p>
+                                {% endif %}
                                 
                                 {% if report.summary %}
                                 <p class="card-text text-muted">

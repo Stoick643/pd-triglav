@@ -309,19 +309,60 @@ def dashboard():
 @bp.route('/calendar')
 def calendar():
     """Calendar view of trip announcements"""
-    # Get upcoming trips for calendar display
-    upcoming_trips = Trip.get_upcoming_trips()
+    return render_template('trips/calendar.html')
+
+
+@bp.route('/calendar/events')
+def calendar_events():
+    """JSON endpoint for FullCalendar events"""
+    # Get date range from query parameters
+    start_str = request.args.get('start')
+    end_str = request.args.get('end')
     
-    # Convert trips to calendar events format
+    # Parse dates - handle timezone format properly
+    def parse_calendar_date(date_str):
+        if not date_str:
+            return None
+        
+        # Remove timezone information (Z or +XX:XX or -XX:XX)
+        import re
+        # Handle URL decoding where + becomes space
+        date_str = date_str.replace(' ', '+')
+        # Pattern to match timezone offset at the end
+        date_str = re.sub(r'[+-]\d{2}:\d{2}$|Z$', '', date_str)
+        
+        return datetime.fromisoformat(date_str)
+    
+    start_date = parse_calendar_date(start_str)
+    end_date = parse_calendar_date(end_str)
+    
+    # Build query for trips in date range
+    query = Trip.query.filter(Trip.status == TripStatus.ANNOUNCED)
+    
+    if start_date:
+        query = query.filter(Trip.trip_date >= start_date.date())
+    if end_date:
+        query = query.filter(Trip.trip_date <= end_date.date())
+    
+    trips = query.order_by(Trip.trip_date.asc()).all()
+    
+    # Convert trips to FullCalendar events format
     events = []
-    for trip in upcoming_trips:
+    for trip in trips:
         events.append({
             'id': trip.id,
             'title': trip.title,
             'start': trip.trip_date.isoformat(),
             'url': url_for('trips.view_trip', trip_id=trip.id),
             'className': f'difficulty-{trip.difficulty.value}',
-            'description': f'{trip.destination} - {trip.difficulty.slovenian_name}'
+            'extendedProps': {
+                'destination': trip.destination,
+                'difficulty': trip.difficulty.value,
+                'difficultyLabel': trip.difficulty.slovenian_name,
+                'participantCount': len(trip.participants),
+                'maxParticipants': trip.max_participants,
+                'leader': trip.leader.name if trip.leader else 'Neznano'
+            }
         })
     
-    return render_template('trips/calendar.html', events=events)
+    return jsonify(events)

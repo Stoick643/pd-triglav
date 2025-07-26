@@ -7,6 +7,16 @@ from datetime import date, timedelta
 from models.trip import TripDifficulty, TripStatus
 
 
+def coerce_int_or_none(value):
+    """Coerce to int, but return None for empty strings"""
+    if value == '' or value is None:
+        return None
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return None
+
+
 class TripForm(FlaskForm):
     """Form for creating and editing trip announcements"""
     
@@ -179,7 +189,7 @@ class TripReportFilterForm(FlaskForm):
         Length(max=100, message='Iskalni niz ne sme biti daljši od 100 znakov.')
     ], description='Išči po naslovu, povzetku ali avtorju')
     
-    trip_id = SelectField('Izlet', validators=[Optional()], choices=[], coerce=int)
+    trip_id = SelectField('Izlet', validators=[Optional()], choices=[], coerce=coerce_int_or_none)
     
     author = StringField('Avtor', validators=[
         Optional(),

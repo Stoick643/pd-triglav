@@ -1,0 +1,489 @@
+/*
+PD Triglav - Component Library
+Specialized components for the mountaineering club
+*/
+
+/* === TRIP CARDS === */
+
+.trip-card {
+  background: var(--pd-surface-elevated);
+  border-radius: var(--pd-radius-lg);
+  box-shadow: var(--pd-shadow-sm);
+  border: 1px solid var(--pd-gray-200);
+  overflow: hidden;
+  transition: all var(--pd-transition-normal) var(--pd-ease-mountain);
+  position: relative;
+}
+
+.trip-card:hover {
+  box-shadow: var(--pd-shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--pd-primary-subtle);
+}
+
+.trip-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--pd-gradient-mountain);
+  opacity: 0;
+  transition: opacity var(--pd-transition-normal);
+}
+
+.trip-card:hover::before {
+  opacity: 1;
+}
+
+.trip-card-header {
+  padding: var(--pd-space-5);
+  background: var(--pd-gradient-dawn);
+  border-bottom: 1px solid var(--pd-border-color-light);
+}
+
+.trip-card-body {
+  padding: var(--pd-space-5);
+}
+
+.trip-card-footer {
+  padding: var(--pd-space-4) var(--pd-space-5);
+  background-color: var(--pd-gray-50);
+  border-top: 1px solid var(--pd-border-color-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trip-title {
+  font-size: var(--pd-text-xl);
+  font-weight: var(--pd-font-semibold);
+  color: var(--pd-gray-900);
+  margin-bottom: var(--pd-space-2);
+  line-height: var(--pd-leading-tight);
+}
+
+.trip-destination {
+  color: var(--pd-primary);
+  font-weight: var(--pd-font-medium);
+  font-size: var(--pd-text-base);
+  display: flex;
+  align-items: center;
+  gap: var(--pd-space-2);
+  margin-bottom: var(--pd-space-3);
+}
+
+.trip-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pd-space-4);
+  color: var(--pd-gray-600);
+  font-size: var(--pd-text-sm);
+  margin-bottom: var(--pd-space-4);
+}
+
+.trip-meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--pd-space-1);
+}
+
+.trip-description {
+  color: var(--pd-gray-700);
+  line-height: var(--pd-leading-relaxed);
+  margin-bottom: var(--pd-space-4);
+}
+
+/* === DIFFICULTY BADGES === */
+
+.difficulty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pd-space-1);
+  padding: var(--pd-space-1) var(--pd-space-3);
+  border-radius: var(--pd-radius-full);
+  font-size: var(--pd-text-sm);
+  font-weight: var(--pd-font-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  box-shadow: var(--pd-shadow-xs);
+  transition: all var(--pd-transition-fast) var(--pd-ease-mountain);
+}
+
+.difficulty-easy {
+  background-color: var(--pd-success);
+  color: var(--pd-white);
+}
+
+.difficulty-moderate {
+  background-color: var(--pd-warning);
+  color: var(--pd-gray-900);
+}
+
+.difficulty-difficult {
+  background-color: var(--pd-accent-orange);
+  color: var(--pd-white);
+}
+
+.difficulty-expert {
+  background-color: var(--pd-danger);
+  color: var(--pd-white);
+}
+
+/* === STATUS INDICATORS === */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pd-space-1);
+  padding: var(--pd-space-1) var(--pd-space-3);
+  border-radius: var(--pd-radius);
+  font-size: var(--pd-text-sm);
+  font-weight: var(--pd-font-medium);
+}
+
+.status-announced {
+  background-color: var(--pd-info);
+  color: var(--pd-white);
+}
+
+.status-completed {
+  background-color: var(--pd-success);
+  color: var(--pd-white);
+}
+
+.status-cancelled {
+  background-color: var(--pd-secondary);
+  color: var(--pd-white);
+}
+
+/* === PARTICIPANT INDICATORS === */
+
+.participant-count {
+  display: flex;
+  align-items: center;
+  gap: var(--pd-space-2);
+  padding: var(--pd-space-2) var(--pd-space-3);
+  background-color: var(--pd-primary-subtle);
+  border-radius: var(--pd-radius);
+  font-size: var(--pd-text-sm);
+  color: var(--pd-primary-dark);
+}
+
+.participant-count.full {
+  background-color: rgba(255, 107, 107, 0.1);
+  color: var(--pd-danger);
+}
+
+.participant-count.waitlist {
+  background-color: rgba(255, 212, 59, 0.1);
+  color: #8c6e00;
+}
+
+/* === COMMENT COMPONENTS === */
+
+.comment-thread {
+  background-color: var(--pd-white);
+  border-radius: var(--pd-radius-lg);
+  border: 1px solid var(--pd-border-color-light);
+  overflow: hidden;
+}
+
+.comment-item {
+  padding: var(--pd-space-4);
+  border-bottom: 1px solid var(--pd-border-color-light);
+  transition: background-color var(--pd-transition-fast);
+}
+
+.comment-item:last-child {
+  border-bottom: none;
+}
+
+.comment-item:hover {
+  background-color: var(--pd-gray-50);
+}
+
+.comment-author {
+  display: flex;
+  align-items: center;
+  gap: var(--pd-space-3);
+  margin-bottom: var(--pd-space-3);
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--pd-radius-full);
+  background: linear-gradient(135deg, var(--pd-primary) 0%, var(--pd-primary-light) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pd-white);
+  font-weight: var(--pd-font-semibold);
+  font-size: var(--pd-text-sm);
+}
+
+.comment-meta {
+  flex: 1;
+}
+
+.comment-name {
+  font-weight: var(--pd-font-semibold);
+  color: var(--pd-gray-900);
+  font-size: var(--pd-text-base);
+}
+
+.comment-time {
+  color: var(--pd-gray-600);
+  font-size: var(--pd-text-sm);
+}
+
+.comment-content {
+  color: var(--pd-gray-700);
+  line-height: var(--pd-leading-relaxed);
+  margin-left: 52px; /* Avatar width + gap */
+}
+
+/* === FORM ENHANCEMENTS === */
+
+.form-group-enhanced {
+  margin-bottom: var(--pd-space-6);
+}
+
+.form-label-enhanced {
+  font-weight: var(--pd-font-semibold);
+  color: var(--pd-gray-800);
+  margin-bottom: var(--pd-space-2);
+  display: block;
+}
+
+.form-control-enhanced {
+  border: 2px solid var(--pd-border-color);
+  border-radius: var(--pd-radius-lg);
+  padding: var(--pd-space-4);
+  font-size: var(--pd-text-base);
+  transition: all var(--pd-transition-fast) var(--pd-ease-mountain);
+  background-color: var(--pd-white);
+  width: 100%;
+}
+
+.form-control-enhanced:focus {
+  border-color: var(--pd-primary);
+  box-shadow: 0 0 0 4px rgba(44, 85, 48, 0.1);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.form-control-enhanced:hover:not(:focus) {
+  border-color: var(--pd-border-color-dark);
+}
+
+.form-help-text {
+  color: var(--pd-gray-600);
+  font-size: var(--pd-text-sm);
+  margin-top: var(--pd-space-2);
+  line-height: var(--pd-leading-normal);
+}
+
+/* === BUTTON ENHANCEMENTS === */
+
+.btn-mountain {
+  background: linear-gradient(135deg, var(--pd-primary) 0%, var(--pd-primary-dark) 100%);
+  border: none;
+  color: var(--pd-white);
+  font-weight: var(--pd-font-semibold);
+  padding: var(--pd-space-3) var(--pd-space-6);
+  border-radius: var(--pd-radius-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pd-space-2);
+  transition: all var(--pd-transition-normal) var(--pd-ease-mountain);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-mountain::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left var(--pd-transition-slow) var(--pd-ease-mountain);
+}
+
+.btn-mountain:hover::before {
+  left: 100%;
+}
+
+.btn-mountain:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pd-shadow-lg);
+  background: linear-gradient(135deg, var(--pd-primary-dark) 0%, var(--pd-primary) 100%);
+}
+
+.btn-mountain:active {
+  transform: translateY(0);
+  box-shadow: var(--pd-shadow);
+}
+
+.btn-mountain-outline {
+  background: transparent;
+  border: 2px solid var(--pd-primary);
+  color: var(--pd-primary);
+  font-weight: var(--pd-font-semibold);
+  padding: var(--pd-space-3) var(--pd-space-6);
+  border-radius: var(--pd-radius-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pd-space-2);
+  transition: all var(--pd-transition-normal) var(--pd-ease-mountain);
+}
+
+.btn-mountain-outline:hover {
+  background-color: var(--pd-primary);
+  color: var(--pd-white);
+  transform: translateY(-2px);
+  box-shadow: var(--pd-shadow-lg);
+}
+
+/* === LOADING STATES === */
+
+.loading-card {
+  background-color: var(--pd-white);
+  border-radius: var(--pd-radius-lg);
+  padding: var(--pd-space-5);
+  margin-bottom: var(--pd-space-4);
+}
+
+.loading-card .loading-title {
+  height: 24px;
+  background: var(--pd-gray-200);
+  border-radius: var(--pd-radius);
+  margin-bottom: var(--pd-space-3);
+  animation: shimmer 1.5s infinite;
+}
+
+.loading-card .loading-text {
+  height: 16px;
+  background: var(--pd-gray-200);
+  border-radius: var(--pd-radius);
+  margin-bottom: var(--pd-space-2);
+  animation: shimmer 1.5s infinite;
+}
+
+.loading-card .loading-text:last-child {
+  width: 75%;
+}
+
+/* === RESPONSIVE UTILITIES === */
+
+@media (max-width: 768px) {
+  .trip-card-body {
+    padding: var(--pd-space-4);
+  }
+  
+  .trip-card-header {
+    padding: var(--pd-space-4);
+  }
+  
+  .trip-card-footer {
+    padding: var(--pd-space-3) var(--pd-space-4);
+    flex-direction: column;
+    gap: var(--pd-space-3);
+    align-items: stretch;
+  }
+  
+  .trip-meta {
+    gap: var(--pd-space-2);
+  }
+  
+  .comment-content {
+    margin-left: 0;
+    margin-top: var(--pd-space-2);
+  }
+  
+  .btn-mountain,
+  .btn-mountain-outline {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* === ANIMATION UTILITIES === */
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.slide-up {
+  animation: slideUp 0.3s var(--pd-ease-mountain);
+}
+
+.scale-in {
+  animation: scaleIn 0.2s var(--pd-ease-peak);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* === ACCESSIBILITY ENHANCEMENTS === */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.focus-visible:focus-visible {
+  outline: 3px solid var(--pd-accent-blue);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .trip-card {
+    border: 2px solid var(--pd-gray-400);
+  }
+  
+  .btn-mountain {
+    border: 2px solid var(--pd-white);
+  }
+  
+  .difficulty-badge,
+  .status-badge {
+    border: 1px solid currentColor;
+  }
+}

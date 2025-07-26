@@ -2,135 +2,471 @@
 
 {% block title %}Koledar izletov - PD Triglav{% endblock %}
 
+{% block head %}
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<style>
+/* FullCalendar Alpine Elegance Customization */
+:root {
+  --fc-border-color: var(--pd-border-color-light);
+  --fc-daygrid-event-dot-width: 8px;
+  --fc-today-bg-color: rgba(44, 85, 48, 0.05);
+  --fc-neutral-bg-color: var(--pd-surface-elevated);
+  --fc-neutral-text-color: var(--pd-gray-700);
+  --fc-page-bg-color: var(--pd-gray-50);
+}
+
+.fc {
+  font-family: var(--pd-font-family-primary);
+  font-size: var(--pd-text-sm);
+}
+
+.fc-header-toolbar {
+  margin-bottom: var(--pd-space-6) !important;
+  padding: var(--pd-space-4);
+  background: var(--pd-gradient-dawn);
+  border-radius: var(--pd-radius-lg);
+  box-shadow: var(--pd-shadow);
+}
+
+.fc-toolbar-title {
+  font-family: var(--pd-font-family-heading) !important;
+  font-weight: var(--pd-font-bold) !important;
+  font-size: var(--pd-text-2xl) !important;
+  color: var(--pd-primary) !important;
+}
+
+.fc-button {
+  background: var(--pd-surface-elevated) !important;
+  border: 1px solid var(--pd-border-color) !important;
+  color: var(--pd-gray-700) !important;
+  border-radius: var(--pd-radius) !important;
+  font-weight: var(--pd-font-medium) !important;
+  padding: var(--pd-space-2) var(--pd-space-4) !important;
+  transition: all var(--pd-transition-fast) var(--pd-ease-mountain) !important;
+}
+
+.fc-button:hover {
+  background: var(--pd-primary-subtle) !important;
+  border-color: var(--pd-primary) !important;
+  color: var(--pd-primary-dark) !important;
+  transform: translateY(-1px);
+}
+
+.fc-button-primary:not(:disabled).fc-button-active {
+  background: var(--pd-primary) !important;
+  border-color: var(--pd-primary) !important;
+  color: var(--pd-white) !important;
+}
+
+.fc-daygrid-day {
+  border: 1px solid var(--pd-border-color-light) !important;
+}
+
+.fc-daygrid-day:hover {
+  background-color: var(--pd-primary-subtle) !important;
+}
+
+.fc-daygrid-day-number {
+  color: var(--pd-gray-700) !important;
+  font-weight: var(--pd-font-medium) !important;
+  padding: var(--pd-space-2) !important;
+}
+
+.fc-col-header-cell {
+  background: var(--pd-gray-50) !important;
+  border: 1px solid var(--pd-border-color) !important;
+  font-weight: var(--pd-font-semibold) !important;
+  color: var(--pd-gray-800) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  font-size: var(--pd-text-xs) !important;
+}
+
+.fc-event {
+  border: none !important;
+  border-radius: var(--pd-radius) !important;
+  font-weight: var(--pd-font-semibold) !important;
+  font-size: var(--pd-text-sm) !important;
+  padding: 2px 6px !important;
+  margin: 1px 2px !important;
+  cursor: pointer !important;
+  transition: all var(--pd-transition-fast) var(--pd-ease-mountain) !important;
+  text-decoration: none !important;
+  opacity: 1 !important;
+}
+
+.fc-event-title {
+  color: inherit !important;
+  text-decoration: none !important;
+  font-weight: var(--pd-font-semibold) !important;
+  opacity: 1 !important;
+}
+
+.fc-event-title-container {
+  opacity: 1 !important;
+}
+
+.fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--pd-shadow-md) !important;
+  opacity: 0.9 !important;
+}
+
+.fc-event:hover .fc-event-title {
+  opacity: 1 !important;
+}
+
+.fc-event.difficulty-easy {
+  background-color: var(--pd-success) !important;
+  border: 1px solid var(--pd-success) !important;
+  color: var(--pd-white) !important;
+}
+
+.fc-event.difficulty-easy .fc-event-title {
+  color: var(--pd-white) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.fc-event.difficulty-moderate {
+  background-color: var(--pd-warning) !important;
+  border: 1px solid var(--pd-warning) !important;
+  color: var(--pd-gray-900) !important;
+}
+
+.fc-event.difficulty-moderate .fc-event-title {
+  color: var(--pd-gray-900) !important;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+}
+
+.fc-event.difficulty-difficult {
+  background-color: var(--pd-accent-orange) !important;
+  border: 1px solid var(--pd-accent-orange) !important;
+  color: var(--pd-white) !important;
+}
+
+.fc-event.difficulty-difficult .fc-event-title {
+  color: var(--pd-white) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.fc-event.difficulty-expert {
+  background-color: var(--pd-danger) !important;
+  border: 1px solid var(--pd-danger) !important;
+  color: var(--pd-white) !important;
+}
+
+.fc-event.difficulty-expert .fc-event-title {
+  color: var(--pd-white) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.fc-daygrid-more-link {
+  color: var(--pd-primary) !important;
+  font-weight: var(--pd-font-medium) !important;
+}
+
+.fc-today {
+  background-color: var(--pd-today-bg-color) !important;
+}
+
+.fc-day-other {
+  opacity: 0.5;
+}
+
+/* Additional event styling improvements */
+.fc-daygrid-event {
+  border-radius: var(--pd-radius) !important;
+  border: none !important;
+  font-weight: var(--pd-font-semibold) !important;
+}
+
+.fc-daygrid-event .fc-event-title {
+  font-size: var(--pd-text-sm) !important;
+  line-height: 1.3;
+  padding: 1px 0;
+}
+
+/* Improve event spacing and readability */
+.fc-daygrid-event-harness {
+  margin-bottom: 1px !important;
+}
+
+/* Make "more" links more visible */
+.fc-daygrid-more-link {
+  background: var(--pd-primary-subtle) !important;
+  border-radius: var(--pd-radius) !important;
+  padding: 1px 4px !important;
+  font-size: var(--pd-text-xs) !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .fc-header-toolbar {
+    flex-direction: column !important;
+    gap: var(--pd-space-3);
+  }
+  
+  .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .fc-button {
+    font-size: var(--pd-text-sm) !important;
+    padding: var(--pd-space-2) var(--pd-space-3) !important;
+  }
+  
+  .fc-daygrid-event {
+    font-size: 10px !important;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <!-- Page header -->
+            <div class="d-flex justify-content-between align-items-center" style="margin-bottom: var(--pd-space-8);">
                 <div>
-                    <h1 class="h2 mb-0">Koledar izletov</h1>
-                    <p class="text-muted">Pregled prihajaočih planinskih izletov po datumih</p>
+                    <h1 class="pd-font-heading" style="margin-bottom: var(--pd-space-2); color: var(--pd-gray-900);">
+                        <i class="bi bi-calendar3 me-3 pd-text-primary"></i>Koledar izletov
+                    </h1>
+                    <p class="pd-text-muted" style="font-size: var(--pd-text-lg); margin-bottom: 0;">
+                        Pregled planinskih izletov po datumih
+                    </p>
                 </div>
-                <div>
-                    <a href="{{ url_for('trips.list_trips') }}" class="btn btn-outline-primary me-2">
-                        <i class="bi bi-list"></i> Seznam
+                
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('trips.list_trips') }}" class="btn-mountain-outline">
+                        <i class="bi bi-list"></i>Seznam
                     </a>
                     {% if current_user.is_authenticated and current_user.role.value in ['trip_leader', 'admin'] %}
-                    <a href="{{ url_for('trips.create_trip') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle me-2"></i>Nova objava
+                    <a href="{{ url_for('trips.create_trip') }}" class="btn-mountain">
+                        <i class="bi bi-plus-circle"></i>Nova objava
                     </a>
                     {% endif %}
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Calendar legend -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body py-2">
-                    <div class="d-flex justify-content-center align-items-center flex-wrap">
-                        <small class="me-4">
-                            <span class="badge bg-success me-1">●</span> Lahka tura
-                        </small>
-                        <small class="me-4">
-                            <span class="badge bg-warning me-1">●</span> Srednje zahtevna
-                        </small>
-                        <small class="me-4">
-                            <span class="badge bg-danger me-1">●</span> Zahtevna
-                        </small>
-                        <small class="me-4">
-                            <span class="badge bg-dark me-1">●</span> Zelo zahtevna
-                        </small>
+
+            <!-- Calendar legend -->
+            <div class="card" style="margin-bottom: var(--pd-space-6);">
+                <div class="card-body" style="padding: var(--pd-space-4);">
+                    <div class="d-flex justify-content-center align-items-center flex-wrap gap-4">
+                        <div class="d-flex align-items-center">
+                            <div class="difficulty-badge difficulty-easy me-2">
+                                <i class="bi bi-triangle-fill"></i>
+                            </div>
+                            <small style="font-weight: var(--pd-font-medium);">Lahka tura</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="difficulty-badge difficulty-moderate me-2">
+                                <i class="bi bi-triangle-fill"></i>
+                            </div>
+                            <small style="font-weight: var(--pd-font-medium);">Srednje zahtevna</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="difficulty-badge difficulty-difficult me-2">
+                                <i class="bi bi-triangle-fill"></i>
+                            </div>
+                            <small style="font-weight: var(--pd-font-medium);">Zahtevna</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="difficulty-badge difficulty-expert me-2">
+                                <i class="bi bi-triangle-fill"></i>
+                            </div>
+                            <small style="font-weight: var(--pd-font-medium);">Zelo zahtevna</small>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Calendar view -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div id="calendar-container">
-                        {% if events %}
-                            <div class="row">
-                                {% for event in events %}
-                                <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card border-start border-4 border-{{ 'success' if 'easy' in event.className else 'warning' if 'moderate' in event.className else 'danger' if 'difficult' in event.className else 'dark' }}">
-                                        <div class="card-body py-3">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <h6 class="card-title mb-0">
-                                                    <a href="{{ event.url }}" class="text-decoration-none">
-                                                        {{ event.title }}
-                                                    </a>
-                                                </h6>
-                                                {% set difficulty_parts = event.description.split(' - ') %}
-                                                {% if difficulty_parts|length > 1 %}
-                                                <span class="badge bg-{{ 'success' if 'easy' in event.className else 'warning' if 'moderate' in event.className else 'danger' if 'difficult' in event.className else 'dark' }} ms-2">
-                                                    {{ difficulty_parts[1] }}
-                                                </span>
-                                                {% endif %}
-                                            </div>
-                                            
-                                            <p class="card-text small text-muted mb-2">
-                                                <i class="bi bi-geo-alt me-1"></i>
-                                                {% set difficulty_parts = event.description.split(' - ') %}
-                                                {{ difficulty_parts[0] if difficulty_parts else event.description }}
-                                            </p>
-                                            
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <small class="text-muted">
-                                                    <i class="bi bi-calendar me-1"></i>
-                                                    {{ event.start }}
-                                                </small>
-                                                <a href="{{ event.url }}" class="btn btn-sm btn-outline-primary">
-                                                    Podrobnosti
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="bi bi-calendar-x display-1 text-muted"></i>
-                                <h3 class="mt-3 text-muted">Ni najdenih izletov</h3>
-                                <p class="text-muted">Trenutno ni objavljenih prihajaočih izletov.</p>
-                                {% if current_user.is_authenticated and current_user.role.value in ['trip_leader', 'admin'] %}
-                                <a href="{{ url_for('trips.create_trip') }}" class="btn btn-primary mt-3">
-                                    <i class="bi bi-plus-circle me-2"></i>Objavi prvi izlet
-                                </a>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                    </div>
+            
+            <!-- FullCalendar Container -->
+            <div class="card pd-elevation-mountain">
+                <div class="card-body" style="padding: var(--pd-space-5);">
+                    <div id="calendar"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<style>
-.border-4 {
-    border-width: 4px !important;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-    transition: transform 0.2s ease-in-out;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-</style>
-
-<!-- Future enhancement: Add JavaScript calendar library -->
-<!--
+{% block scripts %}
+<!-- FullCalendar JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script>
-// TODO: Integrate with FullCalendar.js or similar library
-// for interactive calendar with drag/drop, different views, etc.
+// Fallback CDN if primary fails
+if (typeof FullCalendar === 'undefined') {
+    console.log('Primary CDN failed, loading fallback...');
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/fullcalendar@6.1.11/index.global.min.js';
+    script.onload = function() {
+        console.log('Fallback CDN loaded successfully');
+        initializeCalendar();
+    };
+    script.onerror = function() {
+        console.error('Both CDNs failed to load FullCalendar');
+        document.getElementById('calendar').innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Unable to load calendar. Please check your internet connection.</div>';
+    };
+    document.head.appendChild(script);
+} else {
+    console.log('Primary CDN loaded successfully');
+    initializeCalendar();
+}
+
+function initializeCalendar() {
+    console.log('Calendar script loading...');
+    const calendarEl = document.getElementById('calendar');
+    
+    if (!calendarEl) {
+        console.error('Calendar element not found!');
+        return;
+    }
+    
+    console.log('Calendar element found:', calendarEl);
+    
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'sl', // Slovenian locale
+        firstDay: 1, // Monday as first day
+        
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek,listWeek'
+        },
+        
+        buttonText: {
+            today: 'Danes',
+            month: 'Mesec',
+            week: 'Teden',
+            list: 'Seznam'
+        },
+        
+        height: 'auto',
+        
+        // Events data source
+        events: function(fetchInfo, successCallback, failureCallback) {
+            console.log('Fetching events for date range:', fetchInfo.startStr, 'to', fetchInfo.endStr);
+            const url = `{{ url_for('trips.calendar_events') }}?start=${fetchInfo.startStr}&end=${fetchInfo.endStr}`;
+            console.log('Fetching from URL:', url);
+            
+            // Fetch events from our Flask endpoint
+            fetch(url)
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Received events data:', data);
+                    console.log('Number of events:', data.length);
+                    successCallback(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching calendar events:', error);
+                    failureCallback(error);
+                });
+        },
+        
+        // Event styling based on difficulty
+        eventDidMount: function(info) {
+            const difficulty = info.event.extendedProps.difficulty;
+            if (difficulty) {
+                info.el.classList.add(`difficulty-${difficulty}`);
+            }
+            
+            // Add tooltip
+            info.el.setAttribute('title', 
+                `${info.event.title}\n${info.event.extendedProps.destination}\nZahtevnost: ${info.event.extendedProps.difficultyLabel}`
+            );
+        },
+        
+        // Event click handler
+        eventClick: function(info) {
+            // Navigate to trip detail page
+            window.location.href = info.event.url;
+        },
+        
+        // Date click handler for trip leaders/admins
+        dateClick: function(info) {
+            {% if current_user.is_authenticated and current_user.role.value in ['trip_leader', 'admin'] %}
+            if (info.date >= new Date().setHours(0,0,0,0)) {
+                const createUrl = `{{ url_for('trips.create_trip') }}?date=${info.dateStr}`;
+                if (confirm('Ali želite ustvariti nov izlet za ' + info.dateStr + '?')) {
+                    window.location.href = createUrl;
+                }
+            }
+            {% endif %}
+        },
+        
+        // Day cell styling
+        dayCellDidMount: function(info) {
+            // Highlight weekends subtly
+            if (info.date.getDay() === 0 || info.date.getDay() === 6) {
+                info.el.style.backgroundColor = 'rgba(44, 85, 48, 0.02)';
+            }
+        },
+        
+        // Loading state
+        loading: function(isLoading) {
+            const loadingEl = document.getElementById('calendar-loading');
+            if (loadingEl) {
+                loadingEl.style.display = isLoading ? 'block' : 'none';
+            }
+        },
+        
+        // No events message
+        noEventsContent: {
+            html: `
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x display-1 text-muted"></i>
+                    <h4 class="mt-3 text-muted">Ni izletov v tem obdobju</h4>
+                    <p class="text-muted">Ni načrtovanih izletov za izbrane datume.</p>
+                    {% if current_user.is_authenticated and current_user.role.value in ['trip_leader', 'admin'] %}
+                    <a href="{{ url_for('trips.create_trip') }}" class="btn-mountain mt-3">
+                        <i class="bi bi-plus-circle"></i>Dodaj izlet
+                    </a>
+                    {% endif %}
+                </div>
+            `
+        }
+    });
+    
+    console.log('Rendering calendar...');
+    calendar.render();
+    console.log('Calendar rendered successfully');
+    
+    // Add loading indicator
+    const calendarContainer = document.querySelector('#calendar');
+    const loadingEl = document.createElement('div');
+    loadingEl.id = 'calendar-loading';
+    loadingEl.className = 'text-center py-4';
+    loadingEl.style.display = 'none';
+    loadingEl.innerHTML = `
+        <div class="loading-shimmer" style="width: 100%; height: 400px; border-radius: var(--pd-radius-lg);"></div>
+        <p class="mt-3 text-muted">Nalagam koledar...</p>
+    `;
+    calendarContainer.parentNode.insertBefore(loadingEl, calendarContainer);
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof FullCalendar !== 'undefined') {
+            initializeCalendar();
+        }
+    });
+} else {
+    // DOM already loaded
+    if (typeof FullCalendar !== 'undefined') {
+        initializeCalendar();
+    }
+}
 </script>
--->
 {% endblock %}

@@ -138,8 +138,12 @@
                                         </td>
                                         <td>
                                             <div>
+                                                {% if report.trip %}
                                                 <strong>{{ report.trip.title }}</strong>
                                                 <br><small class="text-muted">{{ report.trip.destination }}</small>
+                                                {% else %}
+                                                <strong class="text-warning">Podatki o izletu niso na voljo</strong>
+                                                {% endif %}
                                             </div>
                                         </td>
                                         <td>

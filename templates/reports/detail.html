@@ -144,10 +144,33 @@
             <div class="card mb-4">
                 <div class="card-body">
                     <div class="report-content">
-                        {{ report.content|replace('\n', '<br>')|safe }}
+                        {{ report.content|markdown|safe }}
                     </div>
                 </div>
             </div>
+            
+            <style>
+            .report-content {
+                font-family: var(--pd-font-family-primary);
+                font-size: var(--pd-text-base);
+                line-height: 1.7;
+                color: var(--pd-gray-800);
+            }
+            
+            .report-content strong {
+                font-weight: var(--pd-font-bold);
+                color: var(--pd-primary-dark);
+            }
+            
+            .report-content em {
+                font-style: italic;
+                color: var(--pd-gray-700);
+            }
+            
+            .report-content p {
+                margin-bottom: var(--pd-space-4);
+            }
+            </style>
             
             <!-- Comments section -->
             <div class="card">

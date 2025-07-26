@@ -7,45 +7,56 @@
     <div class="row">
         <div class="col-12">
             <!-- Page header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center" style="margin-bottom: var(--pd-space-8);">
                 <div>
-                    <h1 class="h2 mb-0">Objave izletov</h1>
-                    <p class="text-muted">Preglejte in se prijavite na prihajajoče planinske izlete</p>
+                    <h1 class="pd-font-heading" style="margin-bottom: var(--pd-space-2); color: var(--pd-gray-900);">
+                        <i class="bi bi-mountain me-3 pd-text-primary"></i>Objave izletov
+                    </h1>
+                    <p class="pd-text-muted" style="font-size: var(--pd-text-lg); margin-bottom: 0;">
+                        Preglejte in se prijavite na prihajajoče planinske izlete
+                    </p>
                 </div>
                 
                 {% if current_user.is_authenticated and current_user.role.value in ['trip_leader', 'admin'] %}
                 <div>
-                    <a href="{{ url_for('trips.create_trip') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle me-2"></i>Nova objava
+                    <a href="{{ url_for('trips.create_trip') }}" class="btn-mountain">
+                        <i class="bi bi-plus-circle"></i>Nova objava
                     </a>
                 </div>
                 {% endif %}
             </div>
 
             <!-- Filter form -->
-            <div class="card mb-4">
+            <div class="card" style="margin-bottom: var(--pd-space-6); box-shadow: var(--pd-shadow-lg);">
+                <div class="card-header">
+                    <h5 style="margin: 0; color: var(--pd-gray-800);">
+                        <i class="bi bi-funnel me-2"></i>Filtriraj izlete
+                    </h5>
+                </div>
                 <div class="card-body">
-                    <form method="POST" class="row g-3">
+                    <form method="POST" class="row g-4">
                         {{ form.hidden_tag() }}
                         
                         <div class="col-md-3">
-                            {{ form.difficulty.label(class="form-label") }}
-                            {{ form.difficulty(class="form-select") }}
+                            {{ form.difficulty.label(class="form-label-enhanced") }}
+                            {{ form.difficulty(class="form-control-enhanced") }}
                         </div>
                         
                         <div class="col-md-3">
-                            {{ form.status.label(class="form-label") }}
-                            {{ form.status(class="form-select") }}
+                            {{ form.status.label(class="form-label-enhanced") }}
+                            {{ form.status(class="form-control-enhanced") }}
                         </div>
                         
                         <div class="col-md-4">
-                            {{ form.search.label(class="form-label") }}
-                            {{ form.search(class="form-control", placeholder="Išči po naslovu ali cilju...") }}
-                            <div class="form-text">{{ form.search.description }}</div>
+                            {{ form.search.label(class="form-label-enhanced") }}
+                            {{ form.search(class="form-control-enhanced", placeholder="Išči po naslovu ali cilju...") }}
+                            {% if form.search.description %}
+                            <div class="form-help-text">{{ form.search.description }}</div>
+                            {% endif %}
                         </div>
                         
                         <div class="col-md-2 d-flex align-items-end">
-                            {{ form.submit(class="btn btn-outline-primary w-100") }}
+                            {{ form.submit(class="btn-mountain-outline w-100") }}
                         </div>
                     </form>
                 </div>
@@ -55,71 +66,80 @@
             <div class="row">
                 {% if trips %}
                     {% for trip in trips %}
-                    <div class="col-lg-6 col-xl-4 mb-4">
-                        <div class="card h-100 trip-card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="badge bg-{{ 'success' if trip.difficulty.value == 'easy' else 'warning' if trip.difficulty.value == 'moderate' else 'danger' if trip.difficulty.value == 'difficult' else 'dark' }}">
-                                        {{ trip.difficulty.slovenian_name }}
-                                    </span>
-                                    {% if trip.is_past %}
-                                        <span class="badge bg-secondary">Preteklo</span>
-                                    {% elif trip.status.value == 'cancelled' %}
-                                        <span class="badge bg-danger">Odpovedan</span>
-                                    {% elif trip.is_full %}
-                                        <span class="badge bg-warning">Zaseden</span>
-                                    {% endif %}
+                    <div class="col-lg-6 col-xl-4 mb-4 fade-in">
+                        <div class="trip-card h-100">
+                            <div class="trip-card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <span class="difficulty-badge difficulty-{{ trip.difficulty.value }}">
+                                            <i class="bi bi-triangle-fill"></i>
+                                            {{ trip.difficulty.slovenian_name }}
+                                        </span>
+                                        {% if trip.is_past %}
+                                            <span class="status-badge bg-secondary">Preteklo</span>
+                                        {% elif trip.status.value == 'cancelled' %}
+                                            <span class="status-badge status-cancelled">Odpovedan</span>
+                                        {% elif trip.is_full %}
+                                            <span class="participant-count full">
+                                                <i class="bi bi-people-fill"></i>Zaseden
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <time class="pd-text-subtle" style="font-size: var(--pd-text-sm); font-weight: var(--pd-font-medium);">
+                                        {{ trip.trip_date.strftime('%d.%m.%Y') }}
+                                    </time>
                                 </div>
-                                <small class="text-muted">{{ trip.trip_date.strftime('%d.%m.%Y') }}</small>
                             </div>
                             
-                            <div class="card-body">
-                                <h5 class="card-title">
+                            <div class="trip-card-body">
+                                <h3 class="trip-title">
                                     <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="text-decoration-none">
                                         {{ trip.title }}
                                     </a>
-                                </h5>
+                                </h3>
                                 
-                                <p class="card-text">
-                                    <i class="bi bi-geo-alt text-primary me-1"></i>
-                                    <strong>{{ trip.destination }}</strong>
-                                </p>
+                                <div class="trip-destination">
+                                    <i class="bi bi-geo-alt"></i>
+                                    {{ trip.destination }}
+                                </div>
                                 
                                 {% if trip.description %}
-                                <p class="card-text text-muted small">
-                                    {{ trip.description[:100] }}{% if trip.description|length > 100 %}...{% endif %}
+                                <p class="trip-description">
+                                    {{ trip.description[:120] }}{% if trip.description|length > 120 %}...{% endif %}
                                 </p>
                                 {% endif %}
                                 
-                                <div class="row text-center small text-muted">
-                                    <div class="col-4">
-                                        <i class="bi bi-person-fill"></i><br>
+                                <div class="trip-meta">
+                                    <div class="trip-meta-item">
+                                        <i class="bi bi-people-fill"></i>
                                         <span>{{ trip.confirmed_participants_count }}{% if trip.max_participants %}/{{ trip.max_participants }}{% endif %}</span>
                                     </div>
-                                    <div class="col-4">
-                                        <i class="bi bi-clock-fill"></i><br>
+                                    <div class="trip-meta-item">
+                                        <i class="bi bi-clock-fill"></i>
                                         <span>{{ trip.meeting_time.strftime('%H:%M') if trip.meeting_time else 'TBD' }}</span>
                                     </div>
-                                    <div class="col-4">
-                                        <i class="bi bi-chat-fill"></i><br>
+                                    <div class="trip-meta-item">
+                                        <i class="bi bi-chat-dots"></i>
                                         <span>{{ trip.comment_count }}</span>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="card-footer">
+                            <div class="trip-card-footer">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">
-                                        Vodnik: {{ trip.leader.name }}
+                                    <small style="color: var(--pd-gray-600); font-weight: var(--pd-font-medium);">
+                                        <i class="bi bi-person-badge me-1"></i>{{ trip.leader.name }}
                                     </small>
                                     
                                     {% if current_user.is_authenticated and trip.can_signup %}
                                         {% set user_status = trip.get_participant_status(current_user) %}
                                         {% if user_status %}
-                                            <span class="badge bg-success">Prijavljen</span>
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle me-1"></i>Prijavljen
+                                            </span>
                                         {% elif trip.can_user_signup(current_user) %}
-                                            <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="btn btn-sm btn-primary">
-                                                Prijavi se
+                                            <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="btn btn-sm btn-mountain">
+                                                <i class="bi bi-plus-circle"></i>Prijavi se
                                             </a>
                                         {% endif %}
                                     {% endif %}
