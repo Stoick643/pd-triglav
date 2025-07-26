@@ -8,8 +8,9 @@ from sqlalchemy.orm import joinedload
 
 from models.user import db, User, UserRole
 from models.trip import Trip
-from models.content import TripReport, Comment, CommentType
+from models.content import TripReport, Comment, CommentType, Photo
 from forms.trip_forms import TripReportForm, TripReportFilterForm, TripCommentForm
+from utils.s3_upload import upload_photos_for_report
 
 bp = Blueprint('reports', __name__)
 
@@ -165,10 +166,45 @@ def create_report(trip_id=None):
         
         try:
             db.session.add(report)
+            db.session.flush()  # Get report.id without committing
+            
+            # Handle photo uploads if any
+            uploaded_photos = []
+            if form.photos.data:
+                try:
+                    photo_metadata_list = upload_photos_for_report(form.photos.data, report.id)
+                    
+                    # Create Photo objects and add to database
+                    for metadata in photo_metadata_list:
+                        photo = Photo(
+                            filename=metadata['filename'],
+                            original_filename=metadata['original_filename'],
+                            caption=metadata['caption'],
+                            s3_key=metadata['s3_key'],
+                            s3_bucket=metadata['s3_bucket'],
+                            file_size=metadata['file_size'],
+                            width=metadata['width'],
+                            height=metadata['height'],
+                            content_type=metadata['content_type'],
+                            trip_report_id=report.id,
+                            uploaded_by=current_user.id
+                        )
+                        db.session.add(photo)
+                        uploaded_photos.append(photo)
+                    
+                except Exception as photo_error:
+                    db.session.rollback()
+                    flash(f'Napaka pri nalaganju fotografij: {photo_error}', 'error')
+                    return render_template('reports/create.html', 
+                                         form=form, 
+                                         trip=selected_trip, 
+                                         available_trips=available_trips)
+            
             db.session.commit()
             
             if is_published:
-                flash(f'Poročilo "{report.title}" je bilo uspešno objavljeno!', 'success')
+                photo_msg = f" z {len(uploaded_photos)} fotografijami" if uploaded_photos else ""
+                flash(f'Poročilo "{report.title}"{photo_msg} je bilo uspešno objavljeno!', 'success')
             else:
                 flash(f'Poročilo "{report.title}" je bilo shranjeno kot osnutek.', 'info')
             

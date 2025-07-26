@@ -1,6 +1,7 @@
 """Forms for trip management"""
 
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, MultipleFileField, FileAllowed, FileSize
 from wtforms import StringField, TextAreaField, DateField, TimeField, SelectField, IntegerField, FloatField, SubmitField
 from wtforms.validators import DataRequired, Length, Optional, NumberRange, ValidationError
 from datetime import date, timedelta
@@ -169,6 +170,13 @@ class TripReportForm(FlaskForm):
         Length(max=200, message='Opis stanja poti ne sme biti daljši od 200 znakov.')
     ], description='Suho, mokro, zasneženo, potreba po derezah...')
     
+    # Photo upload
+    photos = MultipleFileField('Fotografije', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'gif'], message='Dovoljene so samo slike (JPG, PNG, GIF).'),
+        FileSize(max_size=10*1024*1024, message='Velikost slike ne sme presegati 10 MB.')
+    ], description='Izberite do 10 fotografij za poročilo (JPG, PNG, GIF, do 10 MB vsaka)')
+    
     # Publication settings
     is_published = SelectField('Objavi poročilo', validators=[
         DataRequired()
@@ -179,6 +187,19 @@ class TripReportForm(FlaskForm):
     
     submit = SubmitField('Objavi poročilo')
     save_draft = SubmitField('Shrani osnutek')
+    
+    def validate_photos(self, field):
+        """Custom validation for photo uploads"""
+        if field.data:
+            # Limit number of photos
+            if len(field.data) > 10:
+                raise ValidationError('Lahko naložite največ 10 fotografij naenkrat.')
+            
+            # Check if any files are actually uploaded
+            uploaded_files = [f for f in field.data if f.filename != '']
+            if len(uploaded_files) != len(field.data):
+                # Remove empty file entries
+                field.data = uploaded_files
 
 
 class TripReportFilterForm(FlaskForm):

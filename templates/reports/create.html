@@ -20,7 +20,7 @@
                 </div>
             </div>
 
-            <form method="POST" novalidate>
+            <form method="POST" enctype="multipart/form-data" novalidate>
                 {{ form.hidden_tag() }}
                 
                 <!-- Pre-selected trip info -->
@@ -191,6 +191,30 @@
                     </div>
                 </div>
 
+                <!-- Photo upload -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-camera me-2"></i>Fotografije (izbirno)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.photos.label(class="form-label") }}
+                            {{ form.photos(class="form-control" + (" is-invalid" if form.photos.errors else ""), multiple=true, accept="image/*") }}
+                            {% for error in form.photos.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">{{ form.photos.description }}</div>
+                        </div>
+                        
+                        <!-- Photo preview area -->
+                        <div id="photo-preview" class="row g-2" style="display: none;">
+                            <div class="col-12">
+                                <small class="text-muted">Predogled izbranih fotografij:</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Publication settings -->
                 <div class="card mb-4">
                     <div class="card-header">
@@ -244,6 +268,51 @@ function insertText(startTag, endTag) {
     textarea.setSelectionRange(newCursorPos, newCursorPos);
     textarea.focus();
 }
+
+// Photo preview functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const photoInput = document.getElementById('photos');
+    const previewArea = document.getElementById('photo-preview');
+    
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            
+            if (files.length === 0) {
+                previewArea.style.display = 'none';
+                return;
+            }
+            
+            // Clear previous previews
+            const existingPreviews = previewArea.querySelectorAll('.photo-preview-item');
+            existingPreviews.forEach(item => item.remove());
+            
+            // Show preview area
+            previewArea.style.display = 'block';
+            
+            files.forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const previewItem = document.createElement('div');
+                        previewItem.className = 'col-md-3 col-sm-4 col-6 photo-preview-item';
+                        previewItem.innerHTML = `
+                            <div class="card">
+                                <img src="${e.target.result}" class="card-img-top" style="height: 120px; object-fit: cover;" alt="Preview">
+                                <div class="card-body p-2">
+                                    <small class="text-muted">${file.name}</small><br>
+                                    <small class="text-muted">${(file.size / 1024 / 1024).toFixed(1)} MB</small>
+                                </div>
+                            </div>
+                        `;
+                        previewArea.appendChild(previewItem);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    }
+});
 
 // Auto-save draft functionality (future enhancement)
 // TODO: Implement auto-save every few minutes to prevent data loss
