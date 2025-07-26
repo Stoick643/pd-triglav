@@ -16,3 +16,4 @@ pytest
 pytest-flask
 pytest-cov
 coverage
+gunicorn

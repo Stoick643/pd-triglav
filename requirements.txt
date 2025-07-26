@@ -55,6 +55,8 @@ flask-wtf==1.2.2
     # via -r requirements.in
 greenlet==3.2.3
     # via sqlalchemy
+gunicorn==23.0.0
+    # via -r requirements.in
 idna==3.10
     # via requests
 iniconfig==2.1.0
@@ -79,7 +81,9 @@ markupsafe==3.0.2
     #   werkzeug
     #   wtforms
 packaging==25.0
-    # via pytest
+    # via
+    #   gunicorn
+    #   pytest
 pillow==11.3.0
     # via -r requirements.in
 pluggy==1.6.0
