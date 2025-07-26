@@ -49,11 +49,21 @@ body {
   font-weight: var(--pd-font-normal);
   line-height: var(--pd-leading-normal);
   color: var(--pd-text-primary, #1a1a1b);
-  background: var(--pd-gradient-surface, #f7f5f1);
+  background: var(--pd-surface-primary, #f7f5f1);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: color var(--pd-transition-normal), background-color var(--pd-transition-normal);
+}
+
+html[data-theme="dark"] body {
+    color: var(--pd-text-primary);
+    background: var(--pd-surface-primary);
+}
+
+html[data-theme="light"] body {
+    color: var(--pd-text-primary);
+    background: var(--pd-surface-primary);
 }
 
 /* === TYPOGRAPHY === */

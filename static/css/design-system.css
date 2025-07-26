@@ -120,13 +120,12 @@ Alpine Elegance - Mountain-inspired web design
   --pd-gray-900: #212529;
 }
 
-/* === DARK THEME === (TEMPORARILY DISABLED)
-[data-theme="dark"] {
+html[data-theme="dark"] {
   /* Primary - Adjusted for dark backgrounds */
   --pd-primary: #4a7c59;        /* Brighter forest green */
   --pd-primary-light: #5fb85c;  /* Bright meadow */
   --pd-primary-dark: #2c5530;   /* Darker for contrast */
-  --pd-primary-subtle: #1a3d1f;  /* Dark mist */
+  --pd-primary-subtle: #242f26;  /* Dark mist */
   
   /* Secondary - Dark theme stone */
   --pd-secondary: #8e9297;       /* Lighter stone */
@@ -149,7 +148,7 @@ Alpine Elegance - Mountain-inspired web design
   --pd-surface-primary: #18191a;   /* Very dark background */
   --pd-surface-secondary: #242526; /* Dark surface */
   --pd-surface-tertiary: #3a3b3c;  /* Medium dark surface */
-  --pd-surface-elevated: #3a3b3c;  /* Card background */
+  --pd-surface-elevated: #242526;  /* Card background */
   
   /* Text Colors - Dark Theme */
   --pd-text-primary: #e4e6ea;     /* Warm white */
@@ -174,7 +173,7 @@ Alpine Elegance - Mountain-inspired web design
   --pd-gray-700: #e4e6ea;
   --pd-gray-800: #f0f2f5;
   --pd-gray-900: #ffffff;
-} */
+}
   
   /* === LAYOUT === */
   --pd-container-sm: 640px;
