@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.title }} - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            
+            <!-- Back navigation -->
+            <div class="mb-3">
+                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Nazaj na domačo stran
+                </a>
+            </div>
+
+            <!-- Event header -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="badge bg-primary mb-2">{{ event.full_date_string }}</span>
+                            {% if event.is_featured %}
+                            <span class="badge bg-warning text-dark mb-2 ms-1">
+                                <i class="bi bi-star-fill"></i> Izpostavljeno
+                            </span>
+                            {% endif %}
+                        </div>
+                        <span class="badge bg-secondary">{{ event.category.value|title }}</span>
+                    </div>
+                    
+                    <h1 class="h3 mb-3">{{ event.title }}</h1>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {% if event.location %}
+                            <p class="mb-2">
+                                <i class="bi bi-geo-alt text-muted me-2"></i>
+                                <strong>Lokacija:</strong> {{ event.location }}
+                            </p>
+                            {% endif %}
+                            
+                            {% if event.people_list %}
+                            <p class="mb-2">
+                                <i class="bi bi-people text-muted me-2"></i>
+                                <strong>Udeleženci:</strong> 
+                                {% for person in event.people_list %}
+                                    {{ person }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            {% if event.is_generated %}
+                            <p class="mb-2 text-muted small">
+                                <i class="bi bi-robot me-1"></i>
+                                Ustvarjeno z AI
+                            </p>
+                            {% endif %}
+                            
+                            <p class="mb-2 text-muted small">
+                                <i class="bi bi-calendar-plus me-1"></i>
+                                Dodano: {{ event.created_at.strftime('%d.%m.%Y') if event.created_at }}
+                            </p>
+                            
+                            {% if event.updated_at and event.updated_at != event.created_at %}
+                            <p class="mb-2 text-muted small">
+                                <i class="bi bi-pencil me-1"></i>
+                                Posodobljeno: {{ event.updated_at.strftime('%d.%m.%Y') }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event description -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-book text-muted me-2"></i>Opis dogodka
+                    </h5>
+                    <div class="text-justify">
+                        {{ event.description|safe }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sources and methodology -->
+            {% if event.url or event.url_secondary or event.methodology %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-link-45deg text-muted me-2"></i>Viri in metodologija
+                    </h5>
+                    
+                    {% if event.url or event.url_secondary %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Viri:</h6>
+                        {% if event.url %}
+                        <p class="mb-1">
+                            <i class="bi bi-globe2 me-2"></i>
+                            <a href="{{ event.url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                Glavni vir <i class="bi bi-box-arrow-up-right ms-1"></i>
+                            </a>
+                        </p>
+                        {% endif %}
+                        
+                        {% if event.url_secondary %}
+                        <p class="mb-1">
+                            <i class="bi bi-globe2 me-2"></i>
+                            <a href="{{ event.url_secondary }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                Dodaten vir <i class="bi bi-box-arrow-up-right ms-1"></i>
+                            </a>
+                        </p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if event.methodology %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Metodologija raziskave:</h6>
+                        <p class="text-muted small">{{ event.methodology }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if event.url_methodology %}
+                    <div>
+                        <h6 class="text-muted mb-2">Zanesljivost virov:</h6>
+                        <p class="text-muted small">{{ event.url_methodology }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Back to top -->
+            <div class="text-center mb-4">
+                <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                    <i class="bi bi-house-door"></i> Nazaj na domačo stran
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

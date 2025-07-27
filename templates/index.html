@@ -222,9 +222,6 @@
                                 Vsebina je bila {{ 'avtomatsko generirana' if todays_event.is_generated else 'ročno dodana' }}
                                 {{ todays_event.created_at.strftime('%-d. %-m. %Y') if todays_event.created_at else '' }}
                             </small>
-                            <a href="#" class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-archive me-1"></i>Zgodovina dogodkov
-                            </a>
                         </div>
                     </div>
                 {% else %}
@@ -238,38 +235,64 @@
                 {% endif %}
             </div>
             
-            <!-- History Archive Section (hidden by default) -->
+            <!-- Recent Historical Events Section (hidden by default) -->
             <div id="history-archive" class="border-top" style="display: none;">
                 <div class="p-3">
                     <h6 class="mb-3">
-                        <i class="bi bi-archive me-2"></i>Zgodovina dogodkov
-                        <span id="history-stats" class="text-muted small ms-2"></span>
+                        <i class="bi bi-archive me-2"></i>Zadnji zgodovinski dogodki
+                        {% if recent_events %}
+                        <span class="text-muted small ms-2">({{ recent_events|length }} dogodkov)</span>
+                        {% endif %}
                     </h6>
                     
-                    <!-- Loading indicator -->
-                    <div id="history-loading" class="text-center py-3" style="display: none;">
-                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                            <span class="visually-hidden">Nalagam...</span>
+                    {% if recent_events %}
+                    <div class="list-group list-group-flush">
+                        {% for event in recent_events %}
+                        <div class="list-group-item border-0 px-0 py-2">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="badge bg-light text-dark me-2">{{ event.full_date_string }}</span>
+                                        <span class="badge bg-{{ 'success' if event.category.value == 'first_ascent' else 'warning' if event.category.value == 'achievement' else 'info' if event.category.value == 'expedition' else 'secondary' if event.category.value == 'discovery' else 'danger' }} me-2">
+                                            {% if event.category.value == 'first_ascent' %}Prva vzpon
+                                            {% elif event.category.value == 'achievement' %}Dosežek
+                                            {% elif event.category.value == 'expedition' %}Odprava
+                                            {% elif event.category.value == 'discovery' %}Odkritje
+                                            {% elif event.category.value == 'tragedy' %}Tragedija
+                                            {% else %}Dogodek
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <h6 class="mb-1">{{ event.title }}</h6>
+                                    <p class="mb-1 text-muted small">
+                                        {% if event.description|length > 150 %}
+                                            {{ event.description[:150] }}...
+                                        {% else %}
+                                            {{ event.description }}
+                                        {% endif %}
+                                    </p>
+                                    {% if event.location %}
+                                    <small class="text-muted">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ event.location }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="ms-3">
+                                    <a href="{{ url_for('main.historical_event_detail', event_id=event.id) }}" 
+                                       class="btn btn-outline-primary btn-sm" 
+                                       title="Ogled polnega opisa">
+                                        <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                        Nalagam zgodovinske dogodke...
+                        {% endfor %}
                     </div>
-                    
-                    <!-- Events list -->
-                    <div id="history-events" class="list-group list-group-flush">
-                        <!-- Events will be loaded here via AJAX -->
-                    </div>
-                    
-                    <!-- Load more button -->
-                    <div id="load-more-container" class="text-center mt-3" style="display: none;">
-                        <button id="load-more-btn" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-plus-circle me-1"></i>Naloži več
-                        </button>
-                    </div>
-                    
-                    <!-- No events message -->
-                    <div id="no-events-message" class="text-center py-3 text-muted" style="display: none;">
+                    {% else %}
+                    <div class="text-center py-3 text-muted">
                         <i class="bi bi-info-circle me-2"></i>Ni zgodovinskih dogodkov za prikaz.
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -279,11 +302,6 @@
 <!-- Historical Events JavaScript -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let historyOffset = 0;
-    const historyLimit = 7;
-    let isLoadingHistory = false;
-    let hasMoreHistory = true;
-
     // Admin regenerate functionality
     const regenerateBtn = document.getElementById('regenerate-event-btn');
     if (regenerateBtn) {
@@ -298,19 +316,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleHistoryBtn = document.getElementById('toggle-history-btn');
     const historyArchive = document.getElementById('history-archive');
     
-    toggleHistoryBtn.addEventListener('click', function() {
-        if (historyArchive.style.display === 'none') {
-            showHistory();
-        } else {
-            hideHistory();
-        }
-    });
-
-    // Load more functionality
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    loadMoreBtn.addEventListener('click', function() {
-        loadHistoryEvents(historyOffset);
-    });
+    if (toggleHistoryBtn && historyArchive) {
+        toggleHistoryBtn.addEventListener('click', function() {
+            if (historyArchive.style.display === 'none') {
+                showHistory();
+            } else {
+                hideHistory();
+            }
+        });
+    }
 
     function regenerateEvent() {
         const btn = document.getElementById('regenerate-event-btn');
@@ -349,11 +363,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function showHistory() {
         historyArchive.style.display = 'block';
         toggleHistoryBtn.innerHTML = '<i class="bi bi-archive-fill"></i>';
-        
-        // Load events if not already loaded
-        if (historyOffset === 0) {
-            loadHistoryEvents(0);
-        }
     }
 
     function hideHistory() {
@@ -361,120 +370,26 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleHistoryBtn.innerHTML = '<i class="bi bi-archive"></i>';
     }
 
-    function loadHistoryEvents(offset) {
-        if (isLoadingHistory) return;
-        
-        isLoadingHistory = true;
-        const loading = document.getElementById('history-loading');
-        const loadMoreContainer = document.getElementById('load-more-container');
-        
-        loading.style.display = 'block';
-        loadMoreContainer.style.display = 'none';
-        
-        fetch(`/api/history/recent?offset=${offset}&limit=${historyLimit}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    displayHistoryEvents(data.events, offset === 0);
-                    historyOffset = data.loaded;
-                    hasMoreHistory = data.has_more;
-                    
-                    // Update stats
-                    const stats = document.getElementById('history-stats');
-                    stats.textContent = `(${data.loaded} od ${data.total})`;
-                    
-                    // Show/hide load more button
-                    if (hasMoreHistory) {
-                        loadMoreContainer.style.display = 'block';
-                    }
-                    
-                    // Show no events message if no events
-                    if (data.events.length === 0 && offset === 0) {
-                        document.getElementById('no-events-message').style.display = 'block';
-                    }
-                } else {
-                    alert('Napaka pri nalaganju dogodkov: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Napaka pri nalaganju dogodkov');
-            })
-            .finally(() => {
-                loading.style.display = 'none';
-                isLoadingHistory = false;
-            });
-    }
-
-    function displayHistoryEvents(events, clearExisting) {
-        const container = document.getElementById('history-events');
-        
-        if (clearExisting) {
-            container.innerHTML = '';
-        }
-        
-        events.forEach(event => {
-            const eventElement = createEventElement(event);
-            container.appendChild(eventElement);
-        });
-    }
-
-    function createEventElement(event) {
-        const div = document.createElement('div');
-        div.className = 'list-group-item list-group-item-action';
-        
-        const categoryBadge = getCategoryBadge(event.category);
-        const peopleText = event.people.length > 0 ? event.people.join(', ') : '';
-        
-        div.innerHTML = `
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    <div class="d-flex align-items-center mb-1">
-                        <strong class="me-2">${event.full_date_string}</strong>
-                        ${categoryBadge}
-                    </div>
-                    <h6 class="mb-1">${event.title}</h6>
-                    <p class="mb-1 text-muted small">${event.description}</p>
-                    ${event.location ? `<small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${event.location}</small>` : ''}
-                    ${peopleText ? `<small class="text-muted ms-3"><i class="bi bi-people me-1"></i>${peopleText}</small>` : ''}
-                </div>
-            </div>
-        `;
-        
-        return div;
-    }
-
-    function getCategoryBadge(category) {
-        const badges = {
-            'first_ascent': '<span class="badge bg-success">Prva vzpon</span>',
-            'achievement': '<span class="badge bg-warning">Dosežek</span>',
-            'expedition': '<span class="badge bg-info">Odprava</span>',
-            'discovery': '<span class="badge bg-secondary">Odkritje</span>',
-            'tragedy': '<span class="badge bg-danger">Tragedija</span>'
-        };
-        return badges[category] || '<span class="badge bg-light">Dogodek</span>';
-    }
-
+    // CSRF token helper
     function getCSRFToken() {
-        // Get CSRF token from meta tag if available
         const token = document.querySelector('meta[name="csrf-token"]');
         return token ? token.getAttribute('content') : '';
     }
 });
 
-// CSS for spinning animation
+// Add spinner animation CSS
 const style = document.createElement('style');
 style.textContent = `
     .spin {
         animation: spin 1s linear infinite;
     }
-    
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
     }
 `;
 document.head.appendChild(style);
+
 </script>
 
 {% endif %}

@@ -8,6 +8,7 @@ bp = Blueprint('main', __name__)
 def index():
     """Home page with role-based content"""
     todays_event = None
+    recent_events = []
     
     # Get today's historical event (temporarily for everyone)
     if True:  # Temporarily show to everyone
@@ -19,12 +20,36 @@ def index():
             if not todays_event:
                 from utils.content_generation import generate_todays_historical_event
                 todays_event = generate_todays_historical_event()
+            
+            # Get recent historical events (last 7, excluding today's)
+            from utils.llm_service import format_date_standard
+            from datetime import datetime
+            today_date = format_date_standard(datetime.now())
+            
+            recent_events = HistoricalEvent.query.filter(
+                HistoricalEvent.date != today_date
+            ).order_by(
+                HistoricalEvent.date.desc()
+            ).limit(7).all()
                 
         except Exception as e:
-            current_app.logger.error(f"Failed to get today's historical event: {e}")
-            # Continue without historical event
+            current_app.logger.error(f"Failed to get historical events: {e}")
+            # Continue without historical events
     
-    return render_template('index.html', todays_event=todays_event)
+    return render_template('index.html', todays_event=todays_event, recent_events=recent_events)
+
+
+@bp.route('/history/event/<int:event_id>')
+def historical_event_detail(event_id):
+    """Display full details of a historical event"""
+    try:
+        from models.content import HistoricalEvent
+        event = HistoricalEvent.query.get_or_404(event_id)
+        return render_template('history/event_detail.html', event=event)
+    except Exception as e:
+        current_app.logger.error(f"Error loading historical event {event_id}: {e}")
+        flash('Dogodek ni bil najden.', 'error')
+        return redirect(url_for('main.index'))
 
 
 @bp.route('/about')
