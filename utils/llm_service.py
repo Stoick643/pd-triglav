@@ -1,15 +1,13 @@
 """
-LLM Service for AI Content Generation
-Handles Kimi K2 (Moonshot) API integration for historical events
-DeepSeek API configuration is reserved for future news implementation (Phase 3B)
+LLM Service Coordinator for AI Content Generation
+Manages multiple LLM providers with fallback logic
 """
 
 import json
 import logging
-import requests
 import os
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 from flask import current_app
 
 # Set up logging
@@ -36,17 +34,21 @@ class LLMError(Exception):
 
 
 class LLMService:
-    """Service for LLM API integration with Kimi K2 (Moonshot)"""
+    """Coordinator service for multiple LLM providers"""
     
     def __init__(self):
-        self.api_key = current_app.config.get('MOONSHOT_API_KEY')
-        self.api_url = current_app.config.get('MOONSHOT_API_URL', 'https://api.moonshot.cn/v1/chat/completions')
-        self.model = 'kimi-k2-0711-preview' #'moonshot-v1-8k'
-        self.timeout = 30  # seconds
-        self.max_retries = 3
-        
-        if not self.api_key:
-            logger.warning("MOONSHOT_API_KEY not configured - LLM service will not work")
+        self.provider_manager = None
+        self._initialize_providers()
+    
+    def _initialize_providers(self):
+        """Initialize the provider manager"""
+        try:
+            from utils.llm_providers import ProviderManager
+            self.provider_manager = ProviderManager()
+            logger.info(f"Initialized providers: {self.provider_manager.get_available_providers()}")
+        except Exception as e:
+            logger.error(f"Failed to initialize provider manager: {e}")
+            self.provider_manager = None
     
     def _load_prompt_template(self) -> str:
         """Load prompt template from file"""
@@ -73,74 +75,33 @@ Respond in JSON format:
     "category": "first_ascent|tragedy|discovery|achievement|expedition"
 }}"""
     
-    def _make_api_request(self, messages: List[Dict], temperature: float = 0.7) -> Dict:
-        """Make request to Kimi K2 API with error handling and retries"""
-        if not self.api_key:
-            raise LLMError("LLM API key not configured")
+    def _make_api_request(self, messages: List[Dict], use_case: str = 'historical', **kwargs) -> Dict:
+        """Make API request using provider manager with fallback"""
+        if not self.provider_manager:
+            raise LLMError("Provider manager not initialized")
         
-        headers = {
-            'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
-        }
-        
-        payload = {
-            'model': self.model,
-            'messages': messages,
-            'temperature': temperature,
-            'max_tokens': 2000,
-            'response_format': {"type": "json_object"}
-        }
-        
-        last_error = None
-        for attempt in range(self.max_retries):
-            try:
-                logger.info(f"Making LLM API request (attempt {attempt + 1}/{self.max_retries})")
-                response = requests.post(
-                    self.api_url,
-                    headers=headers,
-                    json=payload,
-                    timeout=self.timeout
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    content = result['choices'][0]['message']['content']
-                    logger.info("LLM API request successful")
-                    return json.loads(content)
-                else:
-                    error_msg = f"API returned status {response.status_code}: {response.text}"
-                    logger.error(error_msg)
-                    last_error = LLMError(error_msg)
-                    
-            except requests.exceptions.Timeout:
-                error_msg = f"API request timeout (attempt {attempt + 1})"
-                logger.error(error_msg)
-                last_error = LLMError(error_msg)
-                
-            except requests.exceptions.RequestException as e:
-                error_msg = f"API request failed: {e}"
-                logger.error(error_msg)
-                last_error = LLMError(error_msg)
-                
-            except json.JSONDecodeError as e:
-                error_msg = f"Failed to parse JSON response: {e}"
-                logger.error(error_msg)
-                last_error = LLMError(error_msg)
-                
-            except (KeyError, IndexError) as e:
-                error_msg = f"Unexpected API response format: {e}"
-                logger.error(error_msg)
-                last_error = LLMError(error_msg)
+        try:
+            # Set response format for structured output
+            kwargs.setdefault('response_format', {"type": "json_object"})
             
-            # Wait before retry (exponential backoff)
-            if attempt < self.max_retries - 1:
-                wait_time = 2 ** attempt
-                logger.info(f"Waiting {wait_time} seconds before retry...")
-                import time
-                time.sleep(wait_time)
-        
-        # All retries failed
-        raise last_error
+            # Use provider manager with fallback
+            result = self.provider_manager.chat_completion_with_fallback(
+                messages=messages,
+                use_case=use_case,
+                **kwargs
+            )
+            
+            # Handle fallback content
+            if 'fallback' in result:
+                logger.warning("Using fallback content due to provider failures")
+                return result
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"Provider request failed: {e}"
+            logger.error(error_msg)
+            raise LLMError(error_msg)
     
     def generate_historical_event(self) -> Dict:
         """
@@ -158,7 +119,7 @@ Respond in JSON format:
         
         # Load and format the prompt template
         prompt_template = self._load_prompt_template()
-        prompt = prompt_template.format(current_date=current_date)
+        prompt = prompt_template.replace('[current_date]', current_date)
         
         messages = [
             {
@@ -173,23 +134,24 @@ Respond in JSON format:
         
         try:
             logger.info(f"Generating historical event for date: {current_date}")
-            result = self._make_api_request(messages, temperature=0.3)  # Lower temp for factual content
+            result = self._make_api_request(messages, use_case='historical', temperature=0.3)
             
-            # Validate required fields (updated for new format)
+            # Handle fallback content
+            if 'fallback' in result:
+                return self.get_fallback_content('historical')
+            
+            # Validate required fields
             required_fields = ['year', 'title', 'description', 'location', 'people', 'category']
             for field in required_fields:
                 if field not in result:
-                    raise LLMError(f"Missing required field: {field}")
+                    logger.warning(f"Missing required field: {field}, using fallback")
+                    return self.get_fallback_content('historical')
             
-            # Handle new optional fields
-            if 'url_1' not in result:
-                result['url_1'] = result.get('url', None)  # Fallback to old 'url' field
-            if 'url_2' not in result:
-                result['url_2'] = None
-            if 'methodology' not in result:
-                result['methodology'] = None
-            if 'url_methodology' not in result:
-                result['url_methodology'] = None
+            # Handle optional fields
+            result.setdefault('url_1', result.get('url'))
+            result.setdefault('url_2', None)
+            result.setdefault('methodology', None)
+            result.setdefault('url_methodology', None)
             
             # Validate category
             valid_categories = ['first_ascent', 'tragedy', 'discovery', 'achievement', 'expedition']
@@ -273,11 +235,16 @@ Assign relevance_score from 0.0 to 1.0 based on importance to mountaineering com
         
         try:
             logger.info(f"Generating news summary from {len(articles)} articles")
-            result = self._make_api_request(messages, temperature=0.5)
+            result = self._make_api_request(messages, use_case='news', temperature=0.5)
+            
+            # Handle fallback content
+            if 'fallback' in result:
+                return [self.get_fallback_content('news')]
             
             # Ensure result is a list
             if not isinstance(result, list):
-                raise LLMError("Expected list of news items")
+                logger.warning("Expected list of news items, using fallback")
+                return [self.get_fallback_content('news')]
             
             # Validate each news item
             valid_categories = ['safety', 'conditions', 'achievements', 'gear', 'events']
@@ -320,7 +287,7 @@ Assign relevance_score from 0.0 to 1.0 based on importance to mountaineering com
     
     def get_fallback_content(self, content_type: str = 'historical') -> Dict:
         """
-        Get fallback content when LLM service is unavailable
+        Get fallback content using provider fallback
         
         Args:
             content_type: 'historical' or 'news'
@@ -328,6 +295,15 @@ Assign relevance_score from 0.0 to 1.0 based on importance to mountaineering com
         Returns:
             Dict with fallback content
         """
+        if self.provider_manager:
+            # Try to get fallback from first available provider
+            providers = self.provider_manager.get_available_providers()
+            if providers:
+                provider = self.provider_manager.get_provider(providers[0])
+                if provider:
+                    return provider.get_fallback_content(content_type)
+        
+        # Absolute fallback if no providers available
         if content_type == 'historical':
             today = format_date_standard(datetime.now())
             return {
@@ -352,26 +328,28 @@ Assign relevance_score from 0.0 to 1.0 based on importance to mountaineering com
     
     def test_connection(self) -> bool:
         """
-        Test LLM API connection
+        Test all LLM providers
         
         Returns:
-            True if connection successful, False otherwise
+            True if at least one provider is working, False otherwise
         """
+        if not self.provider_manager:
+            logger.error("Provider manager not initialized")
+            return False
+        
         try:
-            messages = [
-                {
-                    "role": "system",
-                    "content": "You are a test assistant. Respond with valid JSON."
-                },
-                {
-                    "role": "user",
-                    "content": "Respond with JSON: {\"status\": \"ok\", \"message\": \"test successful\"}"
-                }
-            ]
-            result = self._make_api_request(messages, temperature=0.1)
-            return result.get('status') == 'ok'
+            results = self.provider_manager.test_all_providers()
+            working_providers = [name for name, status in results.items() if status]
+            
+            if working_providers:
+                logger.info(f"Working providers: {working_providers}")
+                return True
+            else:
+                logger.error("No providers are working")
+                return False
+                
         except Exception as e:
-            logger.error(f"LLM connection test failed: {e}")
+            logger.error(f"Provider test failed: {e}")
             return False
 
 

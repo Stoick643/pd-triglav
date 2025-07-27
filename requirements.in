@@ -12,6 +12,7 @@ python-dotenv
 Pillow
 boto3
 Flask-Mail
+openai
 pytest
 pytest-flask
 pytest-cov

@@ -2,7 +2,7 @@
 
 import pytest
 from models.user import User, UserRole
-from app import db
+from models.user import db
 
 
 def test_user_creation(app):

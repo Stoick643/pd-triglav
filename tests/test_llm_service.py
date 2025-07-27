@@ -1,4 +1,4 @@
-"""Test LLM service functionality"""
+"""Test LLM service functionality with multi-provider architecture"""
 
 import pytest
 import json
@@ -13,6 +13,7 @@ from utils.llm_service import (
 )
 
 
+@pytest.mark.unit
 class TestDateFormatting:
     """Test date formatting utility functions"""
     
@@ -42,45 +43,44 @@ class TestDateFormatting:
         assert result1 == '27 July'
 
 
+@pytest.mark.unit 
 class TestLLMService:
-    """Test LLM service functionality"""
+    """Test LLM service functionality with mocked providers"""
     
     @pytest.fixture
-    def mock_app_config(self):
-        """Mock Flask app config"""
-        return {
-            'MOONSHOT_API_KEY': 'test-api-key',
-            'MOONSHOT_API_URL': 'https://api.test.com/v1/chat/completions'
-        }
+    def mock_provider_manager(self):
+        """Mock provider manager"""
+        mock_manager = Mock()
+        mock_manager.get_available_providers.return_value = ['moonshot', 'deepseek']
+        mock_manager.chat_completion_with_fallback.return_value = {'test': 'success'}
+        mock_manager.test_all_providers.return_value = {'moonshot': True, 'deepseek': True}
+        return mock_manager
     
     @pytest.fixture
-    def llm_service(self, app, mock_app_config):
-        """Create LLM service with mocked config"""
+    def llm_service(self, app, mock_provider_manager):
+        """Create LLM service with mocked provider manager"""
         with app.app_context():
-            with patch('utils.llm_service.current_app') as mock_app:
-                mock_app.config.get.side_effect = lambda key, default=None: mock_app_config.get(key, default)
+            with patch('utils.llm_service.ProviderManager') as mock_pm_class:
+                mock_pm_class.return_value = mock_provider_manager
                 return LLMService()
     
-    def test_llm_service_initialization(self, llm_service):
-        """Test LLM service initialization"""
-        assert llm_service.api_key == 'test-api-key'
-        assert llm_service.api_url == 'https://api.test.com/v1/chat/completions'
-        assert llm_service.model == 'kimi-k2-0711-preview'
-        assert llm_service.timeout == 30
-        assert llm_service.max_retries == 3
+    def test_llm_service_initialization(self, llm_service, mock_provider_manager):
+        """Test LLM service initialization with provider manager"""
+        assert llm_service.provider_manager is not None
+        assert llm_service.provider_manager == mock_provider_manager
     
-    def test_llm_service_no_api_key(self, app):
-        """Test LLM service without API key"""
+    def test_llm_service_no_providers(self, app):
+        """Test LLM service without available providers"""
         with app.app_context():
-            with patch('utils.llm_service.current_app') as mock_app:
-                mock_app.config.get.return_value = None
+            with patch('utils.llm_service.ProviderManager') as mock_pm_class:
+                mock_pm_class.return_value = None
                 
                 service = LLMService()
-                assert service.api_key is None
+                assert service.provider_manager is None
     
     def test_load_prompt_template_success(self, llm_service):
         """Test loading prompt template from file"""
-        mock_prompt_content = """Test prompt with {current_date}"""
+        mock_prompt_content = """Test prompt with [current_date]"""
         
         with patch('builtins.open', mock_open(read_data=mock_prompt_content)):
             result = llm_service._load_prompt_template()
@@ -90,135 +90,67 @@ class TestLLMService:
         """Test fallback when prompt template file not found"""
         with patch('builtins.open', side_effect=FileNotFoundError):
             result = llm_service._load_prompt_template()
-            # Should return fallback prompt
-            assert '{current_date}' in result
+            # Should return fallback prompt with square bracket placeholders
+            assert '[current_date]' in result or '{current_date}' in result
             assert 'JSON format' in result
     
-    @patch('utils.llm_service.requests.post')
-    def test_make_api_request_success(self, mock_post, llm_service):
-        """Test successful API request"""
-        # Mock successful response
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            'choices': [{
-                'message': {
-                    'content': '{"year": 1953, "title": "Test Event"}'
-                }
-            }]
-        }
-        mock_post.return_value = mock_response
+    def test_make_api_request_success(self, llm_service, mock_provider_manager):
+        """Test successful API request via provider manager"""
+        expected_result = {"year": 1953, "title": "Test Event"}
+        mock_provider_manager.chat_completion_with_fallback.return_value = expected_result
+        
+        messages = [{'role': 'user', 'content': 'test'}]
+        result = llm_service._make_api_request(messages, use_case='historical')
+        
+        assert result == expected_result
+        mock_provider_manager.chat_completion_with_fallback.assert_called_once_with(
+            messages=messages,
+            use_case='historical',
+            response_format={'type': 'json_object'}
+        )
+    
+    def test_make_api_request_provider_error(self, llm_service, mock_provider_manager):
+        """Test API request with provider error"""
+        mock_provider_manager.chat_completion_with_fallback.side_effect = LLMError("Provider failed")
+        
+        messages = [{'role': 'user', 'content': 'test'}]
+        
+        with pytest.raises(LLMError) as exc_info:
+            llm_service._make_api_request(messages)
+        
+        assert 'Provider request failed' in str(exc_info.value)
+    
+    def test_make_api_request_fallback_content(self, llm_service, mock_provider_manager):
+        """Test API request returning fallback content"""
+        fallback_result = {'fallback': True, 'title': 'Fallback Event'}
+        mock_provider_manager.chat_completion_with_fallback.return_value = fallback_result
         
         messages = [{'role': 'user', 'content': 'test'}]
         result = llm_service._make_api_request(messages)
         
-        assert result == {"year": 1953, "title": "Test Event"}
-        mock_post.assert_called_once()
-        
-        # Verify request parameters
-        call_args = mock_post.call_args
-        assert call_args[1]['headers']['Authorization'] == 'Bearer test-api-key'
-        assert call_args[1]['json']['model'] == 'kimi-k2-0711-preview'
-        assert call_args[1]['json']['messages'] == messages
+        assert result == fallback_result
+        assert 'fallback' in result
     
-    @patch('utils.llm_service.requests.post')
-    def test_make_api_request_http_error(self, mock_post, llm_service):
-        """Test API request with HTTP error"""
-        mock_response = Mock()
-        mock_response.status_code = 429
-        mock_response.text = 'Rate limit exceeded'
-        mock_post.return_value = mock_response
-        
-        messages = [{'role': 'user', 'content': 'test'}]
-        
-        with pytest.raises(LLMError) as exc_info:
-            llm_service._make_api_request(messages)
-        
-        assert 'API returned status 429' in str(exc_info.value)
-    
-    @patch('utils.llm_service.requests.post')
-    def test_make_api_request_timeout(self, mock_post, llm_service):
-        """Test API request timeout"""
-        import requests
-        mock_post.side_effect = requests.exceptions.Timeout()
-        
-        messages = [{'role': 'user', 'content': 'test'}]
-        
-        with pytest.raises(LLMError) as exc_info:
-            llm_service._make_api_request(messages)
-        
-        assert 'timeout' in str(exc_info.value)
-    
-    @patch('utils.llm_service.requests.post')
-    def test_make_api_request_invalid_json(self, mock_post, llm_service):
-        """Test API request with invalid JSON response"""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            'choices': [{
-                'message': {
-                    'content': 'invalid json content'
-                }
-            }]
-        }
-        mock_post.return_value = mock_response
-        
-        messages = [{'role': 'user', 'content': 'test'}]
-        
-        with pytest.raises(LLMError) as exc_info:
-            llm_service._make_api_request(messages)
-        
-        assert 'Failed to parse JSON' in str(exc_info.value)
-    
-    @patch('utils.llm_service.requests.post')
-    def test_make_api_request_no_api_key(self, mock_post):
-        """Test API request without API key"""
-        with patch('utils.llm_service.current_app') as mock_app:
-            mock_app.config.get.return_value = None
-            
-            service = LLMService()
-            messages = [{'role': 'user', 'content': 'test'}]
-            
-            with pytest.raises(LLMError) as exc_info:
-                service._make_api_request(messages)
-            
-            assert 'API key not configured' in str(exc_info.value)
-            mock_post.assert_not_called()
-    
-    @patch('utils.llm_service.requests.post')
-    @patch('utils.llm_service.time.sleep')  # Mock sleep for faster tests
-    def test_make_api_request_retry_logic(self, mock_sleep, mock_post, llm_service):
-        """Test retry logic on failures"""
-        # First two calls fail, third succeeds
-        mock_response_fail = Mock()
-        mock_response_fail.status_code = 500
-        mock_response_fail.text = 'Internal server error'
-        
-        mock_response_success = Mock()
-        mock_response_success.status_code = 200
-        mock_response_success.json.return_value = {
-            'choices': [{
-                'message': {
-                    'content': '{"success": true}'
-                }
-            }]
-        }
-        
-        mock_post.side_effect = [mock_response_fail, mock_response_fail, mock_response_success]
-        
-        messages = [{'role': 'user', 'content': 'test'}]
-        result = llm_service._make_api_request(messages)
-        
-        assert result == {"success": True}
-        assert mock_post.call_count == 3
-        assert mock_sleep.call_count == 2  # Should sleep between retries
+    def test_make_api_request_no_provider_manager(self, app):
+        """Test API request without provider manager"""
+        with app.app_context():
+            with patch('utils.llm_service.ProviderManager') as mock_pm_class:
+                mock_pm_class.return_value = None
+                
+                service = LLMService()
+                messages = [{'role': 'user', 'content': 'test'}]
+                
+                with pytest.raises(LLMError) as exc_info:
+                    service._make_api_request(messages)
+                
+                assert 'Provider manager not initialized' in str(exc_info.value)
     
     @patch.object(LLMService, '_make_api_request')
     @patch.object(LLMService, '_load_prompt_template')
     def test_generate_historical_event_success(self, mock_load_prompt, mock_api_request, llm_service):
         """Test successful historical event generation"""
-        # Mock prompt template
-        mock_load_prompt.return_value = "Find event for {current_date}"
+        # Mock prompt template with new placeholder format
+        mock_load_prompt.return_value = "Find event for [current_date]"
         
         # Mock API response
         mock_api_response = {
@@ -237,7 +169,6 @@ class TestLLMService:
         
         with patch('utils.llm_service.datetime') as mock_datetime:
             mock_datetime.now.return_value = datetime(2024, 7, 27)
-            mock_datetime.strftime = datetime.strftime
             
             result = llm_service.generate_historical_event()
         
@@ -328,26 +259,36 @@ class TestLLMService:
         assert result['category'] == 'events'
         assert result['relevance_score'] == 0.5
     
-    @patch.object(LLMService, '_make_api_request')
-    def test_test_connection_success(self, mock_api_request, llm_service):
+    def test_test_connection_success(self, llm_service, mock_provider_manager):
         """Test successful connection test"""
-        mock_api_request.return_value = {'status': 'ok'}
+        mock_provider_manager.test_all_providers.return_value = {'moonshot': True, 'deepseek': True}
         
         result = llm_service.test_connection()
         
         assert result is True
-        mock_api_request.assert_called_once()
+        mock_provider_manager.test_all_providers.assert_called_once()
     
-    @patch.object(LLMService, '_make_api_request')
-    def test_test_connection_failure(self, mock_api_request, llm_service):
+    def test_test_connection_failure(self, llm_service, mock_provider_manager):
         """Test failed connection test"""
-        mock_api_request.side_effect = LLMError("Connection failed")
+        mock_provider_manager.test_all_providers.return_value = {'moonshot': False, 'deepseek': False}
         
         result = llm_service.test_connection()
         
         assert result is False
+    
+    def test_test_connection_no_provider_manager(self, app):
+        """Test connection test without provider manager"""
+        with app.app_context():
+            with patch('utils.llm_service.ProviderManager') as mock_pm_class:
+                mock_pm_class.return_value = None
+                
+                service = LLMService()
+                result = service.test_connection()
+                
+                assert result is False
 
 
+@pytest.mark.unit
 class TestConvenienceFunctions:
     """Test module-level convenience functions"""
     

@@ -131,9 +131,21 @@
     <div class="col-12">
         <div class="card border-primary">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-clock-history me-2"></i>Na ta dan v zgodovini
-                </h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history me-2"></i>Na ta dan v zgodovini
+                    </h5>
+                    <div class="header-controls">
+                        {% if current_user.is_authenticated and current_user.is_admin() %}
+                        <button id="regenerate-event-btn" class="btn btn-sm btn-outline-light me-2" title="Regeneriraj dogodek">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        {% endif %}
+                        <button id="toggle-history-btn" class="btn btn-sm btn-outline-light" title="Zgodovina dogodkov">
+                            <i class="bi bi-archive"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
                 {% if todays_event %}
@@ -225,8 +237,245 @@
                     </div>
                 {% endif %}
             </div>
+            
+            <!-- History Archive Section (hidden by default) -->
+            <div id="history-archive" class="border-top" style="display: none;">
+                <div class="p-3">
+                    <h6 class="mb-3">
+                        <i class="bi bi-archive me-2"></i>Zgodovina dogodkov
+                        <span id="history-stats" class="text-muted small ms-2"></span>
+                    </h6>
+                    
+                    <!-- Loading indicator -->
+                    <div id="history-loading" class="text-center py-3" style="display: none;">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                            <span class="visually-hidden">Nalagam...</span>
+                        </div>
+                        Nalagam zgodovinske dogodke...
+                    </div>
+                    
+                    <!-- Events list -->
+                    <div id="history-events" class="list-group list-group-flush">
+                        <!-- Events will be loaded here via AJAX -->
+                    </div>
+                    
+                    <!-- Load more button -->
+                    <div id="load-more-container" class="text-center mt-3" style="display: none;">
+                        <button id="load-more-btn" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i>Naloži več
+                        </button>
+                    </div>
+                    
+                    <!-- No events message -->
+                    <div id="no-events-message" class="text-center py-3 text-muted" style="display: none;">
+                        <i class="bi bi-info-circle me-2"></i>Ni zgodovinskih dogodkov za prikaz.
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Historical Events JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let historyOffset = 0;
+    const historyLimit = 7;
+    let isLoadingHistory = false;
+    let hasMoreHistory = true;
+
+    // Admin regenerate functionality
+    const regenerateBtn = document.getElementById('regenerate-event-btn');
+    if (regenerateBtn) {
+        regenerateBtn.addEventListener('click', function() {
+            if (confirm('Ali ste prepričani, da želite regenerirati današnji dogodek?')) {
+                regenerateEvent();
+            }
+        });
+    }
+
+    // History toggle functionality
+    const toggleHistoryBtn = document.getElementById('toggle-history-btn');
+    const historyArchive = document.getElementById('history-archive');
+    
+    toggleHistoryBtn.addEventListener('click', function() {
+        if (historyArchive.style.display === 'none') {
+            showHistory();
+        } else {
+            hideHistory();
+        }
+    });
+
+    // Load more functionality
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    loadMoreBtn.addEventListener('click', function() {
+        loadHistoryEvents(historyOffset);
+    });
+
+    function regenerateEvent() {
+        const btn = document.getElementById('regenerate-event-btn');
+        const originalIcon = btn.innerHTML;
+        
+        // Show loading state
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
+        
+        fetch('/admin/regenerate-today-event', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Refresh the page to show updated event
+                location.reload();
+            } else {
+                alert('Napaka: ' + (data.error || 'Neznana napaka'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Napaka pri regeneraciji dogodka');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalIcon;
+        });
+    }
+
+    function showHistory() {
+        historyArchive.style.display = 'block';
+        toggleHistoryBtn.innerHTML = '<i class="bi bi-archive-fill"></i>';
+        
+        // Load events if not already loaded
+        if (historyOffset === 0) {
+            loadHistoryEvents(0);
+        }
+    }
+
+    function hideHistory() {
+        historyArchive.style.display = 'none';
+        toggleHistoryBtn.innerHTML = '<i class="bi bi-archive"></i>';
+    }
+
+    function loadHistoryEvents(offset) {
+        if (isLoadingHistory) return;
+        
+        isLoadingHistory = true;
+        const loading = document.getElementById('history-loading');
+        const loadMoreContainer = document.getElementById('load-more-container');
+        
+        loading.style.display = 'block';
+        loadMoreContainer.style.display = 'none';
+        
+        fetch(`/api/history/recent?offset=${offset}&limit=${historyLimit}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayHistoryEvents(data.events, offset === 0);
+                    historyOffset = data.loaded;
+                    hasMoreHistory = data.has_more;
+                    
+                    // Update stats
+                    const stats = document.getElementById('history-stats');
+                    stats.textContent = `(${data.loaded} od ${data.total})`;
+                    
+                    // Show/hide load more button
+                    if (hasMoreHistory) {
+                        loadMoreContainer.style.display = 'block';
+                    }
+                    
+                    // Show no events message if no events
+                    if (data.events.length === 0 && offset === 0) {
+                        document.getElementById('no-events-message').style.display = 'block';
+                    }
+                } else {
+                    alert('Napaka pri nalaganju dogodkov: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Napaka pri nalaganju dogodkov');
+            })
+            .finally(() => {
+                loading.style.display = 'none';
+                isLoadingHistory = false;
+            });
+    }
+
+    function displayHistoryEvents(events, clearExisting) {
+        const container = document.getElementById('history-events');
+        
+        if (clearExisting) {
+            container.innerHTML = '';
+        }
+        
+        events.forEach(event => {
+            const eventElement = createEventElement(event);
+            container.appendChild(eventElement);
+        });
+    }
+
+    function createEventElement(event) {
+        const div = document.createElement('div');
+        div.className = 'list-group-item list-group-item-action';
+        
+        const categoryBadge = getCategoryBadge(event.category);
+        const peopleText = event.people.length > 0 ? event.people.join(', ') : '';
+        
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center mb-1">
+                        <strong class="me-2">${event.full_date_string}</strong>
+                        ${categoryBadge}
+                    </div>
+                    <h6 class="mb-1">${event.title}</h6>
+                    <p class="mb-1 text-muted small">${event.description}</p>
+                    ${event.location ? `<small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${event.location}</small>` : ''}
+                    ${peopleText ? `<small class="text-muted ms-3"><i class="bi bi-people me-1"></i>${peopleText}</small>` : ''}
+                </div>
+            </div>
+        `;
+        
+        return div;
+    }
+
+    function getCategoryBadge(category) {
+        const badges = {
+            'first_ascent': '<span class="badge bg-success">Prva vzpon</span>',
+            'achievement': '<span class="badge bg-warning">Dosežek</span>',
+            'expedition': '<span class="badge bg-info">Odprava</span>',
+            'discovery': '<span class="badge bg-secondary">Odkritje</span>',
+            'tragedy': '<span class="badge bg-danger">Tragedija</span>'
+        };
+        return badges[category] || '<span class="badge bg-light">Dogodek</span>';
+    }
+
+    function getCSRFToken() {
+        // Get CSRF token from meta tag if available
+        const token = document.querySelector('meta[name="csrf-token"]');
+        return token ? token.getAttribute('content') : '';
+    }
+});
+
+// CSS for spinning animation
+const style = document.createElement('style');
+style.textContent = `
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+
 {% endif %}
 {% endblock %}

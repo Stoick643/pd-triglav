@@ -3,7 +3,7 @@
 import pytest
 from flask import url_for
 from models.user import User, UserRole
-from app import db
+from models.user import db
 
 
 def test_register_new_user(client, app):

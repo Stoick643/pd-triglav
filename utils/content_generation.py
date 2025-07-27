@@ -154,13 +154,23 @@ class HistoricalEventService:
             
             # Generate new content
             new_data = self.llm_service.generate_historical_event()
+            logger.debug(f"Generated data keys: {list(new_data.keys()) if isinstance(new_data, dict) else type(new_data)}")
+            logger.debug(f"Generated data: {new_data}")
             
             # Update existing record
-            event.year = new_data['year']
-            event.title = new_data['title']
-            event.description = new_data['description']
-            event.location = new_data['location']
-            event.people = new_data['people']
+            try:
+                event.year = new_data['year']
+                event.title = new_data['title']
+                event.description = new_data['description']
+                event.location = new_data['location']
+                event.people = new_data['people']
+            except KeyError as e:
+                logger.error(f"Missing key in generated data: {e}. Available keys: {list(new_data.keys()) if isinstance(new_data, dict) else 'Not a dict'}")
+                logger.error(f"Generated data content: {repr(new_data)}")
+                raise ContentGenerationError(f"Invalid generated data: missing {e}")
+            except TypeError as e:
+                logger.error(f"Generated data is not a dictionary: {type(new_data)} = {repr(new_data)}")
+                raise ContentGenerationError(f"Invalid generated data format: {e}")
             event.url = new_data.get('url_1', new_data.get('url'))
             event.url_secondary = new_data.get('url_2')
             event.methodology = new_data.get('methodology')
@@ -181,7 +191,33 @@ class HistoricalEventService:
             
         except LLMError as e:
             logger.error(f"LLM service failed during regeneration: {e}")
-            raise ContentGenerationError(f"Regeneration failed: {e}")
+            logger.info("Using fallback content for regeneration")
+            
+            # Try to use fallback content instead of failing completely
+            try:
+                fallback_data = self.llm_service.get_fallback_content('historical')
+                
+                # Update with fallback content
+                event.year = fallback_data['year']
+                event.title = fallback_data['title']
+                event.description = fallback_data['description']
+                event.location = fallback_data['location']
+                event.people = fallback_data['people']
+                event.url = fallback_data.get('url')
+                event.url_secondary = None
+                event.methodology = "Fallback content used due to LLM service unavailability"
+                event.url_methodology = None
+                event.category = EventCategory(fallback_data['category'])
+                event.is_generated = False  # Mark as fallback
+                event.updated_at = datetime.utcnow()
+                
+                db.session.commit()
+                logger.info(f"Successfully regenerated with fallback: {event.title}")
+                return event
+                
+            except Exception as fallback_error:
+                logger.error(f"Fallback regeneration also failed: {fallback_error}")
+                raise ContentGenerationError(f"Regeneration failed: {e}")
             
         except Exception as e:
             db.session.rollback()
