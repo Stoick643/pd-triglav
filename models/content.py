@@ -333,3 +333,267 @@ class Comment(db.Model):
             'can_edit': False,  # Will be set based on current user
             'can_delete': False  # Will be set based on current user
         }
+
+
+class EventCategory(Enum):
+    """Historical event category enumeration"""
+    FIRST_ASCENT = 'first_ascent'
+    TRAGEDY = 'tragedy'
+    DISCOVERY = 'discovery'
+    ACHIEVEMENT = 'achievement'
+    EXPEDITION = 'expedition'
+
+
+class HistoricalEvent(db.Model):
+    """Historical mountaineering events for 'Na ta dan v zgodovini' feature"""
+    
+    __tablename__ = 'historical_events'
+    __table_args__ = (
+        db.UniqueConstraint('date', 'year', name='unique_event_per_date'),
+        db.Index('idx_historical_events_date', 'date'),
+        db.Index('idx_historical_events_year', 'year'),
+        db.Index('idx_historical_events_category', 'category'),
+    )
+    
+    # Primary key
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Event timing
+    date = db.Column(db.String(10), nullable=False)  # Format: "July 26" 
+    year = db.Column(db.Integer, nullable=False)
+    
+    # Event content
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    location = db.Column(db.String(200))
+    
+    # People involved (stored as JSON array)
+    people = db.Column(db.JSON, default=list)  # ["name1", "name2"]
+    
+    # Source and categorization
+    url = db.Column(db.String(500))  # Primary source URL (backward compatibility)
+    url_secondary = db.Column(db.String(500))  # Secondary source URL
+    category = db.Column(db.Enum(EventCategory), nullable=False)
+    
+    # Research methodology tracking
+    methodology = db.Column(db.Text)  # Research methodology used
+    url_methodology = db.Column(db.Text)  # Source credibility reasoning
+    
+    # Content management
+    is_featured = db.Column(db.Boolean, default=False, nullable=False)
+    is_generated = db.Column(db.Boolean, default=True, nullable=False)  # True if AI-generated
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<HistoricalEvent {self.date} {self.year}: {self.title}>'
+    
+    @property
+    def full_date_string(self):
+        """Get formatted date string"""
+        return f"{self.date}, {self.year}"
+    
+    @property
+    def people_list(self):
+        """Get people as list (handle None case)"""
+        return self.people if self.people else []
+    
+    @property
+    def people_names(self):
+        """Get people names as comma-separated string"""
+        if not self.people:
+            return ""
+        return ", ".join(self.people)
+    
+    @staticmethod
+    def get_event_for_date(date_string):
+        """Get historical event for specific date (e.g., 'July 26')"""
+        return HistoricalEvent.query.filter_by(date=date_string).first()
+    
+    @staticmethod
+    def get_todays_event():
+        """Get historical event for today's date"""
+        from datetime import datetime
+        from utils.llm_service import format_date_standard
+        today = format_date_standard(datetime.now())
+        return HistoricalEvent.get_event_for_date(today)
+    
+    @staticmethod
+    def get_featured_events(limit=5):
+        """Get featured historical events"""
+        return HistoricalEvent.query.filter_by(is_featured=True)\
+            .order_by(HistoricalEvent.year.desc())\
+            .limit(limit).all()
+    
+    @staticmethod
+    def get_events_by_category(category, limit=10):
+        """Get events by category"""
+        return HistoricalEvent.query.filter_by(category=category)\
+            .order_by(HistoricalEvent.year.desc())\
+            .limit(limit).all()
+    
+    @staticmethod
+    def get_recent_events(limit=30):
+        """Get recently added events"""
+        return HistoricalEvent.query.order_by(HistoricalEvent.created_at.desc())\
+            .limit(limit).all()
+    
+    def can_edit(self, user):
+        """Check if user can edit this event"""
+        return user.is_admin()
+    
+    def can_delete(self, user):
+        """Check if user can delete this event"""
+        return user.is_admin()
+    
+    def to_dict(self):
+        """Convert event to dictionary for JSON serialization"""
+        return {
+            'id': self.id,
+            'date': self.date,
+            'year': self.year,
+            'title': self.title,
+            'description': self.description,
+            'location': self.location,
+            'people': self.people_list,
+            'url': self.url,
+            'category': self.category.value,
+            'is_featured': self.is_featured,
+            'full_date': self.full_date_string,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class NewsCategory(Enum):
+    """News item category enumeration"""
+    SAFETY = 'safety'
+    CONDITIONS = 'conditions'
+    ACHIEVEMENTS = 'achievements'
+    GEAR = 'gear'
+    EVENTS = 'events'
+
+
+class NewsItem(db.Model):
+    """News items for daily mountaineering news curation (Future Phase 3B)"""
+    
+    __tablename__ = 'news_items'
+    __table_args__ = (
+        db.Index('idx_news_items_date', 'news_date'),
+        db.Index('idx_news_items_category', 'category'),
+        db.Index('idx_news_items_relevance', 'relevance_score'),
+    )
+    
+    # Primary key
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # News content
+    title = db.Column(db.String(200), nullable=False)
+    summary = db.Column(db.Text, nullable=False)
+    category = db.Column(db.Enum(NewsCategory), nullable=False)
+    
+    # Source information
+    url = db.Column(db.String(500))  # Source article URL
+    source_name = db.Column(db.String(100))  # E.g., "Climbing.com", "Outside Magazine"
+    
+    # Relevance and dating
+    relevance_score = db.Column(db.Float, default=0.0)  # AI-determined relevance 0-1
+    news_date = db.Column(db.Date, nullable=False)  # When the news happened
+    
+    # Content lifecycle
+    expires_at = db.Column(db.DateTime)  # When this news becomes stale
+    is_featured = db.Column(db.Boolean, default=False, nullable=False)
+    is_generated = db.Column(db.Boolean, default=True, nullable=False)  # True if AI-curated
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<NewsItem {self.news_date}: {self.title}>'
+    
+    @property
+    def is_expired(self):
+        """Check if this news item has expired"""
+        if not self.expires_at:
+            return False
+        return datetime.utcnow() > self.expires_at
+    
+    @property
+    def age_days(self):
+        """Get age of news in days"""
+        from datetime import date
+        return (date.today() - self.news_date).days
+    
+    @staticmethod
+    def get_current_news(limit=5):
+        """Get current (non-expired) news items"""
+        from datetime import datetime
+        return NewsItem.query.filter(
+            db.or_(
+                NewsItem.expires_at.is_(None),
+                NewsItem.expires_at > datetime.utcnow()
+            )
+        ).order_by(
+            NewsItem.relevance_score.desc(),
+            NewsItem.news_date.desc()
+        ).limit(limit).all()
+    
+    @staticmethod
+    def get_todays_news():
+        """Get today's generated news items"""
+        from datetime import date
+        return NewsItem.query.filter_by(news_date=date.today())\
+            .order_by(NewsItem.relevance_score.desc()).all()
+    
+    @staticmethod
+    def get_news_by_category(category, limit=10):
+        """Get news by category"""
+        return NewsItem.query.filter_by(category=category)\
+            .filter(
+                db.or_(
+                    NewsItem.expires_at.is_(None),
+                    NewsItem.expires_at > datetime.utcnow()
+                )
+            ).order_by(NewsItem.relevance_score.desc())\
+            .limit(limit).all()
+    
+    @staticmethod
+    def cleanup_expired_news():
+        """Remove expired news items (for maintenance)"""
+        from datetime import datetime, timedelta
+        cutoff_date = datetime.utcnow() - timedelta(days=30)  # Keep for 30 days after expiry
+        expired_items = NewsItem.query.filter(
+            NewsItem.expires_at < cutoff_date
+        ).all()
+        
+        for item in expired_items:
+            db.session.delete(item)
+        
+        return len(expired_items)
+    
+    def can_edit(self, user):
+        """Check if user can edit this news item"""
+        return user.is_admin()
+    
+    def can_delete(self, user):
+        """Check if user can delete this news item"""
+        return user.is_admin()
+    
+    def to_dict(self):
+        """Convert news item to dictionary for JSON serialization"""
+        return {
+            'id': self.id,
+            'title': self.title,
+            'summary': self.summary,
+            'category': self.category.value,
+            'url': self.url,
+            'source_name': self.source_name,
+            'relevance_score': self.relevance_score,
+            'news_date': self.news_date.isoformat() if self.news_date else None,
+            'age_days': self.age_days,
+            'is_featured': self.is_featured,
+            'is_expired': self.is_expired,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }

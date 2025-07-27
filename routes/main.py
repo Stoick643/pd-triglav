@@ -7,7 +7,24 @@ bp = Blueprint('main', __name__)
 @bp.route('/')
 def index():
     """Home page with role-based content"""
-    return render_template('index.html')
+    todays_event = None
+    
+    # Get today's historical event (temporarily for everyone)
+    if True:  # Temporarily show to everyone
+        try:
+            from models.content import HistoricalEvent
+            todays_event = HistoricalEvent.get_todays_event()
+            
+            # If no event exists, try to generate one
+            if not todays_event:
+                from utils.content_generation import generate_todays_historical_event
+                todays_event = generate_todays_historical_event()
+                
+        except Exception as e:
+            current_app.logger.error(f"Failed to get today's historical event: {e}")
+            # Continue without historical event
+    
+    return render_template('index.html', todays_event=todays_event)
 
 
 @bp.route('/about')

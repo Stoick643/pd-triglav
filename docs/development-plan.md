@@ -153,46 +153,76 @@ class Comment(db.Model):
 
 ---
 
-### Phase 4: LLM Features & Enhanced Functionality
-**Goal**: AI-powered content and advanced features
+### Phase 3: AI Content System
+**Goal**: Intelligent daily content with historical events and future news curation
 
-#### Features to Implement
-- [x] "It happened today" historical events
-- [x] Daily mountaineering news summary
-- [x] LLM API integration with error handling
-- [x] On-demand content refresh
-- [x] Search functionality across content
-- [x] Admin dashboard improvements
-- [x] Performance optimizations
+#### Phase 3A: Historical Events (Current Implementation)
+**Status**: Implementing now
+**Goal**: "Na ta dan v zgodovini" daily historical mountaineering events
 
-#### LLM Integration Architecture
+##### Features to Implement
+- [ ] Historical events database model
+- [ ] DeepSeek LLM integration for content generation
+- [ ] Daily automated content generation
+- [ ] Homepage widget displaying today's event
+- [ ] Historical events archive page
+- [ ] Admin content management interface
+- [ ] Manual refresh and regeneration capabilities
+
+##### Database Models
 ```python
-# Daily content generation
 class HistoricalEvent(db.Model):
-    id, date, title, description
-    source, created_at
-
-class NewsItem(db.Model):
-    id, title, summary, source_url
-    date, relevance_score, created_at
+    id, date, year, title, description
+    location, people, url, category
+    created_at, is_featured
 ```
 
-#### Content Management
-- Automated daily content generation
-- Manual refresh capabilities
-- Content quality filtering
-- Source attribution and links
+##### Implementation Steps
+1. **Database Foundation**: Create models and migration
+2. **LLM Service**: DeepSeek API integration with finalized prompt
+3. **Content Generation**: Daily automation and admin controls
+4. **Frontend Integration**: Homepage widget and archive page
+5. **Admin Interface**: Content management and moderation
+6. **Production Features**: Scheduling, monitoring, error handling
 
-#### Search Implementation
-- Full-text search across trips, reports, comments
-- Filter by date, author, trip type
-- Search result ranking and pagination
+##### Phase 3A Definition of Done
+- Daily historical events auto-generate reliably
+- Homepage displays today's event beautifully
+- Archive allows browsing events by date
+- Admin can manage and refresh content
+- Error handling with fallback content works
 
-#### Phase 4 Definition of Done
-- Daily historical content automatically generated
-- Relevant mountaineering news displayed
-- Search works across all content types
-- Admin dashboard provides full system overview
+#### Phase 3B: News Curation (Future Implementation)
+**Status**: Architecture ready, implementation pending
+**Goal**: Daily curation of 5 relevant mountaineering news items
+
+##### Features to Implement (Future)
+- [ ] News aggregation from NewsAPI and RSS feeds
+- [ ] AI-powered relevance filtering and summarization
+- [ ] Multiple daily news items with categories
+- [ ] News archive with expiration management
+- [ ] Real-time news source integration
+
+##### Database Models (Designed, Not Implemented)
+```python
+class NewsItem(db.Model):
+    id, title, summary, category, url
+    relevance_score, news_date, created_at
+    expires_at, is_featured
+```
+
+##### Architecture Decisions
+- **Unified LLM Service**: Single service handles both content types
+- **Separate Tables**: Different lifecycles require separate schemas
+- **Shared Admin Interface**: Extensible design for both features
+- **Cost-Effective Processing**: DeepSeek API (~$1-3/month)
+- **Two-Stage Pipeline**: News aggregation → AI curation
+
+##### Phase 3B Future Activation
+- Enable news model usage
+- Activate NewsAPI integration
+- Populate admin interface
+- Enable homepage news widget
 
 ---
 
@@ -322,15 +352,17 @@ flask run
 - Email delivery rate > 95%
 - Calendar load time < 2 seconds
 
-### Phase 3 Metrics
+### Phase 2E Metrics (Photos - Completed)
 - Photo upload success rate > 90%
-- Trip report creation completion rate > 80%
-- Comments engagement rate tracking
+- Photo mosaic layouts display correctly across devices
+- Upload size limits handle multiple large photos
 
-### Phase 4 Metrics
-- Daily content generation reliability > 99%
-- Search query response time < 1 second
-- User satisfaction with LLM content quality
+### Phase 3 Metrics (AI Content)
+- Daily historical events generation reliability > 99%
+- Homepage widget load time < 2 seconds
+- Admin content management response time < 1 second
+- User engagement with historical content
+- LLM API cost efficiency (target: <$5/month)
 
 ## Future Considerations
 

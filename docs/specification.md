@@ -66,11 +66,22 @@ Web application for PD Triglav mountaineering club that can be adapted for other
 - **Past events**: Historical view of completed trips
 - **Club events**: Non-trip club activities and meetings
 
-### 6. LLM-Powered Content
-- **"It happened today"**: Historical mountaineering events on current date
-- **Mountaineering news**: Daily summary of 5 relevant world events
-- **On-demand refresh**: Manual update option for both features
-- **Automated lookup**: Daily automated content generation
+### 6. AI Content System
+- **"Na ta dan v zgodovini"**: Daily historical mountaineering events for current date
+  - Significant mountaineering events (first ascents, tragedies, discoveries, achievements)
+  - Detailed descriptions with people, locations, and significance
+  - Archive page for browsing events by date
+  - Homepage widget displaying today's event
+- **Mountaineering News** (Future Phase):
+  - Daily curation of 5 relevant mountaineering news items
+  - Real-time news aggregation from multiple sources
+  - AI-powered relevance filtering and summarization
+  - Categories: safety, conditions, achievements, gear, events
+- **Content Management**:
+  - Automated daily generation using DeepSeek LLM API
+  - Admin manual refresh and regeneration capabilities
+  - Content editing and moderation tools
+  - Error handling with fallback content
 
 ### 7. Email System
 - **Trip notifications**: New trip announcements
@@ -99,7 +110,8 @@ Web application for PD Triglav mountaineering club that can be adapted for other
 - **Image Processing**: Pillow for thumbnails and optimization
 - **OAuth Provider**: Google OAuth 2.0
 - **Email Service**: Render SMTP (free tier)
-- **LLM API**: For historical events and news generation
+- **LLM API**: DeepSeek API for AI content generation
+- **News Sources** (Future): NewsAPI, RSS feeds for news aggregation
 
 ### Development Environment
 - **Virtual Environment**: Python venv
@@ -131,6 +143,16 @@ Web application for PD Triglav mountaineering club that can be adapted for other
 ### Photos Table
 - ID, trip_report_id, filename, s3_key
 - Caption, uploaded_by, created_at
+
+### Historical Events Table
+- ID, date, year, title, description
+- Location, people, url, category
+- Created_at, is_featured
+
+### News Items Table (Future)
+- ID, title, summary, category, url
+- Relevance_score, news_date, created_at
+- Expires_at, is_featured
 
 ## Deployment Strategy
 

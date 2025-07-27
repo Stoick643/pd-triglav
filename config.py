@@ -47,6 +47,9 @@ class Config:
     # LLM API configuration
     LLM_API_KEY = os.environ.get('LLM_API_KEY')
     LLM_API_URL = os.environ.get('LLM_API_URL')
+    MOONSHOT_API_KEY = os.environ.get('MOONSHOT_API_KEY')
+    MOONSHOT_API_URL = os.environ.get('MOONSHOT_API_URL')
+    DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
     
     # Application settings
     POSTS_PER_PAGE = 10

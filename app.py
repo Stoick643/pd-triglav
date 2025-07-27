@@ -29,7 +29,7 @@ def create_app(config_class=Config):
     # Import models (needed for database creation)
     from models.user import User
     from models.trip import Trip, TripParticipant
-    from models.content import TripReport, Photo, Comment
+    from models.content import TripReport, Photo, Comment, HistoricalEvent, NewsItem
     
     # User loader for Flask-Login
     @login_manager.user_loader
