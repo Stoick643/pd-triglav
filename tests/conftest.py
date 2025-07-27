@@ -129,3 +129,149 @@ def test_users(app):
         db.session.commit()
         
         return _get_users()
+
+
+@pytest.fixture
+def sample_historical_events(app):
+    """Create sample historical events for testing"""
+    from models.content import HistoricalEvent, EventCategory
+    from models.user import db
+    
+    def _get_events():
+        """Function to get fresh event instances from database"""
+        return {
+            'everest': HistoricalEvent.query.filter_by(title='Mount Everest First Ascent').first(),
+            'matterhorn': HistoricalEvent.query.filter_by(title='Matterhorn Tragedy').first(),
+            'eiger': HistoricalEvent.query.filter_by(title='Eiger North Face Conquest').first(),
+            'alpine_discovery': HistoricalEvent.query.filter_by(title='Alpine Route Discovery').first()
+        }
+    
+    with app.app_context():
+        # Check if events already exist
+        if HistoricalEvent.query.filter_by(title='Mount Everest First Ascent').first():
+            return _get_events()
+        
+        # Create sample historical events
+        events = [
+            HistoricalEvent(
+                date='29 May',
+                year=1953,
+                title='Mount Everest First Ascent',
+                description='Edmund Hillary and Tenzing Norgay achieve the first confirmed ascent of Mount Everest, marking a pivotal moment in mountaineering history.',
+                location='Mount Everest, Nepal-Tibet border',
+                people=['Edmund Hillary', 'Tenzing Norgay'],
+                url='https://en.wikipedia.org/wiki/1953_British_Mount_Everest_expedition',
+                url_secondary='https://www.bbc.com/news/world-asia-22637401',
+                category=EventCategory.FIRST_ASCENT,
+                methodology='Direct date search',
+                url_methodology='Wikipedia primary source and BBC historical coverage',
+                is_featured=True,
+                is_generated=True
+            ),
+            HistoricalEvent(
+                date='14 July',
+                year=1865,
+                title='Matterhorn Tragedy',
+                description='Edward Whymper\'s team achieves the first ascent of the Matterhorn, but tragedy strikes on the descent when four team members fall to their deaths.',
+                location='Matterhorn, Swiss-Italian Alps',
+                people=['Edward Whymper', 'Charles Hudson', 'Lord Francis Douglas', 'Douglas Hadow'],
+                url='https://en.wikipedia.org/wiki/Matterhorn#First_ascent',
+                category=EventCategory.TRAGEDY,
+                methodology='Historical records search',
+                url_methodology='Well-documented historical event with multiple sources',
+                is_featured=True,
+                is_generated=True
+            ),
+            HistoricalEvent(
+                date='24 July',
+                year=1938,
+                title='Eiger North Face Conquest',
+                description='Anderl Heckmair, Ludwig Vörg, Heinrich Harrer, and Fritz Kasparek complete the first ascent of the notorious Eiger North Face after a dramatic four-day climb.',
+                location='Eiger North Face, Swiss Alps',
+                people=['Anderl Heckmair', 'Ludwig Vörg', 'Heinrich Harrer', 'Fritz Kasparek'],
+                url='https://en.wikipedia.org/wiki/Eiger#North_Face',
+                category=EventCategory.FIRST_ASCENT,
+                methodology='Multi-day event search',
+                url_methodology='Historical mountaineering records',
+                is_featured=False,
+                is_generated=True
+            ),
+            HistoricalEvent(
+                date='15 August',
+                year=1960,
+                title='Alpine Route Discovery',
+                description='A new challenging route is discovered in the Mont Blanc massif, opening up possibilities for modern alpine climbing techniques.',
+                location='Mont Blanc massif, French Alps',
+                people=['Alpine Pioneer'],
+                url=None,
+                category=EventCategory.DISCOVERY,
+                methodology='Regional climbing history search',
+                url_methodology=None,
+                is_featured=False,
+                is_generated=True
+            ),
+            HistoricalEvent(
+                date='27 July',
+                year=1953,
+                title='K2 Expedition Preparation',
+                description='The Italian expedition team led by Ardito Desio begins final preparations for their historic attempt on K2, which would succeed the following year.',
+                location='K2 Base Camp, Pakistan',
+                people=['Ardito Desio'],
+                url='https://en.wikipedia.org/wiki/1954_Italian_Karakoram_expedition_to_K2',
+                category=EventCategory.EXPEDITION,
+                methodology='Expedition timeline research',
+                url_methodology='Italian expedition historical records',
+                is_featured=False,
+                is_generated=True
+            )
+        ]
+        
+        for event in events:
+            db.session.add(event)
+        
+        db.session.commit()
+        
+        return _get_events()
+
+
+@pytest.fixture
+def mock_llm_responses():
+    """Provide mock LLM API responses for testing"""
+    return {
+        'successful_response': {
+            'year': 1953,
+            'title': 'Mock Historical Event',
+            'description': 'A mock event generated for testing purposes.',
+            'location': 'Mock Mountain Range',
+            'people': ['Mock Climber', 'Mock Guide'],
+            'url_1': 'https://mock.example.com/source1',
+            'url_2': 'https://mock.example.com/source2',
+            'category': 'first_ascent',
+            'methodology': 'Mock methodology',
+            'url_methodology': 'Mock source verification'
+        },
+        'minimal_response': {
+            'year': 1965,
+            'title': 'Minimal Mock Event',
+            'description': 'Minimal mock event for testing.',
+            'location': 'Mock Location',
+            'people': ['Mock Person'],
+            'category': 'achievement'
+        },
+        'invalid_category_response': {
+            'year': 1970,
+            'title': 'Invalid Category Event',
+            'description': 'Event with invalid category for testing.',
+            'location': 'Test Location',
+            'people': ['Test Person'],
+            'category': 'invalid_category'
+        },
+        'people_string_response': {
+            'year': 1980,
+            'title': 'String People Event',
+            'description': 'Event with people as string for testing.',
+            'location': 'String Location',
+            'people': 'Person One, Person Two, Person Three',
+            'category': 'expedition'
+        }
+    }
