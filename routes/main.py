@@ -76,9 +76,25 @@ def admin():
         return render_template('errors/403.html'), 403
     
     from models.user import User
+    from forms.admin_forms import UserApprovalForm, UserRejectionForm
+    
     pending_users = User.get_pending_users()
     
-    return render_template('admin/dashboard.html', pending_users=pending_users)
+    # Create forms for each pending user
+    approval_forms = {}
+    rejection_forms = {}
+    
+    for user in pending_users:
+        approval_form = UserApprovalForm()
+        approval_forms[user.id] = approval_form
+        
+        rejection_form = UserRejectionForm()
+        rejection_forms[user.id] = rejection_form
+    
+    return render_template('admin/dashboard.html', 
+                         pending_users=pending_users,
+                         approval_forms=approval_forms,
+                         rejection_forms=rejection_forms)
 
 
 @bp.route('/admin/approve-user/<int:user_id>', methods=['POST'])
@@ -90,6 +106,20 @@ def approve_user(user_id):
         return redirect(url_for('main.index'))
     
     from models.user import db, User, UserRole
+    from forms.admin_forms import UserApprovalForm
+    
+    form = UserApprovalForm()
+    
+    current_app.logger.warn(f"Approval form submitted for user {user_id}")
+    current_app.logger.warn(f"Form data: {dict(request.form)}")
+    current_app.logger.warn(f"Form validation result: {form.validate_on_submit()}")
+    current_app.logger.warn(f"Form errors: {form.errors}")
+    
+    if not form.validate_on_submit():
+        flash('Neveljaven zahtevek za odobritev.', 'error')
+        current_app.logger.error(f"Form validation failed: {form.errors}")
+        return redirect(url_for('main.admin'))
+    
     user = User.query.get_or_404(user_id)
     
     if user.role != UserRole.PENDING:
@@ -98,11 +128,14 @@ def approve_user(user_id):
     
     try:
         user.role = UserRole.MEMBER
+        user.is_approved = True
         db.session.commit()
         flash(f'Uporabnik {user.name} je bil uspešno odobren kot član.', 'success')
+        current_app.logger.info(f"Admin {current_user.email} approved user {user.email}")
     except Exception as e:
         db.session.rollback()
-        flash('Napaka pri odobritvi uporabnika.', 'error')
+        current_app.logger.error(f"Failed to approve user {user.email}: {e}")
+        flash(f'Napaka pri odobritvi uporabnika: {str(e)}', 'error')
     
     return redirect(url_for('main.admin'))
 
@@ -116,6 +149,20 @@ def reject_user(user_id):
         return redirect(url_for('main.index'))
     
     from models.user import db, User, UserRole
+    from forms.admin_forms import UserRejectionForm
+    
+    form = UserRejectionForm()
+    
+    current_app.logger.info(f"Rejection form submitted for user {user_id}")
+    current_app.logger.info(f"Form data: {dict(request.form)}")
+    current_app.logger.info(f"Form validation result: {form.validate_on_submit()}")
+    current_app.logger.info(f"Form errors: {form.errors}")
+    
+    if not form.validate_on_submit():
+        flash('Neveljaven zahtevek za zavrnitev.', 'error')
+        current_app.logger.error(f"Form validation failed: {form.errors}")
+        return redirect(url_for('main.admin'))
+    
     user = User.query.get_or_404(user_id)
     
     if user.role != UserRole.PENDING:
@@ -124,12 +171,15 @@ def reject_user(user_id):
     
     try:
         user_name = user.name
+        user_email = user.email
         db.session.delete(user)
         db.session.commit()
         flash(f'Uporabnik {user_name} je bil zavrnjen in odstranjen.', 'info')
+        current_app.logger.info(f"Admin {current_user.email} rejected and deleted user {user_email}")
     except Exception as e:
         db.session.rollback()
-        flash('Napaka pri zavrnitvi uporabnika.', 'error')
+        current_app.logger.error(f"Failed to reject user {user.email}: {e}")
+        flash(f'Napaka pri zavrnitvi uporabnika: {str(e)}', 'error')
     
     return redirect(url_for('main.admin'))
 

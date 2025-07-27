@@ -145,7 +145,7 @@ class User(UserMixin, db.Model):
     @staticmethod
     def get_pending_users():
         """Get all users pending approval"""
-        return User.query.filter_by(is_approved=False).all()
+        return User.query.filter_by(role=UserRole.PENDING).all()
     
     @staticmethod
     def get_approved_users():

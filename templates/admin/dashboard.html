@@ -28,12 +28,14 @@
                                 </div>
                                 <div class="col-auto">
                                     <form method="POST" action="{{ url_for('main.approve_user', user_id=user.id) }}" class="d-inline">
+                                        {{ approval_forms[user.id].hidden_tag() }}
                                         <button type="submit" class="btn btn-success btn-sm me-1" 
                                                 onclick="return confirm('Ali ste prepričani, da želite odobriti uporabnika {{ user.name }}?')">
                                             <i class="bi bi-check-circle me-1"></i>Odobri
                                         </button>
                                     </form>
                                     <form method="POST" action="{{ url_for('main.reject_user', user_id=user.id) }}" class="d-inline">
+                                        {{ rejection_forms[user.id].hidden_tag() }}
                                         <button type="submit" class="btn btn-danger btn-sm" 
                                                 onclick="return confirm('Ali ste prepričani, da želite zavrniti in odstraniti uporabnika {{ user.name }}? To dejanje ni mogoče razveljaviti.')">
                                             <i class="bi bi-x-circle me-1"></i>Zavrni
