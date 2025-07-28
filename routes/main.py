@@ -9,6 +9,7 @@ def index():
     """Home page with role-based content"""
     todays_event = None
     recent_events = []
+    daily_news = []
     
     # Get today's historical event (temporarily for everyone)
     if True:  # Temporarily show to everyone
@@ -36,7 +37,15 @@ def index():
             current_app.logger.error(f"Failed to get historical events: {e}")
             # Continue without historical events
     
-    return render_template('index.html', todays_event=todays_event, recent_events=recent_events)
+    # Get daily climbing news
+    try:
+        from utils.daily_news import get_daily_mountaineering_news_for_homepage
+        daily_news = get_daily_mountaineering_news_for_homepage()
+    except Exception as e:
+        current_app.logger.error(f"Failed to get daily news: {e}")
+        daily_news = []
+    
+    return render_template('index.html', todays_event=todays_event, recent_events=recent_events, daily_news=daily_news)
 
 
 @bp.route('/history/event/<int:event_id>')

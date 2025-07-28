@@ -51,6 +51,9 @@ class Config:
     MOONSHOT_API_URL = os.environ.get('MOONSHOT_API_URL')
     DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
     
+    # News API configuration
+    NEWS_API_KEY = os.environ.get('NEWS_API_KEY')
+    
     # Application settings
     POSTS_PER_PAGE = 10
     PHOTOS_PER_PAGE = 20
