@@ -12,6 +12,8 @@ anyio==4.9.0
     # via
     #   httpx
     #   openai
+apscheduler==3.11.0
+    # via -r requirements.in
 authlib==1.6.1
     # via -r requirements.in
 blinker==1.9.0
@@ -102,6 +104,8 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
+newsapi-python==0.2.7
+    # via -r requirements.in
 openai==1.97.1
     # via -r requirements.in
 packaging==25.0
@@ -138,7 +142,9 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
     # via -r requirements.in
 requests==2.32.4
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   newsapi-python
 s3transfer==0.13.1
     # via boto3
 six==1.17.0
@@ -164,6 +170,8 @@ typing-extensions==4.14.1
     #   typing-inspection
 typing-inspection==0.4.1
     # via pydantic
+tzlocal==5.3.1
+    # via apscheduler
 urllib3==2.5.0
     # via
     #   botocore

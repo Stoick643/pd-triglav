@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum
 from models.user import db, User
 
@@ -595,5 +595,99 @@ class NewsItem(db.Model):
             'age_days': self.age_days,
             'is_featured': self.is_featured,
             'is_expired': self.is_expired,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class DailyNews(db.Model):
+    """Daily news cache for mountaineering news - stores API results per day"""
+    
+    __tablename__ = 'daily_news'
+    __table_args__ = (
+        db.Index('idx_daily_news_date', 'news_date'),
+    )
+    
+    # Primary key
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Date for this news batch
+    news_date = db.Column(db.Date, nullable=False, unique=True)  # One entry per day
+    
+    # Cached articles from NewsAPI (JSON array)
+    articles = db.Column(db.JSON, nullable=False, default=list)
+    
+    # Metadata
+    fetch_source = db.Column(db.String(50), default='NewsAPI')  # Track source
+    articles_count = db.Column(db.Integer, default=0)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<DailyNews {self.news_date}: {self.articles_count} articles>'
+    
+    @staticmethod
+    def get_todays_news():
+        """Get cached news for today, returns None if not found"""
+        today = date.today()
+        daily_news = DailyNews.query.filter_by(news_date=today).first()
+        return daily_news.articles if daily_news else None
+    
+    @staticmethod
+    def get_or_create_todays_news():
+        """Get today's news from cache, or create empty entry for caching"""
+        today = date.today()
+        daily_news = DailyNews.query.filter_by(news_date=today).first()
+        
+        if not daily_news:
+            daily_news = DailyNews(
+                news_date=today,
+                articles=[],
+                articles_count=0
+            )
+            db.session.add(daily_news)
+            db.session.commit()
+        
+        return daily_news
+    
+    @staticmethod
+    def cache_todays_news(articles_list):
+        """Cache articles for today's date"""
+        today = date.today()
+        daily_news = DailyNews.query.filter_by(news_date=today).first()
+        
+        if not daily_news:
+            daily_news = DailyNews(news_date=today)
+            db.session.add(daily_news)
+        
+        daily_news.articles = articles_list
+        daily_news.articles_count = len(articles_list)
+        daily_news.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        return daily_news
+    
+    @staticmethod
+    def cleanup_old_news(days_to_keep=30):
+        """Remove news older than specified days"""
+        from datetime import timedelta
+        cutoff_date = date.today() - timedelta(days=days_to_keep)
+        
+        old_news = DailyNews.query.filter(DailyNews.news_date < cutoff_date).all()
+        for news in old_news:
+            db.session.delete(news)
+        
+        db.session.commit()
+        return len(old_news)
+    
+    def to_dict(self):
+        """Convert to dictionary for JSON serialization"""
+        return {
+            'id': self.id,
+            'news_date': self.news_date.isoformat(),
+            'articles': self.articles,
+            'articles_count': self.articles_count,
+            'fetch_source': self.fetch_source,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }

@@ -37,10 +37,12 @@ def index():
             current_app.logger.error(f"Failed to get historical events: {e}")
             # Continue without historical events
     
-    # Get daily climbing news
+    # Get daily climbing news (from cache or API fallback)
     try:
         from utils.daily_news import get_daily_mountaineering_news_for_homepage
         daily_news = get_daily_mountaineering_news_for_homepage()
+        if not daily_news:
+            current_app.logger.info("No cached news found, this is normal on first run")
     except Exception as e:
         current_app.logger.error(f"Failed to get daily news: {e}")
         daily_news = []

@@ -18,3 +18,5 @@ pytest-flask
 pytest-cov
 coverage
 gunicorn
+APScheduler
+newsapi-python

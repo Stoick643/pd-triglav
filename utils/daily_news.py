@@ -4,6 +4,22 @@ from newsapi import NewsApiClient
 from flask import current_app
 
 def get_daily_mountaineering_news_for_homepage():
+    """Get daily news for homepage - uses database cache"""
+    from models.content import DailyNews
+    
+    # Try to get cached news first
+    cached_news = DailyNews.get_todays_news()
+    if cached_news:
+        return cached_news
+    
+    # If no cached news, fetch from API and cache it
+    return fetch_and_cache_news()
+
+
+def fetch_and_cache_news():
+    """Fetch news from API and cache in database"""
+    from models.content import DailyNews
+    
     # Initialize NewsAPI client
     api_key = current_app.config.get('NEWS_API_KEY')
     if not api_key:
@@ -152,6 +168,9 @@ def get_daily_mountaineering_news_for_homepage():
             "language": article.get('language', 'en')
         })
 
+    # Cache the results in database
+    DailyNews.cache_todays_news(summaries)
+    
     return summaries
 
 # This function would be called daily by your client's backend system.

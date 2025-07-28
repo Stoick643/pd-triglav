@@ -32,7 +32,7 @@ def create_app(config_class=Config):
     # Import models (needed for database creation)
     from models.user import User
     from models.trip import Trip, TripParticipant
-    from models.content import TripReport, Photo, Comment, HistoricalEvent, NewsItem
+    from models.content import TripReport, Photo, Comment, HistoricalEvent, NewsItem, DailyNews
     
     # User loader for Flask-Login
     @login_manager.user_loader
@@ -77,6 +77,16 @@ def create_app(config_class=Config):
         text = text.replace('\n', '<br>')
         
         return text
+    
+    # Initialize background scheduler for daily tasks
+    try:
+        from utils.scheduler import init_scheduler
+        with app.app_context():
+            scheduler = init_scheduler(app)
+            if scheduler:
+                app.scheduler = scheduler
+    except Exception as e:
+        app.logger.error(f"Failed to initialize scheduler: {e}")
     
     # Database tables are now managed by Flask-Migrate
     # Use 'flask db upgrade' to create/update tables
