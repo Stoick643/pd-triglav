@@ -22,3 +22,4 @@ coverage
 gunicorn
 APScheduler
 newsapi-python
+feedparser
