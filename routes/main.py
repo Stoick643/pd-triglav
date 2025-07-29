@@ -269,6 +269,44 @@ def regenerate_today_event():
         }), 500
 
 
+@bp.route('/admin/refresh-news', methods=['POST'])
+@login_required
+def refresh_news():
+    """Refresh daily news - admin only"""
+    if not current_user.is_admin():
+        return jsonify({'error': 'Dostop zavrnjen. Potrebne so administratorske pravice.'}), 403
+    
+    try:
+        from models.content import DailyNews
+        from utils.daily_news import fetch_and_cache_news
+        from datetime import date
+        
+        # Clear today's cached news
+        today = date.today()
+        existing_news = DailyNews.query.filter_by(news_date=today).first()
+        if existing_news:
+            existing_news.articles = []
+            existing_news.articles_count = 0
+        
+        # Fetch fresh news using improved RSS parser
+        fresh_articles = fetch_and_cache_news()
+        
+        current_app.logger.info(f"Admin {current_user.email} refreshed news: {len(fresh_articles)} articles")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Novice so bile uspešno osvežene. Pridobljenih {len(fresh_articles)} člankov.',
+            'articles_count': len(fresh_articles)
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error refreshing news: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Napaka pri osvežitvi novic. Poskusite ponovno.'
+        }), 500
+
+
 @bp.route('/api/history/recent')
 def get_recent_historical_events():
     """Get recent historical events for archive display"""

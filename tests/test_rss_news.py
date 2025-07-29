@@ -122,6 +122,82 @@ class TestRSSFeedParser:
         assert rss_parser._extract_source_name('https://planetmountain.com/rss.xml') == 'planetmountain'
         assert rss_parser._extract_source_name('https://gripped.com/feed/') == 'gripped'
         assert rss_parser._extract_source_name('https://ukclimbing.com/news/rss') == 'ukclimbing'
+    
+    def test_clean_html_content_basic(self, rss_parser):
+        """Test basic HTML tag removal"""
+        html_text = '<p>Alpine climbing can bring you to amazing places.</p>'
+        cleaned = rss_parser._clean_html_content(html_text)
+        assert cleaned == 'Alpine climbing can bring you to amazing places.'
+        assert '<p>' not in cleaned
+        assert '</p>' not in cleaned
+    
+    def test_clean_html_content_complex(self, rss_parser):
+        """Test cleaning complex HTML with links and tags"""
+        html_text = '''<p>Alpine climbing can bring you to amazing places, but a lot can go wrong so be sure that you're prepared</p> 
+        <p>The post <a href="https://gripped.com/profiles/10-tips-for-your-first-alpine-climb/">10 Tips for Your First Alpine Climb</a> appeared first on <a href="https://gripped.com">Gripped Magazine</a>.</p>'''
+        
+        cleaned = rss_parser._clean_html_content(html_text)
+        
+        # Should remove HTML tags
+        assert '<p>' not in cleaned
+        assert '<a href' not in cleaned
+        assert '</p>' not in cleaned
+        
+        # Should remove footer text pattern
+        assert 'appeared first on' not in cleaned
+        assert 'The post' not in cleaned
+        
+        # Should keep the main content
+        assert 'Alpine climbing can bring you to amazing places' in cleaned
+        assert "you're prepared" in cleaned
+    
+    def test_clean_html_content_footer_patterns(self, rss_parser):
+        """Test removal of common RSS footer patterns"""
+        test_cases = [
+            ('Main content. The post Title appeared first on Website.', 'Main content.'),
+            ('Article text. Continue reading more details here.', 'Article text.'),
+            ('News content. Read more about this topic.', 'News content.'),
+            ('Content here. Originally published on Source.', 'Content here.'),
+            ('Article. [Additional info]', 'Article.'),
+        ]
+        
+        for input_text, expected in test_cases:
+            cleaned = rss_parser._clean_html_content(input_text)
+            assert expected.strip() in cleaned
+    
+    def test_clean_html_content_whitespace_normalization(self, rss_parser):
+        """Test whitespace normalization"""
+        html_text = '<p>Text   with    multiple\n\n    spaces.</p>'
+        cleaned = rss_parser._clean_html_content(html_text)
+        assert cleaned == 'Text with multiple spaces.'
+    
+    def test_clean_html_content_length_truncation(self, rss_parser):
+        """Test content truncation at sentence boundaries"""
+        # Create content longer than 300 characters
+        long_text = '<p>' + 'This is a test sentence. ' * 20 + '</p>'
+        cleaned = rss_parser._clean_html_content(long_text)
+        
+        # Should be truncated
+        assert len(cleaned) <= 300
+        # Should end properly (either with period or ellipsis)
+        assert cleaned.endswith('.') or cleaned.endswith('...')
+    
+    def test_clean_html_content_empty_input(self, rss_parser):
+        """Test handling of empty or None input"""
+        assert rss_parser._clean_html_content('') == ''
+        assert rss_parser._clean_html_content(None) == ''
+        assert rss_parser._clean_html_content('   ') == ''
+    
+    def test_clean_html_content_malformed_html(self, rss_parser):
+        """Test handling of malformed HTML"""
+        malformed_html = '<p>Unclosed paragraph <div>Mixed tags</p></div> Text'
+        cleaned = rss_parser._clean_html_content(malformed_html)
+        
+        # Should still extract text even from malformed HTML
+        assert 'Unclosed paragraph' in cleaned
+        assert 'Mixed tags' in cleaned
+        assert 'Text' in cleaned
+        assert '<' not in cleaned  # No HTML tags should remain
 
 
 class TestClimbingNewsAggregator:

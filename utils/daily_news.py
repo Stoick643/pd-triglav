@@ -5,6 +5,7 @@ from newsapi import NewsApiClient
 from flask import current_app
 import feedparser
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 
 def get_daily_mountaineering_news_for_homepage():
     """Get daily news for homepage - uses database cache"""
@@ -203,17 +204,21 @@ class RSSFeedParser:
             articles = []
             for entry in feed.entries:
                 try:
+                    # Get raw summary/description
+                    raw_summary = entry.get('summary', entry.get('description', ''))
+                    
                     article = {
                         'title': entry.get('title', '').strip(),
                         'url': entry.get('link', ''),
-                        'summary': entry.get('summary', entry.get('description', '')).strip(),
+                        'summary': self._clean_html_content(raw_summary),
                         'published_at': self._parse_date(entry),
                         'source': source_name,
                         'language': 'en'  # Default to English for now
                     }
                     
-                    # Skip articles without essential data
-                    if article['title'] and article['url']:
+                    # Skip articles without essential data or meaningful content
+                    if (article['title'] and article['url'] and 
+                        article['summary'] and len(article['summary']) > 20):
                         articles.append(article)
                         
                 except Exception as e:
@@ -301,6 +306,69 @@ class RSSFeedParser:
         except Exception as e:
             current_app.logger.warning(f"Date parsing error: {e}")
             return datetime.datetime.utcnow().isoformat() + 'Z'
+    
+    def _clean_html_content(self, html_text):
+        """Clean HTML content and remove unwanted patterns"""
+        if not html_text:
+            return ''
+        
+        try:
+            # Parse HTML with BeautifulSoup
+            soup = BeautifulSoup(html_text, 'html.parser')
+            
+            # Get plain text without HTML tags
+            text = soup.get_text()
+            
+            # Remove common RSS footer patterns
+            footer_patterns = [
+                r'The post .+ appeared first on .+',
+                r'Continue reading .+',
+                r'Read more about .+',
+                r'View this post on .+',
+                r'Originally published on .+',
+                r'Source: .+',
+                r'\[.+\]$',  # Remove content in square brackets at end
+            ]
+            
+            for pattern in footer_patterns:
+                text = re.sub(pattern, '', text, flags=re.IGNORECASE | re.DOTALL)
+            
+            # Clean up whitespace and normalize text
+            text = re.sub(r'\s+', ' ', text)  # Replace multiple whitespace with single space
+            text = text.strip()
+            
+            # Remove trailing periods and common sentence enders if they seem incomplete
+            if text.endswith('...') or text.endswith('….'):
+                text = text.rstrip('.… ')
+            
+            # Ensure reasonable length (truncate at sentence boundary if too long)
+            if len(text) > 300:
+                # Try to cut at sentence boundary
+                sentences = text.split('. ')
+                truncated = ''
+                for sentence in sentences:
+                    if len(truncated + sentence + '. ') <= 300:
+                        truncated += sentence + '. '
+                    else:
+                        break
+                
+                if truncated:
+                    text = truncated.strip()
+                else:
+                    # Fallback: cut at word boundary
+                    words = text.split()[:50]  # Approximately 300 chars
+                    text = ' '.join(words)
+                    if not text.endswith('.'):
+                        text += '...'
+            
+            return text
+            
+        except Exception as e:
+            current_app.logger.warning(f"HTML cleaning error: {e}")
+            # Fallback: basic HTML tag removal with regex
+            text = re.sub(r'<[^>]+>', '', html_text)
+            text = re.sub(r'\s+', ' ', text).strip()
+            return text[:300] + ('...' if len(text) > 300 else '')
 
 
 class ClimbingNewsAggregator:

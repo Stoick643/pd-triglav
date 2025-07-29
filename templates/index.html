@@ -304,9 +304,16 @@
         {% if daily_news %}
         <div class="card border-success h-100">
             <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-newspaper me-2"></i>Planinske novice
-                </h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-newspaper me-2"></i>Planinske novice
+                    </h5>
+                    {% if current_user.is_authenticated and current_user.is_admin() %}
+                    <button id="refresh-news-btn" class="btn btn-sm btn-outline-light" title="Osveži novice">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    {% endif %}
+                </div>
             </div>
             <div class="card-body">
                 {% for article in daily_news %}
@@ -320,7 +327,14 @@
                     <p class="text-muted small mb-2">{{ article.summary }}</p>
                     <small class="text-muted">
                         <i class="bi bi-calendar3 me-1"></i>
-                        {{ article.published_at[:10] if article.published_at else 'Recent' }}
+                        {% if article.published_at %}
+                            {{ article.published_at[:10] }}
+                        {% else %}
+                            Nedavno
+                        {% endif %}
+                        {% if article.source_name %}
+                            • {{ article.source_name }}
+                        {% endif %}
                     </small>
                 </div>
                 {% endfor %}
@@ -329,9 +343,16 @@
         {% else %}
         <div class="card border-secondary h-100">
             <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-newspaper me-2"></i>Planinske novice
-                </h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-newspaper me-2"></i>Planinske novice
+                    </h5>
+                    {% if current_user.is_authenticated and current_user.is_admin() %}
+                    <button id="refresh-news-btn" class="btn btn-sm btn-outline-light" title="Osveži novice">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    {% endif %}
+                </div>
             </div>
             <div class="card-body text-center">
                 <i class="bi bi-newspaper display-4 text-muted mb-3"></i>
@@ -354,6 +375,16 @@ document.addEventListener('DOMContentLoaded', function() {
         regenerateBtn.addEventListener('click', function() {
             if (confirm('Ali ste prepričani, da želite regenerirati današnji dogodek?')) {
                 regenerateEvent();
+            }
+        });
+    }
+
+    // Admin refresh news functionality
+    const refreshNewsBtn = document.getElementById('refresh-news-btn');
+    if (refreshNewsBtn) {
+        refreshNewsBtn.addEventListener('click', function() {
+            if (confirm('Ali ste prepričani, da želite osvežiti novice? To bo trajalo nekaj sekund.')) {
+                refreshNews();
             }
         });
     }
@@ -399,6 +430,40 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('Error:', error);
             alert('Napaka pri regeneraciji dogodka');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalIcon;
+        });
+    }
+
+    function refreshNews() {
+        const btn = document.getElementById('refresh-news-btn');
+        const originalIcon = btn.innerHTML;
+        
+        // Show loading state
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
+        
+        fetch('/admin/refresh-news', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Refresh the page to show updated news
+                location.reload();
+            } else {
+                alert('Napaka: ' + (data.error || 'Neznana napaka'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Napaka pri osvežitvi novic');
         })
         .finally(() => {
             btn.disabled = false;

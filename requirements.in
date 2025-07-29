@@ -23,3 +23,4 @@ gunicorn
 APScheduler
 newsapi-python
 feedparser
+beautifulsoup4
