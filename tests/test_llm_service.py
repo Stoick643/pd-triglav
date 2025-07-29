@@ -12,8 +12,11 @@ from utils.llm_service import (
     test_llm_service
 )
 
+# Mark all tests in this file as slow external service tests
+pytestmark = [pytest.mark.slow, pytest.mark.external]
 
-@pytest.mark.unit
+
+@pytest.mark.fast
 class TestDateFormatting:
     """Test date formatting utility functions"""
     
@@ -43,7 +46,6 @@ class TestDateFormatting:
         assert result1 == '27 July'
 
 
-@pytest.mark.unit 
 class TestLLMService:
     """Test LLM service functionality with mocked providers"""
     
@@ -288,7 +290,7 @@ class TestLLMService:
                 assert result is False
 
 
-@pytest.mark.unit
+@pytest.mark.slow
 class TestConvenienceFunctions:
     """Test module-level convenience functions"""
     

@@ -1,6 +1,9 @@
 import pytest
 from models.user import User, UserRole, db
 
+# Mark all tests in this file as fast auth tests
+pytestmark = [pytest.mark.fast, pytest.mark.auth]
+
 def test_is_pending_method(app, test_users):
     """Test that is_pending() correctly identifies pending users."""
     with app.app_context():

@@ -6,6 +6,9 @@ from app import create_app
 from models.user import db
 from config import TestingConfig
 
+# Mark all tests in this file as fast route tests
+pytestmark = [pytest.mark.fast, pytest.mark.routes]
+
 
 def test_app_creation():
     """Test that app can be created successfully"""

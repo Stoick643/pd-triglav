@@ -5,6 +5,9 @@ from datetime import datetime
 from models.content import HistoricalEvent, EventCategory
 from models.user import db
 
+# Mark all tests in this file as fast model tests
+pytestmark = [pytest.mark.fast, pytest.mark.models]
+
 
 class TestHistoricalEventModel:
     """Test HistoricalEvent model creation and validation"""

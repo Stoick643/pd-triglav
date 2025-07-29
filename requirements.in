@@ -5,6 +5,7 @@ Flask-SQLAlchemy
 Flask-Migrate
 Flask-Login
 Flask-WTF
+email-validator
 Authlib
 requests
 psycopg2-binary
@@ -16,6 +17,7 @@ openai
 pytest
 pytest-flask
 pytest-cov
+pytest-xdist
 coverage
 gunicorn
 APScheduler

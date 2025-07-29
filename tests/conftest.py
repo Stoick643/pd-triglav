@@ -12,10 +12,14 @@ from models.user import User, UserRole
 @pytest.fixture
 def app():
     """Create application for testing"""
-    # Create temporary database file
-    db_fd, db_path = tempfile.mkstemp()
+    import os
+    import uuid
     
-    # Update config to use temporary database
+    # Use unique temporary database for each worker in parallel testing
+    worker_id = os.environ.get('PYTEST_XDIST_WORKER', 'main')
+    db_name = f'test_{worker_id}_{uuid.uuid4().hex[:8]}.db'
+    db_path = f'/tmp/{db_name}'
+    
     TestingConfig.SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
     
     app = create_app(TestingConfig)
@@ -27,8 +31,11 @@ def app():
         # Cleanup
         db.drop_all()
     
-    os.close(db_fd)
-    os.unlink(db_path)
+    # Remove database file
+    try:
+        os.unlink(db_path)
+    except FileNotFoundError:
+        pass
 
 
 @pytest.fixture
@@ -275,3 +282,76 @@ def mock_llm_responses():
             'category': 'expedition'
         }
     }
+
+
+# Mock service fixtures for external dependencies
+@pytest.fixture
+def mock_llm_service():
+    """Provide mock LLM service for testing"""
+    from tests.mocks.llm_mocks import create_mock_llm_service
+    return create_mock_llm_service()
+
+
+@pytest.fixture
+def mock_s3_uploader():
+    """Provide mock S3 uploader for testing"""
+    from tests.mocks.s3_mocks import MockS3PhotoUploader
+    return MockS3PhotoUploader()
+
+
+@pytest.fixture
+def mock_email_service():
+    """Provide mock email service for testing"""
+    from tests.mocks.email_mocks import create_mock_email_service
+    return create_mock_email_service()
+
+
+@pytest.fixture
+def mock_oauth():
+    """Provide mock OAuth service for testing"""
+    from tests.mocks.oauth_mocks import create_mock_oauth
+    return create_mock_oauth()
+
+
+@pytest.fixture
+def mock_image_file():
+    """Provide mock image file for testing"""
+    from tests.mocks.s3_mocks import create_mock_image
+    return create_mock_image()
+
+
+@pytest.fixture
+def mock_large_image_file():
+    """Provide large mock image file for testing"""
+    from tests.mocks.s3_mocks import create_large_mock_image
+    return create_large_mock_image()
+
+
+@pytest.fixture
+def mock_invalid_file():
+    """Provide invalid file for testing"""
+    from tests.mocks.s3_mocks import create_invalid_file
+    return create_invalid_file()
+
+
+@pytest.fixture(autouse=True)
+def auto_mock_external_services(monkeypatch, request):
+    """Automatically mock external services for fast tests"""
+    # Only apply to tests marked as 'fast'
+    if 'fast' in [mark.name for mark in request.node.iter_markers()]:
+        # Mock LLM services
+        from tests.mocks.llm_mocks import MockLLMService, MockProviderManager
+        monkeypatch.setattr("utils.llm_service.LLMService", MockLLMService)
+        monkeypatch.setattr("utils.llm_providers.ProviderManager", MockProviderManager)
+        
+        # Mock S3 services
+        from tests.mocks.s3_mocks import MockBoto3
+        monkeypatch.setattr("boto3.client", MockBoto3.client)
+        
+        # Mock email services
+        from tests.mocks.email_mocks import MockMail, MockMessage
+        monkeypatch.setattr("flask_mail.Mail.send", lambda self, msg: True)
+        
+        # Mock OAuth services
+        from tests.mocks.oauth_mocks import MockOAuth
+        monkeypatch.setattr("authlib.integrations.flask_client.OAuth", MockOAuth)

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_user, logout_user, current_user
 from authlib.integrations.flask_client import OAuth
 from models.user import User, UserRole, db
+from forms.auth_forms import LoginForm, RegistrationForm
 
 bp = Blueprint('auth', __name__)
 
@@ -12,18 +13,11 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        remember = bool(request.form.get('remember'))
-        
-        if not email or not password:
-            flash('Prosim vnesite email in geslo.', 'error')
-            return render_template('auth/login.html')
-        
-        user = User.get_by_email(email)
-        if user and user.check_password(password):
-            login_user(user, remember=remember)
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.get_by_email(form.email.data)
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember.data)
             user.update_last_login()
             
             # Redirect to next page or dashboard
@@ -35,7 +29,7 @@ def login():
         else:
             flash('Napačen email ali geslo.', 'error')
     
-    return render_template('auth/login.html')
+    return render_template('auth/login.html', form=form)
 
 
 @bp.route('/register', methods=['GET', 'POST'])
@@ -44,32 +38,14 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     
-    if request.method == 'POST':
-        email = request.form.get('email')
-        name = request.form.get('name')
-        password = request.form.get('password')
-        password_confirm = request.form.get('password_confirm')
-        
-        # Basic validation
-        if not all([email, name, password, password_confirm]):
-            flash('Vsa polja so obvezna.', 'error')
-            return render_template('auth/register.html')
-        
-        if password != password_confirm:
-            flash('Gesli se ne ujemata.', 'error')
-            return render_template('auth/register.html')
-        
-        if len(password) < 6:
-            flash('Geslo mora imeti vsaj 6 znakov.', 'error')
-            return render_template('auth/register.html')
-        
-        # Check if user already exists
-        if User.get_by_email(email):
-            flash('Uporabnik s tem email naslovom že obstaja.', 'error')
-            return render_template('auth/register.html')
-        
+    form = RegistrationForm()
+    if form.validate_on_submit():
         # Create new user
-        user = User.create_user(email=email, name=name, password=password)
+        user = User.create_user(
+            email=form.email.data,
+            name=form.name.data,
+            password=form.password.data
+        )
         if user:
             db.session.add(user)
             db.session.commit()
@@ -79,7 +55,7 @@ def register():
         else:
             flash('Napaka pri registraciji. Poskusite znova.', 'error')
     
-    return render_template('auth/register.html')
+    return render_template('auth/register.html', form=form)
 
 
 @bp.route('/logout')

@@ -14,6 +14,9 @@ from utils.llm_providers import ProviderManager, MoonshotProvider, DeepSeekProvi
 from utils.llm_service import LLMService, generate_todays_historical_event
 from utils.content_generation import HistoricalEventService, ContentManager
 
+# Mark all tests in this file as slow integration tests
+pytestmark = [pytest.mark.integration, pytest.mark.external, pytest.mark.slow]
+
 
 def has_moonshot_api_key():
     """Check if Moonshot API key is configured"""

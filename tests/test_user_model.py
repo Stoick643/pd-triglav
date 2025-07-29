@@ -4,6 +4,9 @@ import pytest
 from models.user import User, UserRole
 from models.user import db
 
+# Mark all tests in this file as fast model tests
+pytestmark = [pytest.mark.fast, pytest.mark.models]
+
 
 def test_user_creation(app):
     """Test basic user creation"""

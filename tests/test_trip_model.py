@@ -5,6 +5,9 @@ from datetime import date, time, timedelta
 from models.user import User, UserRole, db
 from models.trip import Trip, TripDifficulty, TripStatus, TripParticipant, ParticipantStatus
 
+# Mark all tests in this file as fast model tests
+pytestmark = [pytest.mark.fast, pytest.mark.models]
+
 
 def test_trip_creation_with_difficulty_levels(app, test_users):
     """Test trip creation with different difficulty levels"""

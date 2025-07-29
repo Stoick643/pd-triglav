@@ -5,6 +5,9 @@ from flask import url_for
 from models.user import User, UserRole
 from models.user import db
 
+# Mark auth tests as fast (they use mocked forms now)
+pytestmark = [pytest.mark.fast, pytest.mark.auth]
+
 
 def test_register_new_user(client, app):
     """Test user registration"""

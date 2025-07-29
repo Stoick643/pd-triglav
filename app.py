@@ -55,8 +55,6 @@ def create_app(config_class=Config):
     # Initialize OAuth
     init_oauth(app)
     
-    # Exempt auth routes from CSRF protection (they use raw forms)
-    csrf.exempt(auth_bp)
     
     # Add custom Jinja2 filters
     @app.template_filter('markdown')

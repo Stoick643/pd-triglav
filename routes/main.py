@@ -328,3 +328,72 @@ def get_recent_historical_events():
             'success': False,
             'error': 'Napaka pri nalaganju zgodovinskih dogodkov.'
         }), 500
+
+
+@bp.route('/api/historical-events')
+def api_historical_events():
+    """API endpoint for historical events by date"""
+    try:
+        from models.content import HistoricalEvent
+        from datetime import datetime
+        
+        # Get date parameter (format: DD-MM or YYYY-MM-DD)
+        date_param = request.args.get('date')
+        limit = request.args.get('limit', 10, type=int)
+        
+        # Ensure reasonable limits
+        limit = min(limit, 100)  # Max 100 events per request
+        
+        if not date_param:
+            # If no date provided, use today's date
+            from utils.llm_service import format_date_standard
+            date_param = format_date_standard(datetime.now())
+        
+        # Parse date parameter
+        if len(date_param) == 5 and '-' in date_param:
+            # Format: DD-MM
+            day, month = date_param.split('-')
+            search_date = f"{day} {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][int(month)-1]}"
+        else:
+            # Use as-is for other formats
+            search_date = date_param
+        
+        # Query events for the specific date
+        events = HistoricalEvent.query.filter(
+            HistoricalEvent.date.ilike(f"%{search_date}%")
+        ).order_by(
+            HistoricalEvent.year.desc(),
+            HistoricalEvent.created_at.desc()
+        ).limit(limit).all()
+        
+        # Convert to JSON format
+        events_data = []
+        for event in events:
+            events_data.append({
+                'id': event.id,
+                'date': event.date,
+                'year': event.year,
+                'title': event.title,
+                'description': event.description,
+                'location': event.location,
+                'people': event.people_list if event.people_list else [],
+                'category': event.category.value,
+                'full_date_string': event.full_date_string,
+                'is_featured': event.is_featured,
+                'url': event.url,
+                'url_secondary': event.url_secondary
+            })
+        
+        return jsonify(events_data)
+        
+    except ValueError as e:
+        # Invalid date format
+        return jsonify({
+            'error': 'Invalid date format. Use DD-MM or YYYY-MM-DD.'
+        }), 400
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching historical events: {e}")
+        return jsonify({
+            'error': 'Server error while fetching events.'
+        }), 500

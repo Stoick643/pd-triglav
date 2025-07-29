@@ -98,18 +98,56 @@ flask run
 ```
 
 ### Testing
-```bash
-# Run all tests
-pytest
 
-# Run with coverage
-pytest --cov=. --cov-report=html
+**Fast Development Testing (~1-2 minutes):**
+```bash
+# Method 1: Using make (recommended)
+make test-fast
+
+# Method 2: Using script
+./scripts/test-runner.sh fast
+
+# Method 3: Direct pytest
+pytest -m "fast" -v
+```
+
+**Specific Test Categories:**
+```bash
+# Security tests only
+make test-security
+
+# API endpoint tests
+make test-api
+
+# Database model tests
+make test-models
+
+# Authentication tests
+make test-auth
+```
+
+**Full Test Suite (~8+ minutes):**
+```bash
+# All tests (use before commits)
+make test-all
+
+# With coverage report
+make test-coverage
+```
+
+**Test Organization:**
+- **Fast tests** (`pytest -m "fast"`): Models, forms, basic routes - for daily development
+- **Slow tests** (`pytest -m "slow"`): External services (LLM, S3, OAuth) - for CI/pre-commit
+- **Integration tests** (`pytest -m "integration"`): Real API calls - for comprehensive testing
+- **Security tests** (`pytest -m "security"`): CSRF, XSS, authentication bypasses
+
+**Legacy Commands:**
+```bash
+# Run all tests (old way - slow)
+pytest
 
 # Run specific test file
 pytest tests/test_auth.py
-
-# Run tests with verbose output
-pytest -v
 ```
 
 ### Code Quality
