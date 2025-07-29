@@ -3,37 +3,44 @@
 import pytest
 import tempfile
 import os
+import uuid
 from app import create_app
 from models.user import db
 from config import TestingConfig
 from models.user import User, UserRole
 
 
+class IsolatedTestingConfig(TestingConfig):
+    """Isolated testing configuration that never affects development data"""
+    
+    def __init__(self):
+        super().__init__()
+        # Use unique temporary database for complete isolation
+        worker_id = os.environ.get('PYTEST_XDIST_WORKER', 'main') 
+        db_name = f'test_{worker_id}_{uuid.uuid4().hex[:8]}.db'
+        self.db_path = f'/tmp/{db_name}'
+        self.SQLALCHEMY_DATABASE_URI = f'sqlite:///{self.db_path}'
+
+
 @pytest.fixture
 def app():
-    """Create application for testing"""
-    import os
-    import uuid
+    """Create application for testing with completely isolated database"""
+    # Create isolated test configuration
+    test_config = IsolatedTestingConfig()
     
-    # Use unique temporary database for each worker in parallel testing
-    worker_id = os.environ.get('PYTEST_XDIST_WORKER', 'main')
-    db_name = f'test_{worker_id}_{uuid.uuid4().hex[:8]}.db'
-    db_path = f'/tmp/{db_name}'
-    
-    TestingConfig.SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
-    
-    app = create_app(TestingConfig)
+    app = create_app(test_config)
     
     with app.app_context():
+        # Create fresh database for this test
         db.create_all()
         yield app
         
-        # Cleanup
+        # Clean up database
         db.drop_all()
     
-    # Remove database file
+    # Remove temporary database file
     try:
-        os.unlink(db_path)
+        os.unlink(test_config.db_path)
     except FileNotFoundError:
         pass
 
