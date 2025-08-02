@@ -20,8 +20,10 @@ class Config:
             DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
         SQLALCHEMY_DATABASE_URI = DATABASE_URL
     else:
-        # Development fallback to SQLite
-        SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(basedir, "app.db")
+        # Development fallback to SQLite in databases directory
+        db_dir = os.path.join(basedir, "databases")
+        os.makedirs(db_dir, exist_ok=True)  # Ensure databases directory exists
+        SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(db_dir, "development.db")
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

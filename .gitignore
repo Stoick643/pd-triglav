@@ -167,9 +167,15 @@ instance/
 .env
 *.db
 
-# Database
+# Database files
 *.sqlite3
 *.db
+
+# Database directory - track structure but ignore database files
+databases/*.db
+databases/*.sqlite3
+!databases/.gitkeep
+!databases/README.md
 
 # Logs
 *.log

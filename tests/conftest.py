@@ -14,14 +14,19 @@ class IsolatedTestingConfig(TestingConfig):
 
     def __init__(self):
         super().__init__()
-        # Use unique temporary database for complete isolation
+        # Use unique database in project databases directory for complete isolation
         worker_id = os.environ.get("PYTEST_XDIST_WORKER", "main")
         db_name = f"test_{worker_id}_{uuid.uuid4().hex[:8]}.db"
-        self.db_path = f"/tmp/{db_name}"
+
+        # Get project root directory and create databases path
+        basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        db_dir = os.path.join(basedir, "databases")
+        os.makedirs(db_dir, exist_ok=True)  # Ensure databases directory exists
+        self.db_path = os.path.join(db_dir, db_name)
         self.SQLALCHEMY_DATABASE_URI = f"sqlite:///{self.db_path}"
 
         # Safety check: ensure we never touch development database
-        if "app.db" in self.SQLALCHEMY_DATABASE_URI:
+        if "development.db" in self.SQLALCHEMY_DATABASE_URI:
             raise ValueError("Test configuration must never use development database!")
 
 

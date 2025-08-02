@@ -187,6 +187,30 @@ When `scripts/seed_db.py` is run, these test users are created:
 - **vodnik@pd-triglav.si** / password123 (Trip Leader role)  
 - **pending@pd-triglav.si** / password123 (Pending approval)
 
+## Database Organization
+
+All database files are organized in the `databases/` directory:
+
+```
+databases/
+├── development.db       # Main development database
+├── test_main_abc123.db  # Test databases (auto-generated)
+├── test_worker1_def.db  # Parallel test worker databases
+├── .gitkeep            # Ensures directory is tracked
+└── README.md           # Database documentation
+```
+
+### Database Isolation
+- **Development**: `databases/development.db` (persistent, contains seeded data)
+- **Testing**: `databases/test_*.db` (temporary, created/destroyed per test)
+- **Production**: PostgreSQL (managed by Render)
+
+### Key Benefits
+- All project databases in one location
+- Complete test isolation from development
+- Easy cleanup and management
+- Git-controlled structure (but database files ignored)
+
 ## Environment Variables Reference
 
 Required in `.env` file:
@@ -287,8 +311,11 @@ pd-triglav/
 ### Database Issues
 ```bash
 # Reset database (development only)
-rm instance/app.db  # If using SQLite
+rm databases/development.db  # Remove development database
 flask db upgrade
+
+# Reset all test databases
+rm databases/test_*.db
 
 # Fix migration conflicts
 flask db stamp head
