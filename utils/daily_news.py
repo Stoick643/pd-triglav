@@ -279,7 +279,7 @@ class RSSFeedParser:
 
             return source_name
 
-        except:
+        except Exception:
             return "unknown"
 
     def _parse_date(self, entry):
@@ -302,7 +302,7 @@ class RSSFeedParser:
                 try:
                     dt = datetime.datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
                     return dt.isoformat()
-                except:
+                except ValueError:
                     # If parsing fails, return current time
                     pass
 
@@ -595,7 +595,7 @@ class WebScrapingParser:
                     except ValueError:
                         continue
 
-            except:
+            except Exception:
                 pass
 
             # Fallback to current time
@@ -783,7 +783,7 @@ class ClimbingNewsAggregator:
                         score += 2.0
                     elif time_diff.total_seconds() < 48 * 3600:  # Within 48 hours
                         score += 1.0
-            except:
+            except Exception:
                 pass
 
             article["relevance_score"] = score

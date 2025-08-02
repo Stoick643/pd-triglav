@@ -53,7 +53,7 @@ def list_reports():
             query = query.join(User).filter(User.name.ilike(f"%{form.author.data}%"))
 
         if form.featured_only.data == "featured":
-            query = query.filter(TripReport.featured == True)
+            query = query.filter(TripReport.featured)
         elif form.featured_only.data == "recent":
             # Show only reports from last 30 days
             from datetime import date, timedelta

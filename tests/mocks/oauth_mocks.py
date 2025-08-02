@@ -11,8 +11,8 @@ class MockOAuthProvider:
 
     def __init__(self, provider_name: str = "google"):
         self.provider_name = provider_name
-        self._tokens = {}
-        self._user_profiles = {}
+        self._tokens: dict[str, str] = {}
+        self._user_profiles: dict[str, dict[str, str]] = {}
         self.call_count = 0
 
     def authorize(self, redirect_uri: str, **kwargs) -> str:
@@ -102,7 +102,7 @@ class MockGoogleOAuth:
         self.provider = MockOAuthProvider("google")
         self._login_sessions = {}
 
-    def get_google_login_url(self, next_url: str = None) -> str:
+    def get_google_login_url(self, next_url: str | None = None) -> str:
         """Get Google OAuth login URL"""
         state = f"mock_state_{len(self._login_sessions)}"
         if next_url:

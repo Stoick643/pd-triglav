@@ -264,7 +264,8 @@ def withdraw_from_trip(trip_id):
 @login_required
 def add_comment(trip_id):
     """Add comment to trip announcement"""
-    trip = Trip.query.get_or_404(trip_id)
+    # Validate trip exists (raises 404 if not found)
+    Trip.query.get_or_404(trip_id)
     form = TripCommentForm()
 
     if form.validate_on_submit():

@@ -74,9 +74,9 @@ class MockMessage:
         self.body = body
         self.html = html
         self.sender = sender
-        self.cc = []
-        self.bcc = []
-        self.attachments = []
+        self.cc: list[str] = []
+        self.bcc: list[str] = []
+        self.attachments: list[dict[str, str | bytes]] = []
 
     def attach(self, filename: str, content_type: str, data: bytes):
         """Mock attachment functionality"""

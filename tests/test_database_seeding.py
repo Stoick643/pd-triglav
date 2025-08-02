@@ -62,14 +62,14 @@ class TestDatabaseSeeding:
             admin = User.query.filter_by(email="admin@pd-triglav.si").first()
             assert admin is not None, "Admin user not found"
             assert admin.role == UserRole.ADMIN, f"Admin has wrong role: {admin.role}"
-            assert admin.is_approved == True, "Admin should be approved"
+            assert admin.is_approved, "Admin should be approved"
             assert admin.check_password("password123"), "Admin password incorrect"
 
             # Test member user
             member = User.query.filter_by(email="clan@pd-triglav.si").first()
             assert member is not None, "Member user not found"
             assert member.role == UserRole.MEMBER, f"Member has wrong role: {member.role}"
-            assert member.is_approved == True, "Member should be approved"
+            assert member.is_approved, "Member should be approved"
             assert member.check_password("password123"), "Member password incorrect"
 
             # Test trip leader user
@@ -78,14 +78,14 @@ class TestDatabaseSeeding:
             assert (
                 trip_leader.role == UserRole.TRIP_LEADER
             ), f"Trip leader has wrong role: {trip_leader.role}"
-            assert trip_leader.is_approved == True, "Trip leader should be approved"
+            assert trip_leader.is_approved, "Trip leader should be approved"
             assert trip_leader.check_password("password123"), "Trip leader password incorrect"
 
             # Test pending user
             pending = User.query.filter_by(email="pending@pd-triglav.si").first()
             assert pending is not None, "Pending user not found"
             assert pending.role == UserRole.PENDING, f"Pending user has wrong role: {pending.role}"
-            assert pending.is_approved == False, "Pending user should not be approved"
+            assert not pending.is_approved, "Pending user should not be approved"
             assert pending.check_password("password123"), "Pending user password incorrect"
 
     def test_seed_users_meet_password_requirements(self, app):
@@ -192,37 +192,31 @@ class TestUserRoleHelperMethods:
 
             # Test admin user methods
             admin = User.query.filter_by(email="admin@pd-triglav.si").first()
-            assert admin.is_admin() == True, "Admin user is_admin() should return True"
-            assert admin.is_member() == True, "Admin user is_member() should return True"
-            assert admin.is_trip_leader() == True, "Admin user is_trip_leader() should return True"
-            assert admin.is_pending() == False, "Admin user is_pending() should return False"
+            assert admin.is_admin(), "Admin user is_admin() should return True"
+            assert admin.is_member(), "Admin user is_member() should return True"
+            assert admin.is_trip_leader(), "Admin user is_trip_leader() should return True"
+            assert not admin.is_pending(), "Admin user is_pending() should return False"
 
             # Test member user methods
             member = User.query.filter_by(email="clan@pd-triglav.si").first()
-            assert member.is_admin() == False, "Member user is_admin() should return False"
-            assert member.is_member() == True, "Member user is_member() should return True"
-            assert (
-                member.is_trip_leader() == False
-            ), "Member user is_trip_leader() should return False"
-            assert member.is_pending() == False, "Member user is_pending() should return False"
+            assert not member.is_admin(), "Member user is_admin() should return False"
+            assert member.is_member(), "Member user is_member() should return True"
+            assert not member.is_trip_leader(), "Member user is_trip_leader() should return False"
+            assert not member.is_pending(), "Member user is_pending() should return False"
 
             # Test trip leader methods
             trip_leader = User.query.filter_by(email="vodnik@pd-triglav.si").first()
-            assert trip_leader.is_admin() == False, "Trip leader is_admin() should return False"
-            assert trip_leader.is_member() == True, "Trip leader is_member() should return True"
-            assert (
-                trip_leader.is_trip_leader() == True
-            ), "Trip leader is_trip_leader() should return True"
-            assert trip_leader.is_pending() == False, "Trip leader is_pending() should return False"
+            assert not trip_leader.is_admin(), "Trip leader is_admin() should return False"
+            assert trip_leader.is_member(), "Trip leader is_member() should return True"
+            assert trip_leader.is_trip_leader(), "Trip leader is_trip_leader() should return True"
+            assert not trip_leader.is_pending(), "Trip leader is_pending() should return False"
 
             # Test pending user methods
             pending = User.query.filter_by(email="pending@pd-triglav.si").first()
-            assert pending.is_admin() == False, "Pending user is_admin() should return False"
-            assert pending.is_member() == False, "Pending user is_member() should return False"
-            assert (
-                pending.is_trip_leader() == False
-            ), "Pending user is_trip_leader() should return False"
-            assert pending.is_pending() == True, "Pending user is_pending() should return True"
+            assert not pending.is_admin(), "Pending user is_admin() should return False"
+            assert not pending.is_member(), "Pending user is_member() should return False"
+            assert not pending.is_trip_leader(), "Pending user is_trip_leader() should return False"
+            assert pending.is_pending(), "Pending user is_pending() should return True"
 
 
 @pytest.mark.slow

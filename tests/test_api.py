@@ -209,7 +209,6 @@ class TestAPIErrorHandling:
         response = client.get("/api/historical-events?date=29-05")
 
         # Check for common rate limiting headers (if implemented)
-        headers = response.headers
         # This would check for X-RateLimit-* headers if implemented
         assert response.status_code in [200, 400, 404]
 
@@ -218,7 +217,6 @@ class TestAPIErrorHandling:
         response = client.get("/api/historical-events?date=29-05")
 
         # Check for CORS headers (if API is meant to be public)
-        headers = response.headers
         # This would verify CORS configuration if needed
         assert response.status_code in [200, 400, 404]
 

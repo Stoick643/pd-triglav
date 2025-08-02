@@ -10,7 +10,7 @@ def test_google_login_redirect(app, client):
         with patch("routes.auth.oauth.google") as mock_google:
             mock_google.authorize_redirect.return_value = "redirect_response"
 
-            response = client.get("/auth/google/login")
+            client.get("/auth/google/login")
 
             # Should call authorize_redirect with correct URI
             mock_google.authorize_redirect.assert_called_once()

@@ -82,7 +82,7 @@ class MockS3PhotoUploader:
     def __init__(self, bucket_name: str = "mock-bucket"):
         self.bucket_name = bucket_name
         self.s3_client = MockS3Client()
-        self._processed_photos = []
+        self._processed_photos: list[dict[str, str]] = []
 
     def upload_photo(
         self, file_stream: BinaryIO, filename: str, metadata: Optional[Dict] = None
@@ -103,7 +103,7 @@ class MockS3PhotoUploader:
         key = f"photos/{filename}"
 
         # Mock upload to S3
-        upload_result = self.s3_client.upload_fileobj(
+        self.s3_client.upload_fileobj(
             file_stream,
             self.bucket_name,
             key,

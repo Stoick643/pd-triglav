@@ -1,10 +1,8 @@
 """Security-focused tests for the PD Triglav application"""
 
 import pytest
-import io
 from models.user import User, UserRole
 from models.trip import Trip
-from werkzeug.datastructures import FileStorage
 
 # Mark all tests in this file as security tests (some fast, some slow)
 pytestmark = [pytest.mark.security]
@@ -107,7 +105,7 @@ class TestInputValidation:
         malicious_name = '<script>alert("XSS")</script>'
         malicious_email = 'test@example.com<script>alert("XSS")</script>'
 
-        response = client.post(
+        client.post(
             "/auth/register",
             data={
                 "name": malicious_name,
@@ -170,12 +168,6 @@ class TestFileUploadSecurity:
         ]
 
         for filename, content in malicious_files:
-            file_storage = FileStorage(
-                stream=io.BytesIO(content),
-                filename=filename,
-                content_type="application/octet-stream",
-            )
-
             # Test that secure_filename handles dangerous files
             from werkzeug.utils import secure_filename
 
@@ -191,10 +183,6 @@ class TestFileUploadSecurity:
 
         # Create a large file (simulated)
         large_content = b"A" * (10 * 1024 * 1024)  # 10MB
-
-        file_storage = FileStorage(
-            stream=io.BytesIO(large_content), filename="large_image.jpg", content_type="image/jpeg"
-        )
 
         # Test would check against actual upload endpoint
         # For now, verify file size checking logic

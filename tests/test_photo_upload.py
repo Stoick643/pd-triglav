@@ -13,10 +13,10 @@ from app import create_app
 from models.user import db, User, UserRole
 from models.trip import Trip, TripDifficulty, TripStatus
 from models.content import TripReport, Photo
+from utils.s3_upload import S3PhotoUploader
 
 # Mark all tests in this file as slow external service tests (S3)
 pytestmark = [pytest.mark.slow, pytest.mark.external]
-from utils.s3_upload import S3PhotoUploader
 
 
 @pytest.fixture
