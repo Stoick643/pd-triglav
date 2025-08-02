@@ -3,7 +3,7 @@ Mock OAuth services for testing
 Provides realistic OAuth responses without making real external calls
 """
 
-from typing import Dict
+from typing import Dict, Any
 
 
 class MockOAuthProvider:
@@ -11,7 +11,7 @@ class MockOAuthProvider:
 
     def __init__(self, provider_name: str = "google"):
         self.provider_name = provider_name
-        self._tokens: dict[str, str] = {}
+        self._tokens: dict[str, Dict[str, Any]] = {}
         self._user_profiles: dict[str, dict[str, str]] = {}
         self.call_count = 0
 
@@ -28,7 +28,7 @@ class MockOAuthProvider:
             f"scope=openid email profile"
         )
 
-    def authorize_access_token(self, **kwargs) -> Dict:
+    def authorize_access_token(self, **kwargs) -> Dict[str, Any]:
         """Mock access token exchange"""
         self.call_count += 1
 
@@ -42,10 +42,11 @@ class MockOAuthProvider:
             "id_token": f"mock_id_token_{self.call_count}",
         }
 
-        self._tokens[token_data["access_token"]] = token_data
+        access_token = str(token_data["access_token"])
+        self._tokens[access_token] = token_data
         return token_data
 
-    def get_user_info(self, token: str) -> Dict:
+    def get_user_info(self, token: str) -> Dict[str, Any]:
         """Mock user info retrieval"""
         if token not in self._tokens:
             raise Exception("Invalid token")
@@ -112,7 +113,7 @@ class MockGoogleOAuth:
             redirect_uri="http://localhost:5000/auth/google/callback", state=state
         )
 
-    def handle_google_callback(self, code: str, state: str) -> Dict:
+    def handle_google_callback(self, code: str, state: str) -> Dict[str, Any]:
         """Handle Google OAuth callback"""
         # Exchange code for token
         token_response = self.provider.authorize_access_token(code=code)

@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin
+from flask_login import UserMixin  # type: ignore[import-untyped]
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Create db instance that will be initialized by app
@@ -22,7 +22,7 @@ class UserRole(Enum):
         return [(choice.value, choice.value.replace("_", " ").title()) for choice in cls]
 
 
-class User(UserMixin, db.Model):
+class User(UserMixin, db.Model):  # type: ignore[name-defined]
     """User model for authentication and user management"""
 
     __tablename__ = "users"

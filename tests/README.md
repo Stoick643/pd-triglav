@@ -17,6 +17,35 @@ The PD Triglav project has comprehensive test coverage including unit tests, int
 - **Slower**: May take several seconds per test
 - **Optional**: Can be skipped if APIs are unavailable
 
+## Database Isolation Strategy
+
+### 🛡️ **Complete Database Separation**
+- **Development**: `app.db` (never touched by tests)
+- **Tests**: Unique temporary files in `/tmp/` (completely isolated)
+- **Zero contamination risk**: Tests cannot affect development data
+
+### 🚀 **Two Testing Modes**
+
+#### **Standard Tests (Safe & Isolated)**
+```python
+def test_something(app, client):
+    # Uses completely isolated temporary database
+    # Fresh database created and destroyed per test
+    # Slower but bulletproof isolation
+```
+
+#### **Fast Tests (Transactional Rollback)**
+```python
+def test_something_fast(app_with_transaction, fast_client):
+    # Uses transactional rollback for speed
+    # All changes automatically undone
+    # Much faster for unit tests
+```
+
+### 📋 **When to Use Each Mode**
+- **Standard (`app`, `client`)**: Integration tests, complex scenarios
+- **Fast (`app_with_transaction`, `fast_client`)**: Unit tests, simple operations
+
 ## Running Tests
 
 ### Prerequisites

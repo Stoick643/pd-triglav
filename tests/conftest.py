@@ -20,6 +20,10 @@ class IsolatedTestingConfig(TestingConfig):
         self.db_path = f"/tmp/{db_name}"
         self.SQLALCHEMY_DATABASE_URI = f"sqlite:///{self.db_path}"
 
+        # Safety check: ensure we never touch development database
+        if "app.db" in self.SQLALCHEMY_DATABASE_URI:
+            raise ValueError("Test configuration must never use development database!")
+
 
 @pytest.fixture
 def app():
@@ -45,9 +49,46 @@ def app():
 
 
 @pytest.fixture
+def app_with_transaction():
+    """Fast app fixture using transactional rollback for unit tests"""
+    test_config = IsolatedTestingConfig()
+    app = create_app(test_config)
+
+    with app.app_context():
+        db.create_all()
+
+        # Start a transaction that we'll rollback
+        connection = db.engine.connect()
+        transaction = connection.begin()
+
+        # Configure session to use our transaction
+        db.session.configure(bind=connection)
+
+        yield app
+
+        # Rollback transaction (undoes all changes)
+        transaction.rollback()
+        connection.close()
+
+        # Clean up database file
+        db.drop_all()
+
+    try:
+        os.unlink(test_config.db_path)
+    except FileNotFoundError:
+        pass
+
+
+@pytest.fixture
 def client(app):
     """Create test client"""
     return app.test_client()
+
+
+@pytest.fixture
+def fast_client(app_with_transaction):
+    """Create fast test client with transactional rollback"""
+    return app_with_transaction.test_client()
 
 
 @pytest.fixture
