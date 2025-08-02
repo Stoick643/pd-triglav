@@ -1,10 +1,12 @@
 import datetime
 import os
 import re
+import time
+import requests
 from newsapi import NewsApiClient
 from flask import current_app
 import feedparser
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 
 def get_daily_mountaineering_news_for_homepage():
@@ -371,35 +373,282 @@ class RSSFeedParser:
             return text[:300] + ('...' if len(text) > 300 else '')
 
 
+class WebScrapingParser:
+    """Parse articles from climbing websites using web scraping"""
+    
+    # Configuration for site-specific scraping
+    SCRAPING_SOURCES = {
+        'aac': {
+            'url': 'https://americanalpineclub.org/news',
+            'name': 'American Alpine Club',
+            'selectors': {
+                'articles': 'article.news-item, .news-article, .post',
+                'title': 'h1, h2, h3, .title, .headline',
+                'url': 'a[href*="/news/"], a[href*="/article/"], a.permalink',
+                'summary': '.excerpt, .summary, p.lead, .description',
+                'date': '.date, .publish-date, .posted-on, time'
+            },
+            'credibility': 0.95,
+            'rate_limit': 2,  # seconds between requests
+            'language': 'en'
+        },
+        'climbing': {
+            'url': 'https://www.climbing.com/news/',
+            'name': 'Climbing Magazine',
+            'selectors': {
+                'articles': '.post, article, .news-item',
+                'title': 'h1, h2, .entry-title, .post-title',
+                'url': 'a[href*="/news/"], .entry-title a, .post-title a',
+                'summary': '.excerpt, .entry-summary, .post-excerpt, p',
+                'date': '.date, .entry-date, .post-date, time'
+            },
+            'credibility': 0.9,
+            'rate_limit': 2,
+            'language': 'en'
+        },
+        'explorersweb': {
+            'url': 'https://explorersweb.com/category/news/',
+            'name': 'Explorers Web',
+            'selectors': {
+                'articles': '.post, article, .news-post',
+                'title': 'h1, h2, .entry-title',
+                'url': 'a[href*="/news/"], .entry-title a',
+                'summary': '.entry-excerpt, .excerpt, p',
+                'date': '.entry-date, .date, time'
+            },
+            'credibility': 0.85,
+            'rate_limit': 3,
+            'language': 'en'
+        }
+    }
+    
+    def __init__(self):
+        self.session = requests.Session()
+        # Set a respectful user agent
+        self.session.headers.update({
+            'User-Agent': 'PD Triglav News Aggregator (contact: admin@pd-triglav.si)'
+        })
+        self.timeout = 15  # seconds
+        self.last_request_time = {}
+    
+    def scrape_site(self, source_key, source_config):
+        """Scrape articles from a single site"""
+        try:
+            # Implement rate limiting
+            self._apply_rate_limit(source_key, source_config['rate_limit'])
+            
+            # Fetch the page
+            response = self.session.get(source_config['url'], timeout=self.timeout)
+            response.raise_for_status()
+            
+            # Parse HTML
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Extract articles using site-specific selectors
+            articles = self._extract_articles(soup, source_config, source_key)
+            
+            current_app.logger.info(f"Scraped {len(articles)} articles from {source_config['name']}")
+            return articles
+            
+        except requests.exceptions.RequestException as e:
+            current_app.logger.error(f"Failed to scrape {source_config['name']}: {e}")
+            return []
+        except Exception as e:
+            current_app.logger.error(f"Error scraping {source_config['name']}: {e}")
+            return []
+    
+    def _apply_rate_limit(self, source_key, rate_limit_seconds):
+        """Apply rate limiting between requests to the same source"""
+        current_time = time.time()
+        
+        if source_key in self.last_request_time:
+            time_since_last = current_time - self.last_request_time[source_key]
+            if time_since_last < rate_limit_seconds:
+                sleep_time = rate_limit_seconds - time_since_last
+                current_app.logger.debug(f"Rate limiting: sleeping {sleep_time:.2f}s for {source_key}")
+                time.sleep(sleep_time)
+        
+        self.last_request_time[source_key] = time.time()
+    
+    def _extract_articles(self, soup, source_config, source_key):
+        """Extract articles from parsed HTML using configured selectors"""
+        articles = []
+        selectors = source_config['selectors']
+        
+        # Find all article containers
+        article_elements = soup.select(selectors['articles'])
+        
+        for element in article_elements[:10]:  # Limit to first 10 articles
+            try:
+                article = self._extract_single_article(element, selectors, source_config, source_key)
+                if article:
+                    articles.append(article)
+            except Exception as e:
+                current_app.logger.warning(f"Error extracting article from {source_config['name']}: {e}")
+                continue
+        
+        return articles
+    
+    def _extract_single_article(self, element, selectors, source_config, source_key):
+        """Extract data from a single article element"""
+        # Extract title
+        title_elem = element.select_one(selectors['title'])
+        if not title_elem:
+            return None
+        title = title_elem.get_text().strip()
+        
+        # Extract URL
+        url_elem = element.select_one(selectors['url'])
+        if not url_elem:
+            return None
+        url = url_elem.get('href', '')
+        
+        # Make URL absolute if it's relative
+        if url.startswith('/'):
+            base_url = urlparse(source_config['url'])
+            url = f"{base_url.scheme}://{base_url.netloc}{url}"
+        elif not url.startswith('http'):
+            url = urljoin(source_config['url'], url)
+        
+        # Extract summary
+        summary_elem = element.select_one(selectors['summary'])
+        raw_summary = summary_elem.get_text().strip() if summary_elem else ''
+        
+        # Clean HTML content using existing method
+        # We'll need to access this from RSSFeedParser - let's create a shared method
+        summary = self._clean_html_content(raw_summary)
+        
+        # Extract date
+        date_elem = element.select_one(selectors['date'])
+        published_at = self._parse_date(date_elem) if date_elem else datetime.datetime.utcnow().isoformat() + 'Z'
+        
+        # Basic validation
+        if not title or not url or len(summary) < 20:
+            return None
+        
+        return {
+            'title': title,
+            'url': url,
+            'summary': summary,
+            'published_at': published_at,
+            'source': source_key,
+            'source_name': source_config['name'],
+            'source_credibility': source_config['credibility'],
+            'language': source_config.get('language', 'en'),
+            'source_type': 'webscraping'
+        }
+    
+    def _clean_html_content(self, html_text):
+        """Clean HTML content - reuse RSSFeedParser method"""
+        # For now, create a temporary RSSFeedParser to reuse the method
+        # This is not ideal but ensures consistency
+        temp_parser = RSSFeedParser()
+        return temp_parser._clean_html_content(html_text)
+    
+    def _parse_date(self, date_elem):
+        """Parse date from various formats"""
+        try:
+            if not date_elem:
+                return datetime.datetime.utcnow().isoformat() + 'Z'
+            
+            # Try to get datetime attribute first
+            if date_elem.get('datetime'):
+                date_str = date_elem.get('datetime')
+            else:
+                date_str = date_elem.get_text().strip()
+            
+            # Try various date parsing approaches
+            try:
+                # ISO format
+                if 'T' in date_str and ('Z' in date_str or '+' in date_str):
+                    return date_str
+                
+                # Common formats
+                for fmt in [
+                    '%Y-%m-%d',
+                    '%B %d, %Y',
+                    '%b %d, %Y',
+                    '%d %B %Y',
+                    '%d %b %Y',
+                    '%m/%d/%Y',
+                    '%d/%m/%Y'
+                ]:
+                    try:
+                        dt = datetime.datetime.strptime(date_str[:20], fmt)
+                        return dt.isoformat() + 'Z'
+                    except ValueError:
+                        continue
+                
+            except:
+                pass
+            
+            # Fallback to current time
+            return datetime.datetime.utcnow().isoformat() + 'Z'
+            
+        except Exception as e:
+            current_app.logger.warning(f"Date parsing error: {e}")
+            return datetime.datetime.utcnow().isoformat() + 'Z'
+    
+    def fetch_all_sites(self):
+        """Fetch articles from all configured scraping sources"""
+        all_articles = []
+        
+        for source_key, source_config in self.SCRAPING_SOURCES.items():
+            try:
+                articles = self.scrape_site(source_key, source_config)
+                
+                # Add source metadata to articles
+                for article in articles:
+                    article['source_credibility'] = source_config['credibility']
+                    article['source_name'] = source_config['name']
+                
+                all_articles.extend(articles)
+                
+            except Exception as e:
+                current_app.logger.error(f"Failed to fetch from {source_key}: {e}")
+                continue
+        
+        current_app.logger.info(f"Fetched total of {len(all_articles)} articles from web scraping")
+        return all_articles
+
+
 class ClimbingNewsAggregator:
     """Aggregate and score news from multiple sources"""
     
     def __init__(self):
         self.rss_parser = RSSFeedParser()
+        self.web_scraper = WebScrapingParser()
     
     def fetch_all_news(self):
-        """Fetch news from all sources (RSS + NewsAPI fallback)"""
+        """Fetch news from all sources (RSS + Web Scraping + NewsAPI fallback)"""
         # Start with RSS feeds
         rss_articles = self.rss_parser.fetch_all_feeds()
+        
+        # Add web scraping articles
+        scraping_articles = self.web_scraper.fetch_all_sites()
         
         # Get NewsAPI articles as fallback
         newsapi_articles = self._fetch_newsapi_fallback()
         
-        # Combine sources with RSS priority
-        return self.combine_sources(rss_articles, newsapi_articles)
+        # Combine all three sources
+        return self.combine_sources(rss_articles, scraping_articles, newsapi_articles)
     
-    def combine_sources(self, rss_articles, newsapi_articles):
-        """Combine RSS and NewsAPI articles with proper prioritization"""
+    def combine_sources(self, rss_articles, scraping_articles, newsapi_articles):
+        """Combine RSS, web scraping, and NewsAPI articles with proper prioritization"""
         # Add source type markers
         for article in rss_articles:
             article['source_type'] = 'rss'
+        
+        for article in scraping_articles:
+            article['source_type'] = 'webscraping'
+            # source_credibility already set in WebScrapingParser
         
         for article in newsapi_articles:
             article['source_type'] = 'newsapi'
             article['source_credibility'] = 0.3  # Lower credibility for general news
         
         # Combine all articles
-        all_articles = rss_articles + newsapi_articles
+        all_articles = rss_articles + scraping_articles + newsapi_articles
         
         # Calculate relevancy scores
         scored_articles = self.calculate_relevancy_scores(all_articles)
@@ -427,6 +676,10 @@ class ClimbingNewsAggregator:
             # RSS sources get automatic boost
             if article.get('source_type') == 'rss':
                 score += 3.0
+            
+            # Web scraping sources get higher boost (specialized climbing sites)
+            elif article.get('source_type') == 'webscraping':
+                score += 3.5
             
             # Climbing-specific keywords (higher scores for specialized terms)
             climbing_keywords = {

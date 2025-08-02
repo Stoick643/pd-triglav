@@ -7,7 +7,8 @@ from utils.daily_news import (
     get_daily_mountaineering_news_for_homepage,
     fetch_and_cache_news,
     RSSFeedParser,
-    ClimbingNewsAggregator
+    ClimbingNewsAggregator,
+    WebScrapingParser
 )
 from models.content import DailyNews
 from models.user import db
@@ -247,7 +248,8 @@ class TestClimbingNewsAggregator:
     
     def test_combine_rss_and_newsapi_sources(self, aggregator, mock_rss_articles, mock_newsapi_articles):
         """Test merging RSS feeds with existing NewsAPI"""
-        combined = aggregator.combine_sources(mock_rss_articles, mock_newsapi_articles)
+        empty_scraping_articles = []
+        combined = aggregator.combine_sources(mock_rss_articles, empty_scraping_articles, mock_newsapi_articles)
         
         assert len(combined) == 3
         # RSS articles should come first due to higher relevancy
@@ -419,3 +421,105 @@ class MockClimbingNewsAggregator:
                 seen_urls.add(article['url'])
                 deduplicated.append(article)
         return deduplicated
+
+
+class TestWebScrapingParser:
+    """Test web scraping functionality"""
+    
+    @pytest.fixture
+    def web_scraper(self, app):
+        """Create web scraper instance"""
+        with app.app_context():
+            return WebScrapingParser()
+    
+    def test_scraper_initialization(self, web_scraper):
+        """Test WebScrapingParser initialization"""
+        assert web_scraper.session is not None
+        assert web_scraper.timeout == 15
+        assert len(web_scraper.SCRAPING_SOURCES) == 3
+        assert 'aac' in web_scraper.SCRAPING_SOURCES
+        assert 'climbing' in web_scraper.SCRAPING_SOURCES
+        assert 'explorersweb' in web_scraper.SCRAPING_SOURCES
+    
+    def test_source_configuration(self, web_scraper):
+        """Test scraper source configuration"""
+        aac_config = web_scraper.SCRAPING_SOURCES['aac']
+        assert aac_config['name'] == 'American Alpine Club'
+        assert aac_config['credibility'] == 0.95
+        assert 'url' in aac_config
+        assert 'selectors' in aac_config
+        assert 'rate_limit' in aac_config
+    
+    def test_html_content_cleaning_integration(self, web_scraper):
+        """Test that web scraper uses HTML cleaning"""
+        html_content = '<p>Test content with <a href="link">HTML tags</a></p>'
+        cleaned = web_scraper._clean_html_content(html_content)
+        
+        assert '<p>' not in cleaned
+        assert '<a href' not in cleaned
+        assert 'Test content with HTML tags' in cleaned
+    
+    def test_date_parsing_various_formats(self, web_scraper):
+        """Test date parsing from different formats"""
+        from bs4 import BeautifulSoup
+        
+        # Test datetime attribute
+        elem1 = BeautifulSoup('<time datetime="2025-01-29T10:00:00Z">Jan 29</time>', 'html.parser').find('time')
+        result1 = web_scraper._parse_date(elem1)
+        assert '2025-01-29T10:00:00Z' in result1
+        
+        # Test text content
+        elem2 = BeautifulSoup('<span class="date">January 29, 2025</span>', 'html.parser').find('span')
+        result2 = web_scraper._parse_date(elem2)
+        assert '2025-01-29' in result2
+        
+        # Test None input
+        result3 = web_scraper._parse_date(None)
+        assert result3.endswith('Z')
+
+
+class TestWebScrapingIntegration:
+    """Test web scraping integration with existing system"""
+    
+    @pytest.fixture
+    def aggregator(self, app):
+        """Create news aggregator with web scraping"""
+        with app.app_context():
+            return ClimbingNewsAggregator()
+    
+    def test_aggregator_has_web_scraper(self, aggregator):
+        """Test that aggregator includes web scraper"""
+        assert hasattr(aggregator, 'web_scraper')
+        assert isinstance(aggregator.web_scraper, WebScrapingParser)
+    
+    def test_web_scraping_relevancy_scoring(self, aggregator):
+        """Test that web scraping articles get proper relevancy scores"""
+        test_articles = [
+            {
+                'title': 'Alpine Climbing Route',
+                'summary': 'New alpine climbing route established',
+                'source_type': 'webscraping',
+                'source_credibility': 0.95
+            },
+            {
+                'title': 'RSS Climbing News',
+                'summary': 'Climbing news from RSS',
+                'source_type': 'rss', 
+                'source_credibility': 0.9
+            },
+            {
+                'title': 'General News',
+                'summary': 'General news article',
+                'source_type': 'newsapi',
+                'source_credibility': 0.3
+            }
+        ]
+        
+        scored = aggregator.calculate_relevancy_scores(test_articles)
+        
+        # Web scraping should have highest score (3.5 + credibility*2 + keywords)
+        webscraping_score = next(a['relevance_score'] for a in scored if a['source_type'] == 'webscraping')
+        rss_score = next(a['relevance_score'] for a in scored if a['source_type'] == 'rss')
+        newsapi_score = next(a['relevance_score'] for a in scored if a['source_type'] == 'newsapi')
+        
+        assert webscraping_score > rss_score > newsapi_score

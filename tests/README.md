@@ -64,6 +64,50 @@ pytest -v
 pytest --cov=. --cov-report=html
 ```
 
+## Testing Dependencies
+
+The project uses several pytest plugins and tools to provide comprehensive testing capabilities:
+
+### Core Testing Framework
+- **`pytest`** - Main testing framework and test runner
+  - Replaces Python's built-in `unittest` with better discovery and fixtures
+  - Usage: `pytest`, `pytest -v`, `pytest tests/`
+
+- **`pytest-flask`** - Flask-specific testing integration
+  - Provides Flask app context, test client, and database fixtures automatically
+  - Enables testing of routes, authentication, and database operations
+  - Usage: Automatic when testing Flask applications
+
+### Code Coverage
+- **`pytest-cov`** - Code coverage plugin for pytest
+  - Measures which lines of code are executed during tests
+  - Generates coverage reports in multiple formats
+  - Usage: `pytest --cov=.`, `pytest --cov=. --cov-report=html`
+
+- **`coverage`** - Core coverage measurement library
+  - Backend engine for pytest-cov
+  - Can be used standalone: `coverage run -m pytest && coverage report`
+
+### Performance & Parallel Execution
+- **`pytest-xdist`** - Parallel test execution across multiple CPU cores
+  - Significantly speeds up test execution for large test suites
+  - Usage: `pytest -n 4` (run with 4 workers), `pytest -n auto` (auto-detect cores)
+
+### Advanced Usage Examples
+```bash
+# Run tests with coverage and parallel execution
+pytest -n 4 --cov=. --cov-report=html
+
+# Generate detailed coverage report
+pytest --cov=. --cov-report=html --cov-report=term-missing
+
+# Run only fast tests in parallel
+pytest -n auto -m "not integration"
+
+# Run with verbose output and coverage
+pytest -v --cov=. --cov-report=term
+```
+
 ## Test Configuration
 
 ### API Keys Required for Integration Tests
