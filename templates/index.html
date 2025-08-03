@@ -3,46 +3,79 @@
 {% block title %}Domov - PD Triglav{% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- Hero Section -->
-    <div class="col-12">
-        <div class="jumbotron bg-light p-5 rounded mb-4">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="display-4">Dobrodošli v PD Triglav!</h1>
-                    <p class="lead">
-                        Planinsko društvo za ljubitelje gora, narave in druženja. 
-                        Odkrivajte slovenski gorski svet z nami.
-                    </p>
-                    {% if not current_user.is_authenticated %}
-                    <div class="mt-4">
-                        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-3">
-                            Pridruži se nam
-                        </a>
-                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">
-                            Prijava
-                        </a>
+<!-- Hero Section -->
+<section class="hero-section" id="hero">
+    <div class="hero-background" style="background-image: url('{{ hero_image }}');"></div>
+    <div class="hero-overlay"></div>
+    
+    <div class="container-fluid h-100">
+        <div class="row h-100 align-items-center justify-content-center">
+            <div class="col-12">
+                <div class="hero-content text-center text-white">
+                    <div class="hero-text-container">
+                        <h1 class="hero-title display-3 fw-bold mb-4" data-aos="fade-up">
+                            {{ hero_messaging.headline }}
+                        </h1>
+                        <p class="hero-subtitle lead mb-5" data-aos="fade-up" data-aos-delay="200">
+                            {{ hero_messaging.subheadline }}
+                        </p>
+                        
+                        <!-- Social Proof Stats -->
+                        <div class="hero-stats mb-5" data-aos="fade-up" data-aos-delay="400">
+                            <div class="row justify-content-center">
+                                <div class="col-auto">
+                                    <div class="stat-item">
+                                        <strong>{{ club_stats.member_count }}+</strong>
+                                        <small>članov</small>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="stat-separator">•</div>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="stat-item">
+                                        <strong>{{ club_stats.trips_this_year }}+</strong>
+                                        <small>izletov letno</small>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="stat-separator">•</div>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="stat-item">
+                                        <strong>{{ club_stats.years_active }}+</strong>
+                                        <small>jubilejno leto</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Call-to-Action Buttons -->
+                        <div class="hero-cta-buttons" data-aos="fade-up" data-aos-delay="600">
+                            <a href="{{ hero_messaging.primary_cta.url }}" 
+                               class="btn {{ hero_messaging.primary_cta.class }} btn-lg me-4 mb-3 px-5 py-3">
+                                {{ hero_messaging.primary_cta.text }}
+                                <i class="bi bi-arrow-right ms-2"></i>
+                            </a>
+                            <a href="{{ hero_messaging.secondary_cta.url }}" 
+                               class="btn {{ hero_messaging.secondary_cta.class }} btn-lg mb-3 px-5 py-3">
+                                {{ hero_messaging.secondary_cta.text }}
+                            </a>
+                        </div>
                     </div>
-                    {% elif current_user.is_pending() %}
-                    <div class="alert alert-warning mt-4">
-                        <i class="bi bi-clock"></i>
-                        Vaša registracija čaka na odobritev administratorja.
-                    </div>
-                    {% else %}
-                    <div class="mt-4">
-                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg">
-                            Pojdi na nadzorno ploščo
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="col-md-4 text-center">
-                    <i class="bi bi-mountain display-1 text-primary"></i>
                 </div>
             </div>
         </div>
     </div>
-</div>
+    
+    <!-- Scroll Indicator -->
+    <div class="hero-scroll-indicator">
+        <div class="scroll-arrow bounce">
+            <i class="bi bi-chevron-down"></i>
+        </div>
+        <small class="scroll-text">Raziskuj naprej</small>
+    </div>
+</section>
 
 <div class="row">
     <!-- Quick Info for Non-Members -->

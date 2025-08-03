@@ -15,10 +15,22 @@ bp = Blueprint("main", __name__)
 
 @bp.route("/")
 def index():
-    """Home page with role-based content"""
+    """Home page with hero landing page and role-based content"""
     todays_event = None
     recent_events = []
     daily_news = []
+
+    # Import hero utilities
+    from utils.hero_utils import (
+        get_user_specific_messaging,
+        get_club_stats,
+        get_hero_image_for_season,
+    )
+
+    # Get hero data
+    hero_messaging = get_user_specific_messaging(current_user)
+    club_stats = get_club_stats()
+    hero_image = get_hero_image_for_season()
 
     # Get today's historical event (temporarily for everyone)
     if True:  # Temporarily show to everyone
@@ -61,7 +73,13 @@ def index():
         daily_news = []
 
     return render_template(
-        "index.html", todays_event=todays_event, recent_events=recent_events, daily_news=daily_news
+        "index.html",
+        todays_event=todays_event,
+        recent_events=recent_events,
+        daily_news=daily_news,
+        hero_messaging=hero_messaging,
+        club_stats=club_stats,
+        hero_image=hero_image,
     )
 
 

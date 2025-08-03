@@ -309,6 +309,199 @@ pd-triglav/
 - [ ] Mountaineering news summary
 - [ ] Search functionality
 
+## Hero Landing Page Implementation
+
+### Overview
+Transform the home page into a compelling hero landing page with stunning mountain photography, optimized messaging, and user-state-aware CTAs. Create an immersive first impression that converts visitors into members while showcasing the club's expertise and community.
+
+### Strategic Decision: Home Page as Hero
+**Why the home page (`/`) is the perfect hero location:**
+- **Universal Landing Point** - All visitors (Google search, direct links, referrals) land here first
+- **Content Visibility** - Historical events and news are already public, creating value for non-members
+- **Conversion Funnel** - Perfect place to convert visitors → members
+- **SEO Benefits** - Search engines will index this compelling content
+
+### Files to Modify
+
+#### Frontend Templates
+- `templates/index.html` - Complete hero section redesign and content restructuring
+- `templates/base.html` - Add hero-specific meta tags and preload directives
+
+#### CSS Styling
+- `static/css/app.css` - Add hero section styles, responsive design, animations
+- `static/css/components.css` - Create reusable hero components and overlays
+- `static/css/design-system.css` - Extend with hero-specific CSS variables
+
+#### Backend Logic
+- `routes/main.py` - Add hero image selection logic and user messaging
+- `utils/hero_utils.py` - NEW: Hero image management and optimization utilities
+
+#### Static Assets
+- `static/images/hero/` - NEW: Organize and optimize hero images
+- `static/js/hero.js` - NEW: Hero animations, parallax, lazy loading
+
+### Function Specifications
+
+#### Backend Functions (`utils/hero_utils.py`)
+```python
+def get_hero_image_for_season():
+    """Returns seasonal and time-based hero image path with enhanced rotation system.
+    
+    Features:
+    - Seasonal rotation (winter, spring, summer, autumn)
+    - Time-based variations (dawn, day, dusk, night)
+    - Intelligent fallback system
+    - Seasonal daylight adjustments
+    """
+
+def get_time_period(hour, season):
+    """Determines time period (dawn/day/dusk/night) based on hour and season.
+    
+    Time boundaries vary by season to match natural daylight patterns:
+    - Winter: Dawn 5-9, Day 9-17, Dusk 17-22, Night 22-5
+    - Spring: Dawn 5-9, Day 9-18, Dusk 18-22, Night 22-5  
+    - Summer: Dawn 4-8, Day 8-19, Dusk 19-23, Night 23-4
+    - Autumn: Dawn 6-9, Day 9-17, Dusk 17-21, Night 21-6
+    """
+
+def get_user_specific_messaging(user):  
+    """Generates personalized hero headline and CTA text based on user authentication state."""
+
+def optimize_hero_images():
+    """Processes uploaded images into multiple sizes and WebP formats for performance."""
+```
+
+#### Frontend Functions (`static/js/hero.js`)
+```javascript
+function initHeroParallax():
+    """Initializes smooth parallax scrolling effect for hero background image."""
+
+function lazyLoadHeroImage():
+    """Implements progressive image loading with blur-to-sharp transition effect."""
+
+function animateHeroContent():
+    """Handles entrance animations for hero text and CTA buttons on page load."""
+```
+
+#### CSS Classes (`static/css/app.css`)
+```css
+.hero-section:
+    """Full-viewport hero container with background image and responsive behavior."""
+
+.hero-overlay:
+    """Dark gradient overlay ensuring text readability over any background image."""
+
+.hero-content:
+    """Centered content container with proper spacing and mobile optimization."""
+```
+
+### Test Specifications
+
+#### Visual & Layout Tests
+- `test_hero_renders_correctly` - Hero section displays with proper dimensions
+- `test_hero_responsive_behavior` - Mobile and desktop layouts work correctly  
+- `test_hero_image_loading` - Background images load and display properly
+- `test_hero_overlay_readability` - Text remains readable over all images
+
+#### User Experience Tests  
+- `test_hero_messaging_by_user_state` - Different messages for logged/not logged users
+- `test_hero_cta_buttons_functional` - All call-to-action buttons navigate correctly
+- `test_hero_animations_smooth` - Entrance animations perform without lag
+- `test_hero_accessibility_compliant` - Proper alt texts and keyboard navigation
+
+#### Performance Tests
+- `test_hero_image_optimization` - Images serve in optimal formats and sizes
+- `test_hero_loading_speed` - Page loads within performance benchmarks
+- `test_hero_lazy_loading` - Non-critical images load after hero content
+- `test_hero_mobile_performance` - Mobile devices load quickly with data savings
+
+#### Content Tests
+- `test_hero_seasonal_images` - Different images display based on season/date
+- `test_hero_messaging_localization` - All text displays in Slovenian correctly
+- `test_hero_social_proof_display` - Member count and stats show accurately
+- `test_hero_fallback_graceful` - Site works even if hero images fail
+
+### Implementation Phases
+
+#### Phase 1: Foundation (High Priority)
+1. Reorganize and optimize hero images
+2. Create basic hero HTML structure in index.html
+3. Implement responsive CSS grid layout
+4. Add user-state messaging logic
+
+#### Phase 2: Enhancement (Medium Priority)  
+1. Add parallax scrolling effects
+2. Implement entrance animations
+3. Create seasonal image rotation
+4. Optimize for performance and accessibility
+
+#### Phase 3: Polish (Lower Priority)
+1. Add advanced lazy loading
+2. Implement A/B testing for messaging
+3. Add analytics tracking for CTAs  
+4. Create admin interface for hero management
+
+### Expected Outcomes
+- **Conversion Rate**: 25-40% increase in registration clicks
+- **Engagement**: 60%+ reduction in bounce rate
+- **Performance**: <2s load time on mobile, >90 Lighthouse score
+- **User Experience**: Immersive, professional first impression that builds trust and excitement
+
+### Hero Content Strategy
+
+#### Messaging Options (Choose Best)
+- **Primary**: "Odkrijte Veličino Slovenskih Gora" (Discover the Majesty of Slovenian Mountains)
+- **Alternative**: "Vaša Planinska Pustolovščina Se Začne Tukaj" (Your Mountain Adventure Starts Here)
+- **Community-focused**: "Pridružite Se Skupnosti Gorskih Raziskovalcev" (Join the Community of Mountain Explorers)
+
+#### Call-to-Action Buttons
+- **Primary CTA**: "Začni Svojo Pustolovščino" (Start Your Adventure) → Register
+- **Secondary CTA**: "Oglej Si Prihajajo Izlete" (View Upcoming Trips) → About/Content
+
+#### User State-Specific Experience
+- **Not logged in**: Adventure-focused registration messaging
+- **Pending approval**: Encourage patience with club highlights and community showcase
+- **Active member**: Personalized welcome with dashboard access and recent activity
+
+#### Social Proof Elements
+- "Pridružilo se nam je že 200+ planincev" (200+ mountaineers have joined us)
+- "50+ izletov letno • Vsi nivoji • 15+ let izkušenj" (50+ trips yearly • All levels • 15+ years experience)
+- Member testimonials and safety record highlights
+
+### Image Asset Requirements
+
+#### Enhanced Hero Image Organization (static/images/hero/)
+**Time-Based Rotation System** - Images change based on both season and time of day:
+
+**Base Seasonal Images (Required):**
+- `hero-winter.jpg` (Dec-Feb, day)
+- `hero-primary.jpg` (Mar-May, day) 
+- `hero-summer.jpg` (Jun-Aug, day)
+- `hero-secondary.jpg` (Sep-Nov, day)
+
+**Time-Based Variations (Optional Enhancement):**
+- `hero-winter-dawn.jpg`, `hero-winter-dusk.jpg`, `hero-winter-night.jpg`
+- `hero-primary-dawn.jpg`, `hero-primary-dusk.jpg`, `hero-primary-night.jpg`
+- `hero-summer-dawn.jpg`, `hero-summer-dusk.jpg`, `hero-summer-night.jpg`
+- `hero-secondary-dawn.jpg`, `hero-secondary-dusk.jpg`, `hero-secondary-night.jpg`
+
+**Intelligent Fallbacks:**
+1. Time-specific image (e.g., `hero-summer-dawn.jpg`)
+2. Base seasonal image (e.g., `hero-summer.jpg`)
+3. Primary fallback (`hero-primary.jpg`)
+
+**Time Boundaries (Seasonal Daylight Adjustment):**
+- **Winter**: Dawn 5-9, Day 9-17, Dusk 17-22, Night 22-5
+- **Spring**: Dawn 5-9, Day 9-18, Dusk 18-22, Night 22-5
+- **Summer**: Dawn 4-8, Day 8-19, Dusk 19-23, Night 23-4
+- **Autumn**: Dawn 6-9, Day 9-17, Dusk 17-21, Night 21-6
+
+#### Optimization Needs
+- Resize to multiple breakpoints (mobile, tablet, desktop)
+- Convert to WebP format for modern browsers
+- Create fallback JPEG versions
+- Implement lazy loading for performance
+
 ## Common Issues & Solutions
 
 ### Database Issues
