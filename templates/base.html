@@ -14,6 +14,7 @@
     <link href="{{ url_for('static', filename='css/design-system.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/components.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/sidebar.css') }}" rel="stylesheet">
     
     <!-- CSRF Token for AJAX requests -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -35,118 +36,178 @@
     {% block head %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="mobile-header-content">
+            <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">
+                <i class="bi bi-list"></i>
+            </button>
+            <a class="brand-logo" href="{{ url_for('main.index') }}">
                 <i class="bi bi-mountain"></i> PD Triglav
             </a>
+            <div class="mobile-user-actions">
+                <!-- Theme toggle removed for simplified design -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+        <div class="sidebar-content">
+            <!-- Logo Section -->
+            <div class="sidebar-header">
+                <a class="sidebar-brand" href="{{ url_for('main.index') }}">
+                    <i class="bi bi-mountain"></i>
+                    <span>PD Triglav</span>
+                </a>
+            </div>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.index') }}">Domov</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.about') }}">O klubu</a>
-                    </li>
-                    
-                    <!-- Trip navigation -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-mountain"></i> Izleti
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('trips.list_trips') }}">
-                                <i class="bi bi-list"></i> Objave izletov
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('trips.calendar') }}">
-                                <i class="bi bi-calendar3"></i> Koledar izletov
-                            </a></li>
-                            {% if current_user.is_authenticated %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('trips.dashboard') }}">
-                                <i class="bi bi-person-lines-fill"></i> Moji izleti
-                            </a></li>
-                            {% if current_user.role.value in ['trip_leader', 'admin'] %}
-                            <li><a class="dropdown-item" href="{{ url_for('trips.create_trip') }}">
-                                <i class="bi bi-plus-circle"></i> Nova objava
-                            </a></li>
-                            {% endif %}
-                            {% endif %}
-                        </ul>
-                    </li>
-                    
-                    <!-- Trip reports navigation -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-journal-text"></i> Poročila
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('reports.list_reports') }}">
-                                <i class="bi bi-journal-text"></i> Vsa poročila
-                            </a></li>
-                            {% if current_user.is_authenticated %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('reports.my_reports') }}">
-                                <i class="bi bi-person-lines-fill"></i> Moja poročila
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('reports.create_report') }}">
-                                <i class="bi bi-plus-circle"></i> Novo poročilo
-                            </a></li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    
-                    {% if current_user.is_authenticated and current_user.can_access_content() %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.dashboard') }}">Nadzorna plošča</a>
-                    </li>
-                    {% endif %}
-                    
-                    {% if current_user.is_authenticated and current_user.is_admin() %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.admin') }}">Administracija</a>
-                    </li>
-                    {% endif %}
-                </ul>
+            <!-- Navigation Items -->
+            <ul class="sidebar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.index') }}">
+                        <i class="bi bi-house"></i>
+                        <span>Domov</span>
+                    </a>
+                </li>
                 
-                <ul class="navbar-nav">
-                    <!-- Theme Toggle -->
-                    <li class="nav-item">
-                        <button class="nav-link btn btn-link border-0" id="theme-toggle" title="Spremeni temo">
-                            <i class="bi bi-circle-half"></i>
-                            <span class="sr-only">Spremeni temo</span>
-                        </button>
-                    </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.about') }}">
+                        <i class="bi bi-info-circle"></i>
+                        <span>O klubu</span>
+                    </a>
+                </li>
+                
+                <!-- Expandable Trips Section -->
+                <li class="nav-item expandable">
+                    <a class="nav-link nav-toggle" href="#" data-toggle="trips" role="button" aria-expanded="{% if request.endpoint and request.endpoint.startswith('trips.') %}true{% else %}false{% endif %}" aria-controls="trips-submenu">
+                        <i class="bi bi-mountain"></i>
+                        <span>Izleti</span>
+                        <i class="bi bi-chevron-right toggle-icon {% if request.endpoint and request.endpoint.startswith('trips.') %}rotated{% endif %}"></i>
+                    </a>
+                    <ul class="nav-submenu {% if request.endpoint and request.endpoint.startswith('trips.') %}expanded{% endif %}" id="trips-submenu" role="menu" {% if request.endpoint and request.endpoint.startswith('trips.') %}style="max-height: auto;"{% endif %}>
+                        <li role="none">
+                            <a href="{{ url_for('trips.list_trips') }}" role="menuitem">
+                                <i class="bi bi-list"></i>Objave izletov
+                            </a>
+                        </li>
+                        <li role="none">
+                            <a href="{{ url_for('trips.calendar') }}" role="menuitem">
+                                <i class="bi bi-calendar3"></i>Koledar izletov
+                            </a>
+                        </li>
+                        {% if current_user.is_authenticated %}
+                        <li role="none">
+                            <a href="{{ url_for('trips.dashboard') }}" role="menuitem">
+                                <i class="bi bi-person-lines-fill"></i>Moji izleti
+                            </a>
+                        </li>
+                        {% if current_user.role.value in ['trip_leader', 'admin'] %}
+                        <li role="none">
+                            <a href="{{ url_for('trips.create_trip') }}" role="menuitem">
+                                <i class="bi bi-plus-circle"></i>Nova objava
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% endif %}
+                    </ul>
+                </li>
+                
+                <!-- Expandable Reports Section -->
+                <li class="nav-item expandable">
+                    <a class="nav-link nav-toggle" href="#" data-toggle="reports" role="button" aria-expanded="{% if request.endpoint and request.endpoint.startswith('reports.') %}true{% else %}false{% endif %}" aria-controls="reports-submenu">
+                        <i class="bi bi-journal-text"></i>
+                        <span>Poročila</span>
+                        <i class="bi bi-chevron-right toggle-icon {% if request.endpoint and request.endpoint.startswith('reports.') %}rotated{% endif %}"></i>
+                    </a>
+                    <ul class="nav-submenu {% if request.endpoint and request.endpoint.startswith('reports.') %}expanded{% endif %}" id="reports-submenu" role="menu" {% if request.endpoint and request.endpoint.startswith('reports.') %}style="max-height: auto;"{% endif %}>
+                        <li role="none">
+                            <a href="{{ url_for('reports.list_reports') }}" role="menuitem">
+                                <i class="bi bi-journal-text"></i>Vsa poročila
+                            </a>
+                        </li>
+                        {% if current_user.is_authenticated %}
+                        <li role="none">
+                            <a href="{{ url_for('reports.my_reports') }}" role="menuitem">
+                                <i class="bi bi-person-lines-fill"></i>Moja poročila
+                            </a>
+                        </li>
+                        <li role="none">
+                            <a href="{{ url_for('reports.create_report') }}" role="menuitem">
+                                <i class="bi bi-plus-circle"></i>Novo poročilo
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                
+                {% if current_user.is_authenticated and current_user.can_access_content() %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.dashboard') }}">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Nadzorna plošča</span>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% if current_user.is_authenticated and current_user.is_admin() %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.admin') }}">
+                        <i class="bi bi-gear"></i>
+                        <span>Administracija</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            
+            <!-- User Section -->
+            <div class="sidebar-footer">
+                <div class="user-section">
+                    <!-- Theme toggle removed for simplified design -->
                     
                     {% if current_user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ current_user.name }}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('main.dashboard') }}">Profil</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Odjava</a></li>
-                        </ul>
-                    </li>
+                    <!-- User Profile -->
+                    <a href="{{ url_for('main.dashboard') }}" class="user-profile-sidebar">
+                        <div class="user-avatar">
+                            {{ current_user.name[0].upper() if current_user.name else 'U' }}
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">{{ current_user.name }}</div>
+                            <div class="user-role">
+                                {% if current_user.role.value == 'admin' %}Skrbnik
+                                {% elif current_user.role.value == 'trip_leader' %}Vodnik
+                                {% elif current_user.role.value == 'member' %}Član
+                                {% else %}Čakajoči
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                    
+                    <!-- Logout Link -->
+                    <a href="{{ url_for('auth.logout') }}" class="auth-link logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Odjava</span>
+                    </a>
                     {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.login') }}">Prijava</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.register') }}">Registracija</a>
-                    </li>
+                    <!-- Authentication Links -->
+                    <div class="auth-links">
+                        <a href="{{ url_for('auth.login') }}" class="auth-link login">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                            <span>Prijava</span>
+                        </a>
+                        <a href="{{ url_for('auth.register') }}" class="auth-link register">
+                            <i class="bi bi-person-plus"></i>
+                            <span>Registracija</span>
+                        </a>
+                    </div>
                     {% endif %}
-                </ul>
+                </div>
             </div>
         </div>
     </nav>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -174,8 +235,10 @@
     {% endwith %}
 
     <!-- Main Content -->
-    <main class="container" style="margin-top: var(--pd-space-6); margin-bottom: var(--pd-space-12);">
-        {% block content %}{% endblock %}
+    <main class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
     <!-- Footer -->
@@ -209,7 +272,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- PD Triglav Application JS -->
-    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script src="{{ url_for('static', filename='js/hero.js') }}"></script>
     

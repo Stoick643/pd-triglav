@@ -1,31 +1,11 @@
 /*
 PD Triglav - Application JavaScript
-Subtle interactions and progressive enhancement
+Simple, clean navigation functionality
 */
 
 document.addEventListener('DOMContentLoaded', function() {
     
-    // === PROGRESSIVE ENHANCEMENT === //
-    
-    // Add enhanced classes to forms if JavaScript is enabled
-    const formControls = document.querySelectorAll('.form-control, .form-select');
-    formControls.forEach(control => {
-        if (!control.classList.contains('form-control-enhanced')) {
-            control.classList.add('focus-visible');
-        }
-    });
-    
-    // === CARD INTERACTIONS === //
-    
-    // Add subtle hover effects to interactive cards
-    const interactiveCards = document.querySelectorAll('.trip-card, .card');
-    interactiveCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transition = 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)';
-        });
-    });
-    
-    // === FORM ENHANCEMENTS === //
+    // === BASIC FORM ENHANCEMENTS === //
     
     // Auto-dismiss alerts after 5 seconds
     const alerts = document.querySelectorAll('.alert');
@@ -45,190 +25,158 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     });
     
-    // Form validation feedback
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            const requiredFields = form.querySelectorAll('[required]');
-            let hasErrors = false;
+    // === SIDEBAR NAVIGATION === //
+    
+    initSidebar();
+    
+    function initSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        
+        // Mobile sidebar toggle
+        if (sidebarToggle && sidebar && sidebarOverlay) {
+            sidebarToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                toggleSidebar();
+            });
             
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    field.classList.add('is-invalid');
-                    hasErrors = true;
-                } else {
-                    field.classList.remove('is-invalid');
-                    field.classList.add('is-valid');
+            // Close sidebar when clicking overlay
+            sidebarOverlay.addEventListener('click', function() {
+                closeSidebar();
+            });
+            
+            // Close sidebar on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+                    closeSidebar();
                 }
             });
-            
-            // Add subtle shake animation to form if there are errors
-            if (hasErrors) {
-                form.style.animation = 'shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97)';
-                setTimeout(() => {
-                    form.style.animation = '';
-                }, 500);
-            }
-        });
+        }
         
-        // Remove validation classes on input
-        const inputs = form.querySelectorAll('input, textarea, select');
-        inputs.forEach(input => {
-            input.addEventListener('input', function() {
-                this.classList.remove('is-invalid', 'is-valid');
-            });
-        });
-    });
-    
-    // === BUTTON ENHANCEMENTS === //
-    
-    // Add loading state to form buttons
-    const submitButtons = document.querySelectorAll('button[type="submit"], input[type="submit"]');
-    submitButtons.forEach(button => {
-        const form = button.closest('form');
-        if (!form) return;
+        // Expandable navigation sections - SIMPLE VERSION
+        const navToggles = document.querySelectorAll('.nav-toggle');
         
-        form.addEventListener('submit', function() {
-            if (button.classList.contains('btn-mountain') || button.classList.contains('btn-mountain-outline')) {
-                const originalText = button.innerHTML;
-                button.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>Pošiljam...';
-                button.disabled = true;
+        navToggles.forEach(toggle => {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
                 
-                // Re-enable after 3 seconds as fallback
-                setTimeout(() => {
-                    button.innerHTML = originalText;
-                    button.disabled = false;
-                }, 3000);
+                const toggleId = this.getAttribute('data-toggle');
+                const submenu = document.getElementById(toggleId + '-submenu');
+                const toggleIcon = this.querySelector('.toggle-icon');
+                
+                if (!submenu || !toggleIcon) return;
+                
+                // Simple toggle logic
+                const isExpanded = submenu.classList.contains('expanded');
+                
+                if (isExpanded) {
+                    // Collapse
+                    submenu.classList.remove('expanded');
+                    toggleIcon.classList.remove('rotated');
+                    this.setAttribute('aria-expanded', 'false');
+                    submenu.style.maxHeight = '0px';
+                } else {
+                    // Expand
+                    submenu.classList.add('expanded');
+                    toggleIcon.classList.add('rotated');
+                    this.setAttribute('aria-expanded', 'true');
+                    submenu.style.maxHeight = submenu.scrollHeight + 'px';
+                    
+                    // Reset to auto after animation
+                    setTimeout(() => {
+                        if (submenu.classList.contains('expanded')) {
+                            submenu.style.maxHeight = 'auto';
+                        }
+                    }, 300);
+                }
+            });
+        });
+        
+        // Set active navigation states (but don't override server-side expansion)
+        updateActiveStates();
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 992 && sidebar.classList.contains('show')) {
+                closeSidebar();
             }
         });
-    });
+    }
     
-    // === NAVIGATION ENHANCEMENTS === //
-    
-    // Highlight active navigation items
-    const currentPath = window.location.pathname;
-    const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
-    
-    navLinks.forEach(link => {
-        if (link.getAttribute('href') === currentPath) {
-            link.classList.add('active');
-            link.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-            link.style.borderRadius = 'var(--pd-radius)';
-        }
-    });
-    
-    // === ACCESSIBILITY ENHANCEMENTS === //
-    
-    // Keyboard navigation for cards
-    const clickableCards = document.querySelectorAll('.trip-card, [data-clickable]');
-    clickableCards.forEach(card => {
-        // Make card focusable
-        if (!card.getAttribute('tabindex')) {
-            card.setAttribute('tabindex', '0');
-        }
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
         
-        // Handle keyboard navigation
-        card.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                const link = card.querySelector('a');
-                if (link) {
-                    link.click();
+        if (sidebar && overlay) {
+            const isOpen = sidebar.classList.contains('show');
+            
+            if (isOpen) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        }
+    }
+    
+    function openSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        sidebar?.classList.add('show');
+        overlay?.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        // Focus first navigation item for accessibility
+        const firstNavLink = sidebar?.querySelector('.nav-link');
+        firstNavLink?.focus();
+    }
+    
+    function closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        sidebar?.classList.remove('show');
+        overlay?.classList.remove('show');
+        document.body.style.overflow = '';
+        
+        // Return focus to toggle button
+        const toggle = document.getElementById('sidebar-toggle');
+        toggle?.focus();
+    }
+    
+    function updateActiveStates() {
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.sidebar-nav .nav-link, .nav-submenu a');
+        
+        // Remove all active classes
+        navLinks.forEach(link => link.classList.remove('active'));
+        
+        // Find best matching link
+        let bestMatch = null;
+        let bestMatchLength = 0;
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && href !== '#') {
+                if (href === currentPath) {
+                    // Exact match - use this
+                    bestMatch = link;
+                    bestMatchLength = href.length;
+                } else if (currentPath.startsWith(href) && href.length > bestMatchLength && href !== '/') {
+                    // Partial match - use if longer than current best
+                    bestMatch = link;
+                    bestMatchLength = href.length;
                 }
             }
         });
-    });
-    
-    // === SMOOTH SCROLLING === //
-    
-    // Smooth scroll for anchor links
-    const anchorLinks = document.querySelectorAll('a[href^="#"]');
-    anchorLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            const targetId = this.getAttribute('href').substring(1);
-            const targetElement = document.getElementById(targetId);
-            
-            if (targetElement) {
-                e.preventDefault();
-                targetElement.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-    
-    // === PERFORMANCE OPTIMIZATIONS === //
-    
-    // Lazy load images when they come into view
-    const lazyImages = document.querySelectorAll('img[data-src]');
-    const imageObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const img = entry.target;
-                img.src = img.getAttribute('data-src');
-                img.removeAttribute('data-src');
-                img.classList.add('fade-in');
-                observer.unobserve(img);
-            }
-        });
-    });
-    
-    lazyImages.forEach(img => imageObserver.observe(img));
-    
-    // === MOUNTAIN-THEMED EASTER EGGS === //
-    
-    // Add subtle mountain peaks to page borders on special occasions
-    const today = new Date();
-    const isMountainDay = today.getMonth() === 6 && today.getDate() === 11; // International Mountain Day
-    
-    if (isMountainDay) {
-        document.body.style.borderTop = '4px solid var(--pd-primary)';
-        document.body.style.borderImage = 'linear-gradient(90deg, var(--pd-primary) 0%, var(--pd-primary-light) 50%, var(--pd-primary) 100%) 1';
         
-        // Add a subtle notification
-        const mountainNotice = document.createElement('div');
-        mountainNotice.innerHTML = `
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
-                <i class="bi bi-mountain me-2"></i>
-                Danes je mednarodni dan gora! 🏔️
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        document.querySelector('main').prepend(mountainNotice);
+        // Apply active state
+        if (bestMatch) {
+            bestMatch.classList.add('active');
+        }
     }
+    
+    // Server-side rendering now handles initial expansion state
+    // JavaScript only needed for interactive clicking, not initial state
 });
-
-// === CSS ANIMATIONS === //
-
-// Add CSS animations via JavaScript for better performance
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes shake {
-        10%, 90% { transform: translate3d(-1px, 0, 0); }
-        20%, 80% { transform: translate3d(2px, 0, 0); }
-        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-        40%, 60% { transform: translate3d(4px, 0, 0); }
-    }
-    
-    .is-invalid {
-        border-color: var(--pd-danger) !important;
-        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1) !important;
-    }
-    
-    .is-valid {
-        border-color: var(--pd-success) !important;
-        box-shadow: 0 0 0 3px rgba(81, 207, 102, 0.1) !important;
-    }
-    
-    /* Loading spinner for buttons */
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    
-    .bi-arrow-clockwise {
-        animation: spin 1s linear infinite;
-    }
-`;
-document.head.appendChild(style);
