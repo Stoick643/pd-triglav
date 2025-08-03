@@ -2,7 +2,6 @@
 
 import pytest
 import os
-import uuid
 from app import create_app
 from models.user import db
 from config import TestingConfig
@@ -14,86 +13,58 @@ class IsolatedTestingConfig(TestingConfig):
 
     def __init__(self):
         super().__init__()
-        # Use unique database in project databases directory for complete isolation
-        worker_id = os.environ.get("PYTEST_XDIST_WORKER", "main")
-        db_name = f"test_{worker_id}_{uuid.uuid4().hex[:8]}.db"
-
+        # Hybrid database strategy: single DB for normal tests, worker-specific for parallel
         # Get project root directory and create databases path
         basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         db_dir = os.path.join(basedir, "databases")
         os.makedirs(db_dir, exist_ok=True)  # Ensure databases directory exists
+
+        # Auto-detect parallel vs single mode
+        worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+        if worker_id:
+            # Parallel mode: each worker gets its own database
+            db_name = f"test_{worker_id}.db"
+        else:
+            # Single mode: use shared database for performance
+            db_name = "test.db"
+
         self.db_path = os.path.join(db_dir, db_name)
         self.SQLALCHEMY_DATABASE_URI = f"sqlite:///{self.db_path}"
 
         # Safety check: ensure we never touch development database
         if "development.db" in self.SQLALCHEMY_DATABASE_URI:
             raise ValueError("Test configuration must never use development database!")
+        # Verify we're using a test database
+        if not any(
+            name in self.SQLALCHEMY_DATABASE_URI for name in ["test.db", "test_gw", "test_main"]
+        ):
+            raise ValueError("Test configuration must use a test database!")
 
 
 @pytest.fixture
 def app():
-    """Create application for testing with completely isolated database"""
-    # Create isolated test configuration
+    """Create application for testing with single reusable database"""
+    # Create test configuration
     test_config = IsolatedTestingConfig()
 
     app = create_app(test_config)
 
     with app.app_context():
-        # Create fresh database for this test
+        # Create database tables if they don't exist
         db.create_all()
         yield app
 
-        # Clean up database
-        db.drop_all()
-
-    # Remove temporary database file
-    try:
-        os.unlink(test_config.db_path)
-    except FileNotFoundError:
-        pass
-
-
-@pytest.fixture
-def app_with_transaction():
-    """Fast app fixture using transactional rollback for unit tests"""
-    test_config = IsolatedTestingConfig()
-    app = create_app(test_config)
-
-    with app.app_context():
-        db.create_all()
-
-        # Start a transaction that we'll rollback
-        connection = db.engine.connect()
-        transaction = connection.begin()
-
-        # Configure session to use our transaction
-        db.session.configure(bind=connection)
-
-        yield app
-
-        # Rollback transaction (undoes all changes)
-        transaction.rollback()
-        connection.close()
-
-        # Clean up database file
-        db.drop_all()
-
-    try:
-        os.unlink(test_config.db_path)
-    except FileNotFoundError:
-        pass
+        # Clean up: remove all data but keep schema
+        # This is faster than dropping/recreating tables
+        for table in reversed(db.metadata.sorted_tables):
+            db.session.execute(table.delete())
+        db.session.commit()
 
 
 @pytest.fixture
 def client(app):
     """Create test client"""
     return app.test_client()
-
-
-@pytest.fixture
-def fast_client(app_with_transaction):
-    """Create fast test client with transactional rollback"""
-    return app_with_transaction.test_client()
 
 
 @pytest.fixture

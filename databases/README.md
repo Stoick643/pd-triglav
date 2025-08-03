@@ -9,10 +9,12 @@ This directory contains all SQLite database files for the PD Triglav project.
 - Contains seeded test data for manual testing
 - Used when running `python3 app.py`
 
-### Test Databases  
-- **`test_main_[uuid].db`** - Test databases with unique names
-- **`test_worker[N]_[uuid].db`** - Parallel test worker databases
-- Created and destroyed automatically during test runs
+### Test Databases
+- **Hybrid Strategy**: Auto-detects single vs parallel testing mode
+- **Single Mode** (`pytest`): Uses `test.db` for optimal performance
+- **Parallel Mode** (`pytest -n`): Uses worker-specific databases (`test_gw0.db`, `test_gw1.db`, etc.)
+- Tables are cleaned between tests (data removed, schema preserved)
+- Much faster than creating/destroying databases
 - Completely isolated from development database
 
 ## Database Lifecycle
@@ -31,11 +33,15 @@ python3 app.py
 
 ### Testing
 ```bash
-# Run tests (automatically manages test databases)
+# Run tests in single mode (uses test.db)
 pytest
 
-# Tests create isolated databases and clean them up
-# Each test gets a fresh, isolated database
+# Run tests in parallel mode (uses test_gw0.db, test_gw1.db, etc.)
+pytest -n 4
+
+# Hybrid database strategy automatically detects mode
+# Single mode: optimal performance with shared database
+# Parallel mode: isolated databases per worker for reliability
 ```
 
 ## Git Policy
@@ -47,13 +53,18 @@ pytest
 
 ## Cleanup
 
-Test databases are automatically cleaned up, but if needed:
+Database cleanup options:
 ```bash
-# Remove all test databases
-rm -f databases/test_*.db
+# Remove test databases (all)
+rm -f databases/test*.db
 
 # Reset development database
 rm -f databases/development.db
+flask db upgrade
+python3 scripts/seed_db.py
+
+# Reset all databases
+rm -f databases/test*.db databases/development.db
 flask db upgrade
 python3 scripts/seed_db.py
 ```

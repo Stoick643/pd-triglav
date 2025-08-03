@@ -194,15 +194,14 @@ All database files are organized in the `databases/` directory:
 ```
 databases/
 ├── development.db       # Main development database
-├── test_main_abc123.db  # Test databases (auto-generated)
-├── test_worker1_def.db  # Parallel test worker databases
+├── test.db             # Single reusable test database
 ├── .gitkeep            # Ensures directory is tracked
 └── README.md           # Database documentation
 ```
 
 ### Database Isolation
 - **Development**: `databases/development.db` (persistent, contains seeded data)
-- **Testing**: `databases/test_*.db` (temporary, created/destroyed per test)
+- **Testing**: `databases/test.db` (reusable, tables cleaned between tests)
 - **Production**: PostgreSQL (managed by Render)
 
 ### Key Benefits
@@ -314,8 +313,8 @@ pd-triglav/
 rm databases/development.db  # Remove development database
 flask db upgrade
 
-# Reset all test databases
-rm databases/test_*.db
+# Reset test database
+rm databases/test.db
 
 # Fix migration conflicts
 flask db stamp head
