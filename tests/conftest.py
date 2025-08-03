@@ -14,10 +14,10 @@ class IsolatedTestingConfig(TestingConfig):
     def __init__(self):
         super().__init__()
         # Hybrid database strategy: single DB for normal tests, worker-specific for parallel
-        # Get project root directory and create databases path
+        # Get project root directory and create test databases path
         basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        db_dir = os.path.join(basedir, "databases")
-        os.makedirs(db_dir, exist_ok=True)  # Ensure databases directory exists
+        test_db_dir = os.path.join(basedir, "databases", "test")
+        os.makedirs(test_db_dir, exist_ok=True)  # Ensure test databases directory exists
 
         # Auto-detect parallel vs single mode
         worker_id = os.environ.get("PYTEST_XDIST_WORKER")
@@ -28,17 +28,23 @@ class IsolatedTestingConfig(TestingConfig):
             # Single mode: use shared database for performance
             db_name = "test.db"
 
-        self.db_path = os.path.join(db_dir, db_name)
+        self.db_path = os.path.join(test_db_dir, db_name)
         self.SQLALCHEMY_DATABASE_URI = f"sqlite:///{self.db_path}"
 
-        # Safety check: ensure we never touch development database
-        if "development.db" in self.SQLALCHEMY_DATABASE_URI:
-            raise ValueError("Test configuration must never use development database!")
-        # Verify we're using a test database
-        if not any(
-            name in self.SQLALCHEMY_DATABASE_URI for name in ["test.db", "test_gw", "test_main"]
+        # Safety check: ensure we're always in test directory
+        if "databases/test/" not in self.SQLALCHEMY_DATABASE_URI:
+            raise ValueError(
+                f"CRITICAL: Tests must use databases/test/ directory only! Found: {self.SQLALCHEMY_DATABASE_URI}"
+            )
+
+        # Additional safety: ensure we never touch production database files
+        if any(
+            prod_name in self.SQLALCHEMY_DATABASE_URI
+            for prod_name in ["pd_triglav.db", "production.db"]
         ):
-            raise ValueError("Test configuration must use a test database!")
+            raise ValueError(
+                f"CRITICAL: Test found production database name in path! Found: {self.SQLALCHEMY_DATABASE_URI}"
+            )
 
 
 @pytest.fixture
@@ -158,6 +164,24 @@ def test_users(app):
         db.session.commit()
 
         return _get_users()
+
+
+@pytest.fixture
+def test_user_pending(test_users):
+    """Individual pending user fixture"""
+    return test_users["pending"]
+
+
+@pytest.fixture
+def test_user_member(test_users):
+    """Individual member user fixture"""
+    return test_users["member"]
+
+
+@pytest.fixture
+def test_user_admin(test_users):
+    """Individual admin user fixture"""
+    return test_users["admin"]
 
 
 @pytest.fixture
