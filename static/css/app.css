@@ -356,8 +356,8 @@ a:hover {
 }
 
 .form-control:focus {
-  border-color: var(--pd-primary);
-  box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.1);
+  border-color: var(--pd-accent-red);
+  box-shadow: 0 0 0 3px rgba(227, 30, 36, 0.1);
   outline: none;
 }
 
@@ -626,8 +626,8 @@ a:hover {
   height: 100%;
   background: linear-gradient(
     135deg,
-    rgba(44, 85, 48, 0.8) 0%,
-    rgba(26, 61, 31, 0.6) 50%,
+    rgba(43, 43, 43, 0.8) 0%,
+    rgba(26, 26, 26, 0.6) 50%,
     rgba(108, 117, 125, 0.4) 100%
   );
   z-index: 2;
@@ -722,13 +722,13 @@ a:hover {
 }
 
 .hero-cta-buttons .btn-primary {
-  background: var(--pd-primary);
-  border-color: var(--pd-primary);
+  background: var(--pd-accent-red);
+  border-color: var(--pd-accent-red);
 }
 
 .hero-cta-buttons .btn-primary:hover {
-  background: var(--pd-primary-dark);
-  border-color: var(--pd-primary-dark);
+  background: var(--pd-accent-red-dark);
+  border-color: var(--pd-accent-red-dark);
 }
 
 .hero-cta-buttons .btn-outline-light:hover {

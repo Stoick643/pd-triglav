@@ -65,7 +65,7 @@ Specialized components for the mountaineering club
 }
 
 .trip-destination {
-  color: var(--pd-primary);
+  color: var(--pd-accent-red);
   font-weight: var(--pd-font-medium);
   font-size: var(--pd-text-base);
   display: flex;
@@ -269,8 +269,8 @@ Specialized components for the mountaineering club
 }
 
 .form-control-enhanced:focus {
-  border-color: var(--pd-primary);
-  box-shadow: 0 0 0 4px rgba(44, 85, 48, 0.1);
+  border-color: var(--pd-accent-red);
+  box-shadow: 0 0 0 4px rgba(227, 30, 36, 0.1);
   outline: none;
   transform: translateY(-1px);
 }
@@ -331,8 +331,8 @@ Specialized components for the mountaineering club
 
 .btn-mountain-outline {
   background: transparent;
-  border: 2px solid var(--pd-primary);
-  color: var(--pd-primary);
+  border: 2px solid var(--pd-accent-red);
+  color: var(--pd-accent-red);
   font-weight: var(--pd-font-semibold);
   padding: var(--pd-space-3) var(--pd-space-6);
   border-radius: var(--pd-radius-lg);
@@ -343,7 +343,7 @@ Specialized components for the mountaineering club
 }
 
 .btn-mountain-outline:hover {
-  background-color: var(--pd-primary);
+  background-color: var(--pd-accent-red);
   color: var(--pd-white);
   transform: translateY(-2px);
   box-shadow: var(--pd-shadow-lg);

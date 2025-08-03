@@ -66,11 +66,11 @@ Alpine Elegance - Mountain-inspired web design
 
   /* === LIGHT THEME (DEFAULT) === */
   
-  /* Primary - Mountain Blues & Greens */
-  --pd-primary: #2c5530;        /* Deep forest green */
-  --pd-primary-light: #4a7c59;  /* Mountain meadow */
-  --pd-primary-dark: #1a3d1f;   /* Pine shadow */
-  --pd-primary-subtle: #f0f7f1;  /* Morning mist */
+  /* Primary - Dark Gray (Professional) */
+  --pd-primary: #2B2B2B;        /* Dark charcoal */
+  --pd-primary-light: #424242;  /* Medium gray */
+  --pd-primary-dark: #1A1A1A;   /* Very dark gray */
+  --pd-primary-subtle: #F5F5F5; /* Light gray tint */
   
   /* Secondary - Alpine Stone */
   --pd-secondary: #6c757d;       /* Mountain stone */
@@ -78,7 +78,13 @@ Alpine Elegance - Mountain-inspired web design
   --pd-secondary-dark: #495057;  /* Dark slate */
   --pd-secondary-subtle: #f8f9fa; /* Snow white */
   
-  /* Accent - Sophisticated & Desaturated */
+  /* Triglav Red Accent - Brand Colors */
+  --pd-accent-red: #E31E24;      /* Triglav red */
+  --pd-accent-red-light: #FF4444; /* Lighter red */
+  --pd-accent-red-dark: #B71C1C; /* Darker red */
+  --pd-accent-red-subtle: #FFEBEE; /* Light red tint */
+  
+  /* Other Accents - Sophisticated & Desaturated */
   --pd-accent-orange: #e55a32;   /* Muted sunrise peak */
   --pd-accent-blue: #4191d9;     /* Softer alpine sky */
   --pd-accent-yellow: #e6c547;   /* Warm golden hour */
@@ -122,10 +128,10 @@ Alpine Elegance - Mountain-inspired web design
 
 html[data-theme="dark"] {
   /* Primary - Adjusted for dark backgrounds */
-  --pd-primary: #4a7c59;        /* Brighter forest green */
-  --pd-primary-light: #5fb85c;  /* Bright meadow */
-  --pd-primary-dark: #2c5530;   /* Darker for contrast */
-  --pd-primary-subtle: #242f26;  /* Dark mist */
+  --pd-primary: #424242;        /* Medium gray for dark mode */
+  --pd-primary-light: #616161;  /* Lighter gray */
+  --pd-primary-dark: #212121;   /* Very dark gray */
+  --pd-primary-subtle: #1E1E1E;  /* Dark surface */
   
   /* Secondary - Dark theme stone */
   --pd-secondary: #8e9297;       /* Lighter stone */
@@ -190,8 +196,8 @@ html[data-theme="dark"] {
   --pd-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   
   /* Mountain-inspired elevation */
-  --pd-shadow-mountain: 0 8px 32px rgba(44, 85, 48, 0.12), 0 2px 8px rgba(44, 85, 48, 0.08);
-  --pd-shadow-valley: inset 0 2px 4px rgba(44, 85, 48, 0.06);
+  --pd-shadow-mountain: 0 8px 32px rgba(43, 43, 43, 0.12), 0 2px 8px rgba(43, 43, 43, 0.08);
+  --pd-shadow-valley: inset 0 2px 4px rgba(43, 43, 43, 0.06);
   
   /* === BORDERS === */
   --pd-border-width: 1px;
@@ -234,13 +240,13 @@ html[data-theme="dark"] {
   
   /* === ENHANCED SHADOWS === */
   /* Layered shadows for sophisticated elevation */
-  --pd-shadow-xs: 0 1px 2px rgba(44, 85, 48, 0.04);
-  --pd-shadow-sm: 0 1px 3px rgba(44, 85, 48, 0.06), 0 1px 2px rgba(44, 85, 48, 0.04);
-  --pd-shadow: 0 4px 6px rgba(44, 85, 48, 0.07), 0 2px 4px rgba(44, 85, 48, 0.06);
-  --pd-shadow-md: 0 10px 15px rgba(44, 85, 48, 0.08), 0 4px 6px rgba(44, 85, 48, 0.06);
-  --pd-shadow-lg: 0 20px 25px rgba(44, 85, 48, 0.1), 0 10px 10px rgba(44, 85, 48, 0.06);
-  --pd-shadow-xl: 0 25px 50px rgba(44, 85, 48, 0.12), 0 12px 20px rgba(44, 85, 48, 0.08);
-  --pd-shadow-mountain: 0 35px 60px rgba(44, 85, 48, 0.15), 0 15px 25px rgba(44, 85, 48, 0.1);
+  --pd-shadow-xs: 0 1px 2px rgba(43, 43, 43, 0.04);
+  --pd-shadow-sm: 0 1px 3px rgba(43, 43, 43, 0.06), 0 1px 2px rgba(43, 43, 43, 0.04);
+  --pd-shadow: 0 4px 6px rgba(43, 43, 43, 0.07), 0 2px 4px rgba(43, 43, 43, 0.06);
+  --pd-shadow-md: 0 10px 15px rgba(43, 43, 43, 0.08), 0 4px 6px rgba(43, 43, 43, 0.06);
+  --pd-shadow-lg: 0 20px 25px rgba(43, 43, 43, 0.1), 0 10px 10px rgba(43, 43, 43, 0.06);
+  --pd-shadow-xl: 0 25px 50px rgba(43, 43, 43, 0.12), 0 12px 20px rgba(43, 43, 43, 0.08);
+  --pd-shadow-mountain: 0 35px 60px rgba(43, 43, 43, 0.15), 0 15px 25px rgba(43, 43, 43, 0.1);
   
   /* === Z-INDEX SCALE === */
   --pd-z-dropdown: 1000;
