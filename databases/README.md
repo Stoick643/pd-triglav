@@ -5,7 +5,7 @@ This directory contains all SQLite database files for the PD Triglav project.
 ## Database Files
 
 ### Development Database
-- **`development.db`** - Main development database
+- **`pd_triglav.db`** - Main development database
 - Contains seeded test data for manual testing
 - Used when running `python3 app.py`
 
@@ -59,12 +59,12 @@ Database cleanup options:
 rm -f databases/test*.db
 
 # Reset development database
-rm -f databases/development.db
+rm -f databases/pd_triglav.db
 flask db upgrade
 python3 scripts/seed_db.py
 
 # Reset all databases
-rm -f databases/test*.db databases/development.db
+rm -f databases/test*.db databases/pd_triglav.db
 flask db upgrade
 python3 scripts/seed_db.py
 ```

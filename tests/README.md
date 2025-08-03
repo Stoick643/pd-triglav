@@ -20,7 +20,7 @@ The PD Triglav project has comprehensive test coverage including unit tests, int
 ## Database Isolation Strategy
 
 ### 🛡️ **Complete Database Separation**
-- **Development**: `app.db` (never touched by tests)
+- **Development**: `pd_triglav.db` (never touched by tests)
 - **Tests**: Unique temporary files in `/tmp/` (completely isolated)
 - **Zero contamination risk**: Tests cannot affect development data
 

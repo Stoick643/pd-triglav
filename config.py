@@ -23,7 +23,7 @@ class Config:
         # Development fallback to SQLite in databases directory
         db_dir = os.path.join(basedir, "databases")
         os.makedirs(db_dir, exist_ok=True)  # Ensure databases directory exists
-        SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(db_dir, "development.db")
+        SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(db_dir, "pd_triglav.db")
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

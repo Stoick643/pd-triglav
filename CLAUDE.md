@@ -80,8 +80,11 @@ flask db migrate -m "Description"
 # Apply migrations  
 flask db upgrade
 
-# Seed test data
+# Seed development data (full test data)
 python3 scripts/seed_db.py
+
+# OR seed production data (admin only)
+python3 scripts/seed_db_prod.py
 ```
 
 ### Development Server
@@ -193,15 +196,15 @@ All database files are organized in the `databases/` directory:
 
 ```
 databases/
-├── development.db       # Main development database
+├── pd_triglav.db        # Main development database
 ├── test.db             # Single reusable test database
 ├── .gitkeep            # Ensures directory is tracked
 └── README.md           # Database documentation
 ```
 
 ### Database Isolation
-- **Development**: `databases/development.db` (persistent, contains seeded data)
-- **Testing**: `databases/test.db` (reusable, tables cleaned between tests)
+- **Development**: `databases/pd_triglav.db` (persistent, contains seeded data)
+- **Testing**: Hybrid strategy - `databases/test.db` (single mode) or `databases/test_gw*.db` (parallel mode)
 - **Production**: PostgreSQL (managed by Render)
 
 ### Key Benefits
@@ -275,7 +278,8 @@ pd-triglav/
 ├── migrations/           # Database migrations
 ├── tests/               # Test files
 ├── scripts/
-│   └── seed_db.py      # Development data seeding
+│   ├── seed_db.py      # Development data seeding
+│   └── seed_db_prod.py # Production data seeding (admin only)
 └── docs/               # Documentation
 ```
 
@@ -310,7 +314,7 @@ pd-triglav/
 ### Database Issues
 ```bash
 # Reset database (development only)
-rm databases/development.db  # Remove development database
+rm databases/pd_triglav.db  # Remove development database
 flask db upgrade
 
 # Reset test database

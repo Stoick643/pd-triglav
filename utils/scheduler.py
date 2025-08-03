@@ -13,13 +13,10 @@ def fetch_daily_news_task():
     """Scheduled task to fetch and cache daily climbing news"""
     try:
         current_app.logger.info("Starting scheduled daily news fetch...")
-
         from utils.daily_news import fetch_and_cache_news
 
         articles = fetch_and_cache_news()
-
         current_app.logger.info(f"Successfully cached {len(articles)} news articles")
-
     except Exception as e:
         current_app.logger.error(f"Error in scheduled news fetch: {e}")
 
@@ -27,12 +24,10 @@ def fetch_daily_news_task():
 def generate_historical_event_task():
     """Scheduled task to generate today's historical event if missing"""
     try:
-        current_app.logger.info("Starting scheduled historical event generation...")
-
+        current_app.logger.info("!!Starting scheduled historical event generation...")
         from models.content import HistoricalEvent
 
         todays_event = HistoricalEvent.get_todays_event()
-
         if not todays_event:
             from utils.content_generation import generate_todays_historical_event
 
@@ -43,7 +38,6 @@ def generate_historical_event_task():
                 current_app.logger.warning("Failed to generate historical event")
         else:
             current_app.logger.info(f"Historical event already exists: {todays_event.title}")
-
     except Exception as e:
         current_app.logger.error(f"Error in scheduled historical event generation: {e}")
 
@@ -52,13 +46,10 @@ def cleanup_old_data_task():
     """Weekly cleanup task to remove old cached data"""
     try:
         current_app.logger.info("Starting scheduled cleanup of old data...")
-
         from models.content import DailyNews
 
         deleted_count = DailyNews.cleanup_old_news(days_to_keep=30)
-
         current_app.logger.info(f"Cleaned up {deleted_count} old news entries")
-
     except Exception as e:
         current_app.logger.error(f"Error in scheduled cleanup: {e}")
 
