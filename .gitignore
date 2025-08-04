@@ -210,3 +210,5 @@ migrations/versions/*.pyc
 # Backup files
 *.bak
 *.backup
+
+fromOutside/

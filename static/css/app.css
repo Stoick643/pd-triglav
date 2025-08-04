@@ -574,6 +574,53 @@ a:hover {
   100% { background-position: 200% 0; }
 }
 
+/* === MAIN CONTENT LAYOUT === */
+
+/* Desktop: Accommodate sidebar */
+@media (min-width: 992px) {
+  .main-content {
+    margin-left: 250px; /* Sidebar width */
+    padding: var(--pd-space-6) var(--pd-space-4);
+    margin-bottom: var(--pd-space-12);
+    min-height: calc(100vh - 200px); /* Account for footer */
+  }
+}
+
+/* Mobile: Accommodate mobile header */
+@media (max-width: 991px) {
+  .main-content {
+    padding-top: calc(60px + var(--pd-space-6)); /* Mobile header height + spacing */
+    padding-bottom: var(--pd-space-12);
+    padding-left: var(--pd-space-4);
+    padding-right: var(--pd-space-4);
+  }
+}
+
+/* Tablet adjustments */
+@media (max-width: 768px) {
+  .main-content {
+    padding-top: calc(60px + var(--pd-space-4));
+    padding-bottom: var(--pd-space-8);
+  }
+}
+
+/* Mobile theme toggle styles */
+.theme-toggle-mobile {
+  background: none;
+  border: none;
+  color: var(--pd-white);
+  font-size: var(--pd-text-lg);
+  padding: var(--pd-space-2);
+  border-radius: var(--pd-radius);
+  transition: all var(--pd-transition-fast);
+  cursor: pointer;
+}
+
+.theme-toggle-mobile:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
 /* Responsive utilities */
 @media (max-width: 768px) {
   .hero-mountain {
