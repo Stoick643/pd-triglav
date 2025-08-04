@@ -27,17 +27,23 @@
                                     <small class="text-muted">Registriran: {{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
                                 </div>
                                 <div class="col-auto">
-                                    <form method="POST" action="{{ url_for('main.approve_user', user_id=user.id) }}" class="d-inline">
+                                    <form method="POST" action="{{ url_for('main.approve_user', user_id=user.id) }}" class="d-inline"
+                                          data-confirm="Ali ste prepričani, da želite odobriti uporabnika {{ user.name }}?"
+                                          data-confirm-type="info"
+                                          data-confirm-text="Odobri uporabnika"
+                                          data-confirm-icon="bi-check-circle">
                                         {{ approval_forms[user.id].hidden_tag() }}
-                                        <button type="submit" class="btn btn-success btn-sm me-1" 
-                                                onclick="return confirm('Ali ste prepričani, da želite odobriti uporabnika {{ user.name }}?')">
+                                        <button type="submit" class="btn btn-success btn-sm me-1">
                                             <i class="bi bi-check-circle me-1"></i>Odobri
                                         </button>
                                     </form>
-                                    <form method="POST" action="{{ url_for('main.reject_user', user_id=user.id) }}" class="d-inline">
+                                    <form method="POST" action="{{ url_for('main.reject_user', user_id=user.id) }}" class="d-inline"
+                                          data-confirm="Ali ste prepričani, da želite zavrniti in odstraniti uporabnika {{ user.name }}? To dejanje ni mogoče razveljaviti."
+                                          data-confirm-type="danger"
+                                          data-confirm-text="Zavrni in odstrani"
+                                          data-confirm-icon="bi-x-circle">
                                         {{ rejection_forms[user.id].hidden_tag() }}
-                                        <button type="submit" class="btn btn-danger btn-sm" 
-                                                onclick="return confirm('Ali ste prepričani, da želite zavrniti in odstraniti uporabnika {{ user.name }}? To dejanje ni mogoče razveljaviti.')">
+                                        <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="bi bi-x-circle me-1"></i>Zavrni
                                         </button>
                                     </form>

@@ -56,7 +56,10 @@
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form method="POST" action="{{ url_for('reports.delete_report', report_id=report.id) }}" class="d-inline"
-                                              onsubmit="return confirm('Ali ste prepričani, da želite izbrisati to poročilo?')">
+                                              data-confirm="Ali ste prepričani, da želite izbrisati to poročilo? Vsi komentarji in fotografije bodo trajno odstranjeni."
+                                              data-confirm-type="danger"
+                                              data-confirm-text="Izbriši poročilo"
+                                              data-confirm-icon="bi-trash">
                                             <button type="submit" class="dropdown-item text-danger">
                                                 <i class="bi bi-trash me-2"></i>Izbriši poročilo
                                             </button>

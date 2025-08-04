@@ -93,9 +93,12 @@
                                                     <i class="bi bi-eye"></i>
                                                 </a>
                                                 {% if not trip.is_past and trip.status.value != 'cancelled' %}
-                                                <form method="POST" action="{{ url_for('trips.withdraw_from_trip', trip_id=trip.id) }}" class="d-inline">
-                                                    <button type="submit" class="btn btn-outline-danger" title="Odjavi se" 
-                                                            onclick="return confirm('Ste prepričani, da se želite odjaviti z izleta?')">
+                                                <form method="POST" action="{{ url_for('trips.withdraw_from_trip', trip_id=trip.id) }}" class="d-inline"
+                                                      data-confirm="Ste prepričani, da se želite odjaviti z izleta '{{ trip.title }}'?"
+                                                      data-confirm-type="warning"
+                                                      data-confirm-text="Odjavi se z izleta"
+                                                      data-confirm-icon="bi-box-arrow-left">
+                                                    <button type="submit" class="btn btn-outline-danger" title="Odjavi se">
                                                         <i class="bi bi-box-arrow-left"></i>
                                                     </button>
                                                 </form>

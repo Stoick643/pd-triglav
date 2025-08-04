@@ -406,9 +406,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const regenerateBtn = document.getElementById('regenerate-event-btn');
     if (regenerateBtn) {
         regenerateBtn.addEventListener('click', function() {
-            if (confirm('Ali ste prepričani, da želite regenerirati današnji dogodek?')) {
-                regenerateEvent();
-            }
+            PDTriglavConfirmModal.show(
+                'Ali ste prepričani, da želite regenerirati današnji dogodek? Obstoječi dogodek bo zamenjan z novim.',
+                () => regenerateEvent(),
+                {
+                    type: 'warning',
+                    confirmText: 'Regeneriraj dogodek',
+                    icon: 'bi-arrow-clockwise'
+                }
+            );
         });
     }
 
@@ -416,9 +422,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const refreshNewsBtn = document.getElementById('refresh-news-btn');
     if (refreshNewsBtn) {
         refreshNewsBtn.addEventListener('click', function() {
-            if (confirm('Ali ste prepričani, da želite osvežiti novice? To bo trajalo nekaj sekund.')) {
-                refreshNews();
-            }
+            PDTriglavConfirmModal.show(
+                'Ali ste prepričani, da želite osvežiti novice? To bo trajalo nekaj sekund.',
+                () => refreshNews(),
+                {
+                    type: 'info',
+                    confirmText: 'Osveži novice',
+                    icon: 'bi-arrow-repeat'
+                }
+            );
         });
     }
 

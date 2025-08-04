@@ -36,8 +36,12 @@
                             {% if trip.status.value != 'cancelled' and not trip.is_past %}
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <form method="POST" action="{{ url_for('trips.cancel_trip', trip_id=trip.id) }}" class="d-inline">
-                                    <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Ste prepričani, da želite odpovedati ta izlet?')">
+                                <form method="POST" action="{{ url_for('trips.cancel_trip', trip_id=trip.id) }}" class="d-inline"
+                                      data-confirm="Ste prepričani, da želite odpovedati ta izlet? Vsi prijavljeni udeleženci bodo obveščeni."
+                                      data-confirm-type="warning"
+                                      data-confirm-text="Odpovej izlet"
+                                      data-confirm-icon="bi-x-circle">
+                                    <button type="submit" class="dropdown-item text-danger">
                                         <i class="bi bi-x-circle"></i> Odpovej izlet
                                     </button>
                                 </form>
