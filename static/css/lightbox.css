@@ -1,0 +1,305 @@
+/**
+ * PD Triglav Photo Lightbox Styles
+ * Professional modal design matching corporate identity
+ */
+
+/* Modal Container */
+.lightbox-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.lightbox-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Dark Overlay */
+.lightbox-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    cursor: zoom-out;
+}
+
+/* Main Container */
+.lightbox-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--pd-space-4);
+}
+
+/* Content Wrapper */
+.lightbox-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Image Wrapper */
+.lightbox-image-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+/* Main Image */
+.lightbox-image {
+    max-width: 100%;
+    max-height: 80vh;
+    height: auto;
+    object-fit: contain;
+    border-radius: var(--pd-radius-md);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.3s ease;
+    user-select: none;
+}
+
+/* Loading Spinner */
+.lightbox-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: none;
+}
+
+/* Close Button */
+.lightbox-close {
+    position: absolute;
+    top: var(--pd-space-4);
+    right: var(--pd-space-4);
+    width: 48px;
+    height: 48px;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: var(--pd-white);
+    border-radius: var(--pd-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.lightbox-close:hover {
+    background-color: var(--pd-accent);
+    transform: scale(1.1);
+}
+
+.lightbox-close:focus {
+    outline: 2px solid var(--pd-accent);
+    outline-offset: 2px;
+}
+
+.lightbox-close i {
+    font-size: 1.5rem;
+}
+
+/* Navigation Buttons */
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    padding: 0 var(--pd-space-4);
+}
+
+.lightbox-prev,
+.lightbox-next {
+    width: 56px;
+    height: 56px;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: var(--pd-white);
+    border-radius: var(--pd-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    pointer-events: all;
+}
+
+.lightbox-prev:hover,
+.lightbox-next:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+    transform: scale(1.1);
+}
+
+.lightbox-prev:focus,
+.lightbox-next:focus {
+    outline: 2px solid var(--pd-accent);
+    outline-offset: 2px;
+}
+
+.lightbox-prev i,
+.lightbox-next i {
+    font-size: 1.5rem;
+}
+
+/* Info Section */
+.lightbox-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: var(--pd-white);
+    padding: var(--pd-space-8) var(--pd-space-6) var(--pd-space-6);
+    text-align: center;
+    border-radius: 0 0 var(--pd-radius-md) var(--pd-radius-md);
+}
+
+/* Counter */
+.lightbox-counter {
+    font-size: var(--pd-text-sm);
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: var(--pd-space-2);
+}
+
+/* Caption */
+.lightbox-caption {
+    font-size: var(--pd-text-lg);
+    font-weight: var(--pd-font-medium);
+    margin-bottom: var(--pd-space-2);
+    line-height: var(--pd-leading-relaxed);
+}
+
+/* Metadata */
+.lightbox-metadata {
+    font-size: var(--pd-text-sm);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .lightbox-container {
+        padding: 0;
+    }
+    
+    .lightbox-image {
+        max-height: 100vh;
+        border-radius: 0;
+    }
+    
+    .lightbox-close {
+        top: var(--pd-space-2);
+        right: var(--pd-space-2);
+        width: 40px;
+        height: 40px;
+    }
+    
+    .lightbox-close i {
+        font-size: 1.25rem;
+    }
+    
+    .lightbox-prev,
+    .lightbox-next {
+        width: 44px;
+        height: 44px;
+        background-color: rgba(0, 0, 0, 0.3);
+    }
+    
+    .lightbox-nav {
+        padding: 0 var(--pd-space-2);
+    }
+    
+    .lightbox-info {
+        padding: var(--pd-space-6) var(--pd-space-4) var(--pd-space-4);
+        border-radius: 0;
+    }
+    
+    .lightbox-caption {
+        font-size: var(--pd-text-base);
+    }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .lightbox-prev,
+    .lightbox-next {
+        width: 60px;
+        height: 60px;
+    }
+    
+    /* Larger touch targets */
+    .lightbox-close {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.lightbox-modal.show .lightbox-image {
+    animation: fadeIn 0.3s ease forwards;
+}
+
+/* Accessibility */
+.lightbox-modal:focus {
+    outline: none;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .lightbox-modal,
+    .lightbox-image,
+    .lightbox-close,
+    .lightbox-prev,
+    .lightbox-next {
+        transition: none;
+    }
+    
+    .lightbox-modal.show .lightbox-image {
+        animation: none;
+    }
+}
+
+/* Dark Theme Support (Future) */
+[data-theme="dark"] .lightbox-overlay {
+    background-color: rgba(0, 0, 0, 0.98);
+}
+
+/* Print Styles */
+@media print {
+    .lightbox-modal {
+        display: none !important;
+    }
+}

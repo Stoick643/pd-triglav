@@ -162,7 +162,7 @@
                     <div class="photo-mosaic" id="photoMosaic" data-photo-count="{{ report.photos|length }}">
                         {% for photo in report.photos %}
                         <div class="photo-tile" data-aspect-ratio="{{ (photo.width / photo.height)|round(2) if photo.width and photo.height else 1.0 }}">
-                            <a href="{{ photo.url }}" target="_blank" class="photo-link">
+                            <a href="{{ photo.url }}" class="photo-link">
                                 <img src="{{ photo.url }}" 
                                      class="photo-img" 
                                      alt="{{ photo.caption or 'Fotografija izleta' }}" 
