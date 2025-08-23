@@ -1,0 +1,116 @@
+<!-- Trip Signup Modal -->
+<div id="tripSignupModal" class="trip-modal" style="display: none;">
+    <div class="trip-modal-overlay"></div>
+    <div class="trip-modal-container">
+        <div class="trip-modal-content">
+            <div class="trip-modal-header">
+                <h2 class="trip-modal-title">
+                    <i class="bi bi-calendar-plus me-2"></i>
+                    Prijava na izlet
+                </h2>
+                <button type="button" class="trip-modal-close" aria-label="Zapri">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            
+            <div class="trip-modal-body">
+                <!-- Trip Details Section -->
+                <div class="trip-details-section">
+                    <div class="trip-header">
+                        <h3 class="trip-name" id="signupTripName">Loading...</h3>
+                        <div class="trip-badges">
+                            <span class="difficulty-badge" id="signupDifficultyBadge">Loading...</span>
+                            <span class="status-badge" id="signupStatusBadge" style="display: none;"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="trip-meta-grid">
+                        <div class="trip-meta-item">
+                            <i class="bi bi-geo-alt"></i>
+                            <span id="signupDestination">Loading...</span>
+                        </div>
+                        <div class="trip-meta-item">
+                            <i class="bi bi-calendar3"></i>
+                            <span id="signupDate">Loading...</span>
+                        </div>
+                        <div class="trip-meta-item">
+                            <i class="bi bi-clock"></i>
+                            <span id="signupTime">Loading...</span>
+                        </div>
+                        <div class="trip-meta-item">
+                            <i class="bi bi-person-badge"></i>
+                            <span id="signupLeader">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="participants-info" id="signupParticipantsInfo">
+                        <div class="participant-count">
+                            <i class="bi bi-people"></i>
+                            <span id="signupParticipantCount">0/0</span>
+                            <small class="text-muted">potrjenih udeležencev</small>
+                        </div>
+                        <div class="waitlist-count" id="signupWaitlistInfo" style="display: none;">
+                            <i class="bi bi-clock-history"></i>
+                            <span id="signupWaitlistCount">0</span>
+                            <small class="text-muted">na čakalni listi</small>
+                        </div>
+                    </div>
+                    
+                    <div class="trip-description" id="signupDescription" style="display: none;">
+                        <p class="description-text"></p>
+                    </div>
+                </div>
+                
+                <!-- Signup Form Section -->
+                <div class="signup-form-section">
+                    <form id="signupForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="form-group">
+                            <label for="signupNotes" class="form-label">
+                                Opombe <span class="text-muted">(izbirno)</span>
+                            </label>
+                            <textarea 
+                                id="signupNotes" 
+                                name="notes" 
+                                class="form-control" 
+                                rows="3" 
+                                placeholder="Posebne potrebe, izkušnje, kontakt v sili, itd.">
+                            </textarea>
+                            <div class="form-text">
+                                Te informacije bo videl vodnik izleta
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input 
+                                    class="form-check-input" 
+                                    type="checkbox" 
+                                    id="signupTerms" 
+                                    required>
+                                <label class="form-check-label" for="signupTerms">
+                                    Strinjam se s <a href="#" target="_blank">pravili PD Triglav</a> in prevzemam odgovornost za svojo varnost
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="alert-container" id="signupAlerts" style="display: none;"></div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="trip-modal-footer">
+                <button type="button" class="btn btn-secondary" id="signupCancelBtn">
+                    Prekliči
+                </button>
+                <button type="submit" class="btn btn-primary" id="signupSubmitBtn" form="signupForm">
+                    <span class="btn-text">Prijavi se na izlet</span>
+                    <span class="btn-loading" style="display: none;">
+                        <i class="bi bi-arrow-clockwise spin"></i> Prijavljam...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

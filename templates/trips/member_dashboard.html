@@ -43,7 +43,7 @@
                                 <tbody>
                                     {% for participation in my_participations %}
                                     {% set trip = participation.trip %}
-                                    <tr class="{% if trip.is_past %}table-secondary{% endif %}">
+                                    <tr class="{% if trip.is_past %}table-secondary{% endif %}" data-trip-id="{{ trip.id }}">
                                         <td>
                                             <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="text-decoration-none">
                                                 <strong>{{ trip.title }}</strong>
@@ -93,15 +93,13 @@
                                                     <i class="bi bi-eye"></i>
                                                 </a>
                                                 {% if not trip.is_past and trip.status.value != 'cancelled' %}
-                                                <form method="POST" action="{{ url_for('trips.withdraw_from_trip', trip_id=trip.id) }}" class="d-inline"
-                                                      data-confirm="Ste prepričani, da se želite odjaviti z izleta '{{ trip.title }}'?"
-                                                      data-confirm-type="warning"
-                                                      data-confirm-text="Odjavi se z izleta"
-                                                      data-confirm-icon="bi-box-arrow-left">
-                                                    <button type="submit" class="btn btn-outline-danger" title="Odjavi se">
-                                                        <i class="bi bi-box-arrow-left"></i>
-                                                    </button>
-                                                </form>
+                                                <button 
+                                                    class="btn btn-outline-danger" 
+                                                    data-action="trip-withdraw" 
+                                                    data-trip-id="{{ trip.id }}"
+                                                    title="Odjavi se z izleta">
+                                                    <i class="bi bi-box-arrow-left"></i>
+                                                </button>
                                                 {% endif %}
                                             </div>
                                         </td>

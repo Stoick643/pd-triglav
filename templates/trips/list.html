@@ -67,7 +67,7 @@
                 {% if trips %}
                     {% for trip in trips %}
                     <div class="col-lg-6 col-xl-4 mb-4 fade-in">
-                        <div class="trip-card h-100">
+                        <div class="trip-card h-100" data-trip-id="{{ trip.id }}">
                             <div class="trip-card-header">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="d-flex gap-2 flex-wrap">
@@ -112,7 +112,7 @@
                                 <div class="trip-meta">
                                     <div class="trip-meta-item">
                                         <i class="bi bi-people-fill"></i>
-                                        <span>{{ trip.confirmed_participants_count }}{% if trip.max_participants %}/{{ trip.max_participants }}{% endif %}</span>
+                                        <span class="participant-count" data-participant-count>{{ trip.confirmed_participants_count }}{% if trip.max_participants %}/{{ trip.max_participants }}{% endif %}</span>
                                     </div>
                                     <div class="trip-meta-item">
                                         <i class="bi bi-clock-fill"></i>
@@ -134,13 +134,24 @@
                                     {% if current_user.is_authenticated and trip.can_signup %}
                                         {% set user_status = trip.get_participant_status(current_user) %}
                                         {% if user_status %}
-                                            <span class="badge bg-success">
+                                            <span class="badge bg-success registration-badge">
                                                 <i class="bi bi-check-circle me-1"></i>Prijavljen
                                             </span>
+                                            <button 
+                                                class="btn btn-sm btn-outline-danger ms-2" 
+                                                data-action="trip-withdraw" 
+                                                data-trip-id="{{ trip.id }}"
+                                                title="Odjavi se z izleta">
+                                                <i class="bi bi-box-arrow-left"></i>Odjavi se
+                                            </button>
                                         {% elif trip.can_user_signup(current_user) %}
-                                            <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="btn btn-sm btn-mountain">
+                                            <button 
+                                                class="btn btn-sm btn-mountain" 
+                                                data-action="trip-signup" 
+                                                data-trip-id="{{ trip.id }}"
+                                                title="Hitro prijavi na izlet">
                                                 <i class="bi bi-plus-circle"></i>Prijavi se
-                                            </a>
+                                            </button>
                                         {% endif %}
                                     {% endif %}
                                 </div>

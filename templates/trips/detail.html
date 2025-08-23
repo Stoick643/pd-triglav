@@ -3,7 +3,7 @@
 {% block title %}{{ trip.title }} - PD Triglav{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container" data-trip-id="{{ trip.id }}">
     <div class="row">
         <div class="col-lg-8">
             <!-- Trip details -->
@@ -230,25 +230,23 @@
                             </div>
                         {% endif %}
                         
-                        <form method="POST" action="{{ url_for('trips.withdraw_from_trip', trip_id=trip.id) }}">
-                            <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Ste prepričani, da se želite odjaviti z izleta?')">
-                                <i class="bi bi-box-arrow-left me-2"></i>Odjavi se
-                            </button>
-                        </form>
+                        <button 
+                            class="btn btn-outline-danger w-100" 
+                            data-action="trip-withdraw" 
+                            data-trip-id="{{ trip.id }}"
+                            type="button">
+                            <i class="bi bi-box-arrow-left me-2"></i>Odjavi se
+                        </button>
                         
                     {% elif trip.can_signup and trip.can_user_signup(current_user) %}
                         <!-- User can sign up -->
-                        <form method="POST" action="{{ url_for('trips.signup_for_trip', trip_id=trip.id) }}">
-                            {{ signup_form.hidden_tag() }}
-                            
-                            <div class="mb-3">
-                                {{ signup_form.notes.label(class="form-label") }}
-                                {{ signup_form.notes(class="form-control", rows="3") }}
-                                <div class="form-text">{{ signup_form.notes.description }}</div>
-                            </div>
-                            
-                            {{ signup_form.submit(class="btn btn-primary w-100") }}
-                        </form>
+                        <button 
+                            class="btn btn-primary w-100" 
+                            data-action="trip-signup" 
+                            data-trip-id="{{ trip.id }}"
+                            type="button">
+                            <i class="bi bi-calendar-plus me-2"></i>Prijavi se na izlet
+                        </button>
                         
                     {% else %}
                         <!-- Cannot sign up -->

@@ -141,7 +141,7 @@ class Trip(db.Model):
 
         return existing_participant is None
 
-    def add_participant(self, user):
+    def add_participant(self, user, notes=None):
         """Add user as participant (confirmed or waitlisted)"""
         if not self.can_user_signup(user):
             return None
@@ -152,7 +152,7 @@ class Trip(db.Model):
         else:
             status = ParticipantStatus.CONFIRMED
 
-        participant = TripParticipant(trip_id=self.id, user_id=user.id, status=status)
+        participant = TripParticipant(trip_id=self.id, user_id=user.id, status=status, notes=notes)
 
         db.session.add(participant)
         return participant
@@ -181,6 +181,20 @@ class Trip(db.Model):
                 waitlisted.status = ParticipantStatus.CONFIRMED
 
         return True
+
+    def promote_from_waitlist(self):
+        """Promote first waitlisted participant to confirmed status"""
+        waitlisted = (
+            TripParticipant.query.filter_by(trip_id=self.id, status=ParticipantStatus.WAITLISTED)
+            .order_by(TripParticipant.signup_date)
+            .first()
+        )
+
+        if waitlisted and not self.is_full:
+            waitlisted.status = ParticipantStatus.CONFIRMED
+            return waitlisted
+
+        return None
 
     @staticmethod
     def get_upcoming_trips():

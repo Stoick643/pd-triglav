@@ -1,0 +1,84 @@
+<!-- Trip Withdrawal Modal -->
+<div id="tripWithdrawModal" class="trip-modal" style="display: none;">
+    <div class="trip-modal-overlay"></div>
+    <div class="trip-modal-container">
+        <div class="trip-modal-content">
+            <div class="trip-modal-header">
+                <h2 class="trip-modal-title">
+                    <i class="bi bi-box-arrow-left me-2"></i>
+                    Odjava z izleta
+                </h2>
+                <button type="button" class="trip-modal-close" aria-label="Zapri">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            
+            <div class="trip-modal-body">
+                <!-- Trip Details Section -->
+                <div class="trip-details-section">
+                    <div class="trip-header">
+                        <h3 class="trip-name" id="withdrawTripName">Loading...</h3>
+                        <div class="trip-meta">
+                            <span id="withdrawDate">Loading...</span>
+                            <span class="separator">•</span>
+                            <span id="withdrawDestination">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Confirmation Section -->
+                <div class="confirmation-section">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Ste prepričani, da se želite odjaviti z izleta?</strong>
+                    </div>
+                    
+                    <div class="withdrawal-info">
+                        <p class="mb-3">
+                            Z odjavo boste izgubili svoje mesto na izletu. 
+                            <span id="withdrawWaitlistInfo" style="display: none;">
+                                Naslednji udeleženec s čakalne liste bo samodejno potrjen.
+                            </span>
+                        </p>
+                    </div>
+                    
+                    <form id="withdrawForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="form-group">
+                            <label for="withdrawReason" class="form-label">
+                                Razlog za odjavo <span class="text-muted">(izbirno)</span>
+                            </label>
+                            <textarea 
+                                id="withdrawReason" 
+                                name="reason" 
+                                class="form-control" 
+                                rows="2" 
+                                placeholder="Napišite razlog za odjavo, če želite...">
+                            </textarea>
+                            <div class="form-text">
+                                To bo pomagalo vodniku pri organizaciji prihodnjih izletov
+                            </div>
+                        </div>
+                        
+                        <div class="alert-container" id="withdrawAlerts" style="display: none;"></div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="trip-modal-footer">
+                <button type="button" class="btn btn-secondary" id="withdrawCancelBtn">
+                    Ohrani prijavo
+                </button>
+                <button type="submit" class="btn btn-danger" id="withdrawSubmitBtn" form="withdrawForm">
+                    <span class="btn-text">
+                        <i class="bi bi-box-arrow-left me-1"></i>Odjavi se z izleta
+                    </span>
+                    <span class="btn-loading" style="display: none;">
+                        <i class="bi bi-arrow-clockwise spin"></i> Odjavljam...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

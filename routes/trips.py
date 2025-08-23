@@ -260,6 +260,154 @@ def withdraw_from_trip(trip_id):
     return redirect(url_for("trips.view_trip", trip_id=trip_id))
 
 
+@bp.route("/<int:trip_id>/signup-ajax", methods=["POST"])
+@login_required
+def signup_for_trip_ajax(trip_id):
+    """AJAX endpoint for trip signup"""
+    trip = Trip.query.get_or_404(trip_id)
+
+    # Verify CSRF token
+    from flask_wtf.csrf import validate_csrf
+
+    try:
+        token = request.headers.get("X-CSRFToken") or request.form.get("csrf_token")
+        validate_csrf(token)
+    except Exception:
+        return (
+            jsonify({"success": False, "error": "Neveljavna seja. Prosimo, osvežite stran."}),
+            400,
+        )
+
+    # Check if user can sign up
+    if not trip.can_user_signup(current_user):
+        return jsonify({"success": False, "error": "Na ta izlet se ne morete prijaviti."}), 400
+
+    try:
+        # Get optional notes from request
+        data = request.get_json() or {}
+        notes = data.get("notes", "")
+
+        participant = trip.add_participant(current_user, notes=notes)
+        if participant:
+            db.session.commit()
+
+            # Prepare response data
+            response = {
+                "success": True,
+                "status": participant.status.value,
+                "confirmed_count": trip.confirmed_participants_count,
+                "waitlist_count": trip.waitlist_count,
+                "max_participants": trip.max_participants,
+                "is_full": trip.is_full,
+            }
+
+            if participant.status == ParticipantStatus.CONFIRMED:
+                response["message"] = "Uspešno ste se prijavili na izlet!"
+            else:
+                response["message"] = "Prijava je uspešna! Dodani ste na čakalno listo."
+
+            return jsonify(response)
+        else:
+            return (
+                jsonify(
+                    {"success": False, "error": "Napaka pri prijavi. Verjetno ste že prijavljeni."}
+                ),
+                400,
+            )
+
+    except Exception:
+        db.session.rollback()
+        return (
+            jsonify({"success": False, "error": "Napaka pri prijavi na izlet. Poskusite znova."}),
+            500,
+        )
+
+
+@bp.route("/<int:trip_id>/withdraw-ajax", methods=["POST"])
+@login_required
+def withdraw_from_trip_ajax(trip_id):
+    """AJAX endpoint for trip withdrawal"""
+    trip = Trip.query.get_or_404(trip_id)
+
+    # Verify CSRF token
+    from flask_wtf.csrf import validate_csrf
+
+    try:
+        token = request.headers.get("X-CSRFToken") or request.form.get("csrf_token")
+        validate_csrf(token)
+    except Exception:
+        return (
+            jsonify({"success": False, "error": "Neveljavna seja. Prosimo, osvežite stran."}),
+            400,
+        )
+
+    try:
+        success = trip.remove_participant(current_user)
+        if success:
+            db.session.commit()
+
+            # Check if someone was promoted from waitlist
+            promoted = trip.promote_from_waitlist()
+            if promoted:
+                db.session.commit()
+
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "Uspešno ste se odjavili z izleta.",
+                    "confirmed_count": trip.confirmed_participants_count,
+                    "waitlist_count": trip.waitlist_count,
+                    "max_participants": trip.max_participants,
+                    "is_full": trip.is_full,
+                    "promoted": promoted is not None,
+                }
+            )
+        else:
+            return jsonify({"success": False, "error": "Niste prijavljeni na ta izlet."}), 400
+
+    except Exception:
+        db.session.rollback()
+        return (
+            jsonify({"success": False, "error": "Napaka pri odjavi z izleta. Poskusite znova."}),
+            500,
+        )
+
+
+@bp.route("/<int:trip_id>/modal-data", methods=["GET"])
+@login_required
+def get_trip_modal_data(trip_id):
+    """Get trip data for modal display"""
+    trip = Trip.query.get_or_404(trip_id)
+
+    # Check user's participation status
+    participant_status = trip.get_participant_status(current_user)
+
+    return jsonify(
+        {
+            "id": trip.id,
+            "title": trip.title,
+            "destination": trip.destination,
+            "trip_date": trip.trip_date.strftime("%d.%m.%Y"),
+            "meeting_time": trip.meeting_time.strftime("%H:%M") if trip.meeting_time else None,
+            "leader_name": trip.leader.name,
+            "difficulty": {"value": trip.difficulty.value, "name": trip.difficulty.slovenian_name},
+            "confirmed_count": trip.confirmed_participants_count,
+            "waitlist_count": trip.waitlist_count,
+            "max_participants": trip.max_participants,
+            "is_full": trip.is_full,
+            "can_signup": trip.can_signup,
+            "can_user_signup": trip.can_user_signup(current_user),
+            "user_status": participant_status.value if participant_status else None,
+            "equipment_needed": trip.equipment_needed,
+            "description": (
+                trip.description[:200] + "..."
+                if trip.description and len(trip.description) > 200
+                else trip.description
+            ),
+        }
+    )
+
+
 @bp.route("/<int:trip_id>/comment", methods=["POST"])
 @login_required
 def add_comment(trip_id):

@@ -1,0 +1,411 @@
+/**
+ * PD Triglav Trip Modal Styles
+ * Professional modal design for trip signup and withdrawal
+ */
+
+/* Modal Container */
+.trip-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9997; /* Below lightbox (9999) and confirm modal (9998) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.trip-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Dark Overlay */
+.trip-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+}
+
+/* Modal Container */
+.trip-modal-container {
+    position: relative;
+    z-index: 1;
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--pd-space-4);
+}
+
+/* Modal Content */
+.trip-modal-content {
+    background: var(--pd-white);
+    border-radius: var(--pd-radius-lg);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    overflow: hidden;
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+.trip-modal.show .trip-modal-content {
+    transform: translateY(0);
+}
+
+/* Modal Header */
+.trip-modal-header {
+    padding: var(--pd-space-6) var(--pd-space-6) var(--pd-space-4);
+    border-bottom: 1px solid var(--pd-gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--pd-gray-50);
+}
+
+.trip-modal-title {
+    margin: 0;
+    font-size: var(--pd-text-xl);
+    font-weight: var(--pd-font-semibold);
+    color: var(--pd-primary);
+    display: flex;
+    align-items: center;
+}
+
+.trip-modal-close {
+    background: none;
+    border: none;
+    color: var(--pd-gray-500);
+    font-size: var(--pd-text-lg);
+    cursor: pointer;
+    padding: var(--pd-space-2);
+    border-radius: var(--pd-radius-md);
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.trip-modal-close:hover {
+    color: var(--pd-gray-700);
+    background-color: var(--pd-gray-100);
+}
+
+/* Modal Body */
+.trip-modal-body {
+    padding: var(--pd-space-6);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Trip Details Section */
+.trip-details-section {
+    margin-bottom: var(--pd-space-6);
+    padding-bottom: var(--pd-space-4);
+    border-bottom: 1px solid var(--pd-gray-200);
+}
+
+.trip-header {
+    margin-bottom: var(--pd-space-4);
+}
+
+.trip-name {
+    margin: 0 0 var(--pd-space-2);
+    font-size: var(--pd-text-lg);
+    font-weight: var(--pd-font-semibold);
+    color: var(--pd-gray-900);
+    line-height: var(--pd-leading-tight);
+}
+
+.trip-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pd-space-2);
+    margin-bottom: var(--pd-space-3);
+}
+
+.difficulty-badge {
+    padding: var(--pd-space-1) var(--pd-space-3);
+    border-radius: var(--pd-radius-full);
+    font-size: var(--pd-text-sm);
+    font-weight: var(--pd-font-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.difficulty-easy {
+    background-color: var(--pd-success-light);
+    color: var(--pd-success-dark);
+}
+
+.difficulty-moderate {
+    background-color: var(--pd-warning-light);
+    color: var(--pd-warning-dark);
+}
+
+.difficulty-difficult, .difficulty-hard {
+    background-color: var(--pd-danger-light);
+    color: var(--pd-danger-dark);
+}
+
+.status-badge {
+    padding: var(--pd-space-1) var(--pd-space-3);
+    border-radius: var(--pd-radius-full);
+    font-size: var(--pd-text-sm);
+    font-weight: var(--pd-font-medium);
+}
+
+.status-waitlist {
+    background-color: var(--pd-warning-light);
+    color: var(--pd-warning-dark);
+}
+
+/* Trip Meta Grid */
+.trip-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--pd-space-3) var(--pd-space-4);
+    margin-bottom: var(--pd-space-4);
+}
+
+.trip-meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--pd-space-2);
+    font-size: var(--pd-text-sm);
+    color: var(--pd-gray-600);
+}
+
+.trip-meta-item i {
+    color: var(--pd-primary);
+    font-size: var(--pd-text-base);
+}
+
+/* Participants Info */
+.participants-info {
+    display: flex;
+    gap: var(--pd-space-6);
+    padding: var(--pd-space-3);
+    background: var(--pd-gray-50);
+    border-radius: var(--pd-radius-md);
+    margin-bottom: var(--pd-space-4);
+}
+
+.participant-count, .waitlist-count {
+    display: flex;
+    align-items: center;
+    gap: var(--pd-space-2);
+}
+
+.participant-count i, .waitlist-count i {
+    color: var(--pd-primary);
+}
+
+.participant-count span:first-of-type, .waitlist-count span:first-of-type {
+    font-weight: var(--pd-font-semibold);
+    color: var(--pd-gray-900);
+}
+
+.trip-description {
+    margin-bottom: var(--pd-space-4);
+}
+
+.description-text {
+    margin: 0;
+    color: var(--pd-gray-600);
+    line-height: var(--pd-leading-relaxed);
+    font-size: var(--pd-text-sm);
+}
+
+/* Form Sections */
+.signup-form-section, .confirmation-section {
+    /* Forms inherit default styling */
+}
+
+.form-group {
+    margin-bottom: var(--pd-space-4);
+}
+
+.form-label {
+    font-weight: var(--pd-font-medium);
+    color: var(--pd-gray-700);
+    margin-bottom: var(--pd-space-2);
+}
+
+.form-control {
+    border: 1px solid var(--pd-gray-300);
+    border-radius: var(--pd-radius-md);
+    padding: var(--pd-space-3);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--pd-primary);
+    box-shadow: 0 0 0 3px rgba(227, 30, 36, 0.1);
+}
+
+.form-text {
+    font-size: var(--pd-text-sm);
+    color: var(--pd-gray-500);
+    margin-top: var(--pd-space-1);
+}
+
+.form-check {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--pd-space-2);
+}
+
+.form-check-input {
+    margin-top: 0.2em;
+    flex-shrink: 0;
+}
+
+.form-check-label {
+    font-size: var(--pd-text-sm);
+    line-height: var(--pd-leading-relaxed);
+}
+
+.form-check-label a {
+    color: var(--pd-primary);
+    text-decoration: none;
+}
+
+.form-check-label a:hover {
+    text-decoration: underline;
+}
+
+/* Confirmation Section Specific */
+.confirmation-section .alert {
+    margin-bottom: var(--pd-space-4);
+}
+
+.withdrawal-info p {
+    color: var(--pd-gray-600);
+    line-height: var(--pd-leading-relaxed);
+}
+
+/* Modal Footer */
+.trip-modal-footer {
+    padding: var(--pd-space-4) var(--pd-space-6) var(--pd-space-6);
+    background: var(--pd-gray-50);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--pd-space-3);
+    border-top: 1px solid var(--pd-gray-200);
+}
+
+.trip-modal-footer .btn {
+    min-width: 120px;
+    padding: var(--pd-space-3) var(--pd-space-4);
+    font-weight: var(--pd-font-medium);
+    border-radius: var(--pd-radius-md);
+    transition: all 0.2s ease;
+}
+
+.trip-modal-footer .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Alert Container */
+.alert-container {
+    margin-bottom: var(--pd-space-4);
+}
+
+.alert-container .alert {
+    margin-bottom: 0;
+    padding: var(--pd-space-3) var(--pd-space-4);
+    border-radius: var(--pd-radius-md);
+    font-size: var(--pd-text-sm);
+}
+
+/* Loading States */
+.btn-loading {
+    display: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .trip-modal-container {
+        max-width: 95vw;
+        padding: var(--pd-space-2);
+    }
+    
+    .trip-modal-content {
+        border-radius: var(--pd-radius-md);
+    }
+    
+    .trip-modal-header,
+    .trip-modal-body,
+    .trip-modal-footer {
+        padding-left: var(--pd-space-4);
+        padding-right: var(--pd-space-4);
+    }
+    
+    .trip-modal-title {
+        font-size: var(--pd-text-lg);
+    }
+    
+    .trip-meta-grid {
+        grid-template-columns: 1fr;
+        gap: var(--pd-space-2);
+    }
+    
+    .participants-info {
+        flex-direction: column;
+        gap: var(--pd-space-3);
+    }
+    
+    .trip-modal-footer {
+        flex-direction: column-reverse;
+    }
+    
+    .trip-modal-footer .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .trip-modal-overlay {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+    
+    .trip-modal-content {
+        border: 2px solid var(--pd-gray-900);
+    }
+    
+    .difficulty-badge,
+    .status-badge {
+        border: 1px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .trip-modal,
+    .trip-modal-content,
+    .trip-modal-close,
+    .form-control,
+    .btn {
+        transition: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .trip-modal {
+        display: none !important;
+    }
+}

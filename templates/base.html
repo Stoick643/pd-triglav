@@ -17,6 +17,7 @@
     <link href="{{ url_for('static', filename='css/sidebar.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/lightbox.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/confirm-modal.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/trip-modal.css') }}" rel="stylesheet">
 
     
     <!-- CSRF Token for AJAX requests -->
@@ -279,7 +280,14 @@
     <script src="{{ url_for('static', filename='js/hero.js') }}"></script>
     <script src="{{ url_for('static', filename='js/lightbox.js') }}"></script>
     <script src="{{ url_for('static', filename='js/confirm-modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/trip-modal.js') }}"></script>
     
     {% block scripts %}{% endblock %}
+    
+    <!-- Trip Modal Templates -->
+    {% if current_user.is_authenticated %}
+        {% include 'modals/trip_signup.html' %}
+        {% include 'modals/trip_withdraw.html' %}
+    {% endif %}
 </body>
 </html>
