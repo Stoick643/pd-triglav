@@ -82,6 +82,9 @@ def view_trip(trip_id):
     if current_user.is_authenticated:
         user_status = trip.get_participant_status(current_user)
 
+    # Get enhanced participant data with contact info for authorized users
+    participants_data = trip.get_participants_with_contacts(current_user)
+
     # Forms for logged-in users
     signup_form = TripSignupForm() if current_user.is_authenticated else None
     comment_form = TripCommentForm() if current_user.is_authenticated else None
@@ -93,6 +96,7 @@ def view_trip(trip_id):
         user_status=user_status,
         signup_form=signup_form,
         comment_form=comment_form,
+        participants_data=participants_data,
     )
 
 
@@ -109,14 +113,25 @@ def create_trip():
             # For now, we'll just save as announced - draft functionality can be added later
             pass
 
+        # Convert SelectField string times to time objects
+        meeting_time = None
+        if form.meeting_time.data:
+            hour, minute = map(int, form.meeting_time.data.split(":"))
+            meeting_time = datetime.strptime(form.meeting_time.data, "%H:%M").time()
+
+        return_time = None
+        if form.return_time.data:
+            return_time = datetime.strptime(form.return_time.data, "%H:%M").time()
+
         trip = Trip(
             title=form.title.data,
             description=form.description.data,
             destination=form.destination.data,
             trip_date=form.trip_date.data,
-            meeting_time=form.meeting_time.data,
+            registration_deadline=form.get_registration_deadline(),
+            meeting_time=meeting_time,
             meeting_point=form.meeting_point.data,
-            return_time=form.return_time.data,
+            return_time=return_time,
             difficulty=TripDifficulty(form.difficulty.data),
             max_participants=form.max_participants.data,
             equipment_needed=form.equipment_needed.data,
@@ -152,9 +167,35 @@ def edit_trip(trip_id):
 
     form = TripForm(obj=trip)
 
+    # Populate split registration deadline fields from existing datetime
+    if trip.registration_deadline:
+        form.registration_deadline_date.data = trip.registration_deadline.date()
+        # Convert time object to string format for SelectField (e.g., "14:00")
+        form.registration_deadline_time.data = trip.registration_deadline.strftime("%H:00")
+
+    # Populate meeting and return time SelectFields
+    if trip.meeting_time:
+        form.meeting_time.data = trip.meeting_time.strftime("%H:%M")
+    if trip.return_time:
+        form.return_time.data = trip.return_time.strftime("%H:%M")
+
     if form.validate_on_submit():
         # Update trip with form data
         form.populate_obj(trip)
+        # Handle the split registration deadline fields
+        trip.registration_deadline = form.get_registration_deadline()
+
+        # Convert SelectField string times to time objects
+        if form.meeting_time.data:
+            trip.meeting_time = datetime.strptime(form.meeting_time.data, "%H:%M").time()
+        else:
+            trip.meeting_time = None
+
+        if form.return_time.data:
+            trip.return_time = datetime.strptime(form.return_time.data, "%H:%M").time()
+        else:
+            trip.return_time = None
+
         trip.difficulty = TripDifficulty(form.difficulty.data)
         trip.updated_at = datetime.utcnow()
 

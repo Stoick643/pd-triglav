@@ -7,14 +7,13 @@ from wtforms import (
     StringField,
     TextAreaField,
     DateField,
-    TimeField,
     SelectField,
     IntegerField,
     FloatField,
     SubmitField,
 )
 from wtforms.validators import DataRequired, Length, Optional, NumberRange, ValidationError
-from datetime import date, timedelta
+from datetime import date, time, datetime, timedelta
 from models.trip import TripDifficulty, TripStatus
 
 
@@ -61,17 +60,77 @@ class TripForm(FlaskForm):
         "Datum izleta", validators=[DataRequired(message="Datum izleta je obvezen.")]
     )
 
-    meeting_time = TimeField("Čas zbiranja", validators=[Optional()])
+    registration_deadline_date = DateField(
+        "Rok prijave",
+        validators=[Optional()],
+        description="Dan do kdaj se lahko uporabniki prijavljajo",
+    )
+
+    registration_deadline_time = SelectField(
+        "Ura",
+        validators=[Optional()],
+        choices=[
+            ("", "Izberite uro"),
+            ("00:00", "00:00"),
+            ("01:00", "01:00"),
+            ("02:00", "02:00"),
+            ("03:00", "03:00"),
+            ("04:00", "04:00"),
+            ("05:00", "05:00"),
+            ("06:00", "06:00"),
+            ("07:00", "07:00"),
+            ("08:00", "08:00"),
+            ("09:00", "09:00"),
+            ("10:00", "10:00"),
+            ("11:00", "11:00"),
+            ("12:00", "12:00"),
+            ("13:00", "13:00"),
+            ("14:00", "14:00"),
+            ("15:00", "15:00"),
+            ("16:00", "16:00"),
+            ("17:00", "17:00"),
+            ("18:00", "18:00"),
+            ("19:00", "19:00"),
+            ("20:00", "20:00"),
+            ("21:00", "21:00"),
+            ("22:00", "22:00"),
+            ("23:00", "23:00"),
+        ],
+        default="12:00",
+        description="Izberite uro v 24-urnem formatu",
+    )
+
+    # Generate 15-minute interval choices for meeting time
+    time_choices_15min = [("", "Izberite čas")]
+    for hour in range(24):
+        for minute in [0, 15, 30, 45]:
+            time_str = f"{hour:02d}:{minute:02d}"
+            time_choices_15min.append((time_str, time_str))
+
+    # Generate hour-only choices for return time (less precision needed)
+    time_choices_hourly = [("", "Izberite uro")]
+    for hour in range(24):
+        time_str = f"{hour:02d}:00"
+        time_choices_hourly.append((time_str, time_str))
+
+    meeting_time = SelectField(
+        "Štart ture", validators=[Optional()], choices=time_choices_15min, default="08:00"
+    )
 
     meeting_point = StringField(
-        "Mesto zbiranja",
+        "Zborno mesto",
         validators=[
             Optional(),
-            Length(max=200, message="Mesto zbiranja ne sme biti daljše od 200 znakov."),
+            Length(max=200, message="Zborno mesto ne sme biti daljše od 200 znakov."),
         ],
     )
 
-    return_time = TimeField("Predviden čas vrnitve", validators=[Optional()])
+    return_time = SelectField(
+        "Predviden čas vrnitve",
+        validators=[Optional()],
+        choices=time_choices_hourly,
+        default="17:00",
+    )
 
     # Trip details
     difficulty = SelectField(
@@ -102,10 +161,10 @@ class TripForm(FlaskForm):
     )
 
     cost_per_person = FloatField(
-        "Cena na osebo (€)",
+        "Predvideni stroški",
         validators=[
             Optional(),
-            NumberRange(min=0, max=1000, message="Cena mora biti med 0 in 1000 €."),
+            NumberRange(min=0, max=1000, message="Stroški morajo biti med 0 in 1000 €."),
         ],
     )
 
@@ -122,6 +181,30 @@ class TripForm(FlaskForm):
         max_date = date.today() + timedelta(days=730)
         if field.data and field.data > max_date:
             raise ValidationError("Datum izleta je preveč v prihodnosti.")
+
+    def validate_registration_deadline_date(self, field):
+        """Custom validation for registration deadline date"""
+        if field.data:
+            # Registration deadline cannot be in the past
+            if field.data < date.today():
+                raise ValidationError("Rok prijave ne more biti v preteklosti.")
+
+            # Registration deadline must be before or on trip date
+            if self.trip_date.data and field.data > self.trip_date.data:
+                raise ValidationError("Rok prijave mora biti pred datumom izleta ali na isti dan.")
+
+    def get_registration_deadline(self):
+        """Combine date and time fields into datetime object"""
+        if self.registration_deadline_date.data:
+            # Handle SelectField string data (e.g., "14:00")
+            if self.registration_deadline_time.data:
+                hour, minute = map(int, self.registration_deadline_time.data.split(":"))
+                time_part = time(hour, 0)  # Always use :00 minutes for hour-only precision
+            else:
+                time_part = time(12, 0)  # Default to 12:00 (noon) if no time specified
+
+            return datetime.combine(self.registration_deadline_date.data, time_part)
+        return None
 
 
 class TripSignupForm(FlaskForm):

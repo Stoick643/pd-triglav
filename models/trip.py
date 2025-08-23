@@ -56,6 +56,7 @@ class Trip(db.Model):
 
     # Trip scheduling
     trip_date = db.Column(db.Date, nullable=False)
+    registration_deadline = db.Column(db.DateTime)  # Optional deadline for signups
     meeting_time = db.Column(db.Time)
     meeting_point = db.Column(db.String(200))
     return_time = db.Column(db.Time)
@@ -117,7 +118,16 @@ class Trip(db.Model):
     @property
     def can_signup(self):
         """Check if users can still sign up for this trip"""
-        return self.status == TripStatus.ANNOUNCED and not self.is_past
+        if self.status != TripStatus.ANNOUNCED or self.is_past:
+            return False
+
+        # Check registration deadline if set
+        if self.registration_deadline:
+            from datetime import datetime
+
+            return datetime.now() <= self.registration_deadline
+
+        return True
 
     @property
     def comment_count(self):
@@ -239,6 +249,46 @@ class Trip(db.Model):
             db.session.commit()
 
         return completed_count
+
+    def can_view_participant_contacts(self, user):
+        """Check if user can view participant contact information.
+
+        Only trip leaders and admins can view participant phone numbers and emails.
+        This is used for emergency contacts and trip coordination.
+        """
+        if not user.is_authenticated:
+            return False
+        return user.id == self.leader_id or user.is_admin()
+
+    def get_participants_with_contacts(self, viewing_user):
+        """Get participants with contact info based on viewer permissions.
+
+        Returns a dictionary with confirmed and waitlisted participants,
+        including contact information if the viewing user has permission.
+        """
+        can_see_contacts = self.can_view_participant_contacts(viewing_user)
+
+        result = {"confirmed": [], "waitlisted": [], "can_view_contacts": can_see_contacts}
+
+        for participant in self.participants:
+            participant_data = {
+                "user": participant.user,
+                "status": participant.status,
+                "notes": participant.notes,
+                "signup_date": participant.signup_date,
+            }
+
+            if can_see_contacts:
+                participant_data.update(
+                    {"phone": participant.user.phone, "email": participant.user.email}
+                )
+
+            if participant.status.value == "confirmed":
+                result["confirmed"].append(participant_data)
+            elif participant.status.value == "waitlisted":
+                result["waitlisted"].append(participant_data)
+
+        return result
 
     def to_dict(self):
         """Convert trip to dictionary for JSON serialization"""

@@ -67,10 +67,16 @@
                                 <i class="bi bi-calendar text-primary me-2"></i>
                                 {{ trip.trip_date.strftime('%A, %d. %B %Y') }}
                             </p>
+                            {% if trip.registration_deadline %}
+                            <p class="mb-2">
+                                <i class="bi bi-alarm text-warning me-2"></i>
+                                Rok prijave: {{ trip.registration_deadline.strftime('%d.%m.%Y %H:%M') }}
+                            </p>
+                            {% endif %}
                             {% if trip.meeting_time %}
                             <p class="mb-2">
                                 <i class="bi bi-clock text-primary me-2"></i>
-                                Zbiranje: {{ trip.meeting_time.strftime('%H:%M') }}
+                                Štart ture: {{ trip.meeting_time.strftime('%H:%M') }}
                             </p>
                             {% endif %}
                             {% if trip.meeting_point %}
@@ -106,7 +112,7 @@
                             {% if trip.cost_per_person %}
                             <p class="mb-2">
                                 <i class="bi bi-currency-euro text-primary me-2"></i>
-                                Cena: <strong>{{ "%.2f"|format(trip.cost_per_person) }} €</strong>
+                                Predvideni stroški: <strong>{{ "%.2f"|format(trip.cost_per_person) }} €</strong>
                             </p>
                             {% endif %}
                         </div>
@@ -277,35 +283,95 @@
             <!-- Participants list -->
             {% if trip.participants %}
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Udeleženci</h6>
+                    {% if participants_data.can_view_contacts %}
+                    <small class="text-muted">
+                        <i class="bi bi-telephone me-1"></i>Kontakti vidni
+                    </small>
+                    {% endif %}
                 </div>
                 <div class="card-body">
-                    {% set confirmed = trip.participants|selectattr("status.value", "equalto", "confirmed")|list %}
-                    {% set waitlisted = trip.participants|selectattr("status.value", "equalto", "waitlisted")|list %}
-                    
-                    {% if confirmed %}
-                        <h6 class="text-success small mb-2">Potrjeni ({{ confirmed|length }})</h6>
-                        <ul class="list-unstyled small mb-3">
-                            {% for participant in confirmed %}
-                            <li class="mb-1">
-                                <i class="bi bi-check-circle text-success me-1"></i>
-                                {{ participant.user.name }}
-                            </li>
+                    {% if participants_data.confirmed %}
+                        <h6 class="text-success small mb-2">Potrjeni ({{ participants_data.confirmed|length }})</h6>
+                        <div class="mb-3">
+                            {% for participant in participants_data.confirmed %}
+                            <div class="participant-item d-flex justify-content-between align-items-start mb-2">
+                                <div class="participant-info">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-check-circle text-success me-2"></i>
+                                        <strong>{{ participant.user.name }}</strong>
+                                    </div>
+                                    {% if participants_data.can_view_contacts %}
+                                    <div class="contact-info small text-muted mt-1 ms-3">
+                                        {% if participant.phone %}
+                                        <div>
+                                            <i class="bi bi-telephone me-1"></i>
+                                            <a href="tel:{{ participant.phone }}" class="text-decoration-none">
+                                                {{ participant.phone }}
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                        {% if participant.email %}
+                                        <div>
+                                            <i class="bi bi-envelope me-1"></i>
+                                            <a href="mailto:{{ participant.email }}" class="text-decoration-none">
+                                                {{ participant.email }}
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    {% if participant.notes %}
+                                    <div class="participant-notes small text-muted mt-1 ms-3">
+                                        <i class="bi bi-chat-text me-1"></i>{{ participant.notes }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                             {% endfor %}
-                        </ul>
+                        </div>
                     {% endif %}
                     
-                    {% if waitlisted %}
-                        <h6 class="text-warning small mb-2">Čakalna lista ({{ waitlisted|length }})</h6>
-                        <ul class="list-unstyled small">
-                            {% for participant in waitlisted %}
-                            <li class="mb-1">
-                                <i class="bi bi-hourglass text-warning me-1"></i>
-                                {{ participant.user.name }}
-                            </li>
+                    {% if participants_data.waitlisted %}
+                        <h6 class="text-warning small mb-2">Čakalna lista ({{ participants_data.waitlisted|length }})</h6>
+                        <div>
+                            {% for participant in participants_data.waitlisted %}
+                            <div class="participant-item d-flex justify-content-between align-items-start mb-2">
+                                <div class="participant-info">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-hourglass text-warning me-2"></i>
+                                        <strong>{{ participant.user.name }}</strong>
+                                    </div>
+                                    {% if participants_data.can_view_contacts %}
+                                    <div class="contact-info small text-muted mt-1 ms-3">
+                                        {% if participant.phone %}
+                                        <div>
+                                            <i class="bi bi-telephone me-1"></i>
+                                            <a href="tel:{{ participant.phone }}" class="text-decoration-none">
+                                                {{ participant.phone }}
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                        {% if participant.email %}
+                                        <div>
+                                            <i class="bi bi-envelope me-1"></i>
+                                            <a href="mailto:{{ participant.email }}" class="text-decoration-none">
+                                                {{ participant.email }}
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    {% if participant.notes %}
+                                    <div class="participant-notes small text-muted mt-1 ms-3">
+                                        <i class="bi bi-chat-text me-1"></i>{{ participant.notes }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                             {% endfor %}
-                        </ul>
+                        </div>
                     {% endif %}
                 </div>
             </div>

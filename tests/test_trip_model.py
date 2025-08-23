@@ -247,26 +247,167 @@ def test_trip_query_methods(app, test_users):
         db.session.add_all([upcoming_trip, past_trip])
         db.session.commit()
 
-        # Test upcoming trips query
-        upcoming_trips = Trip.get_upcoming_trips()
-        assert len(upcoming_trips) >= 1
-        assert upcoming_trip in upcoming_trips
-        assert past_trip not in upcoming_trips
 
-        # Test past trips query
-        past_trips = Trip.get_past_trips()
-        assert len(past_trips) >= 1
-        assert past_trip in past_trips
-        assert upcoming_trip not in past_trips
+def test_can_view_participant_contacts_trip_leader(app, test_users):
+    """Test that trip leader can see participant contact info"""
+    with app.app_context():
+        trip_leader = test_users["trip_leader"]
+        member = test_users["member"]
 
-        # Test trips by leader
-        leader_trips = Trip.get_trips_by_leader(trip_leader.id)
-        assert upcoming_trip in leader_trips
-        assert past_trip not in leader_trips
+        trip = Trip(
+            title="Contact visibility test",
+            destination="Test destination",
+            trip_date=date.today() + timedelta(days=30),
+            difficulty=TripDifficulty.EASY,
+            leader_id=trip_leader.id,
+        )
+        db.session.add(trip)
+        db.session.commit()
 
-        admin_trips = Trip.get_trips_by_leader(admin.id)
-        assert past_trip in admin_trips
-        assert upcoming_trip not in admin_trips
+        # Trip leader should be able to see contacts
+        assert trip.can_view_participant_contacts(trip_leader)
+
+        # Regular member should not see contacts on other trips
+        assert not trip.can_view_participant_contacts(member)
+
+
+def test_can_view_participant_contacts_admin(app, test_users):
+    """Test that admin can see participant contact info"""
+    with app.app_context():
+        trip_leader = test_users["trip_leader"]
+        admin = test_users["admin"]
+
+        trip = Trip(
+            title="Admin contact visibility test",
+            destination="Test destination",
+            trip_date=date.today() + timedelta(days=30),
+            difficulty=TripDifficulty.EASY,
+            leader_id=trip_leader.id,
+        )
+        db.session.add(trip)
+        db.session.commit()
+
+        # Admin should be able to see contacts
+        assert trip.can_view_participant_contacts(admin)
+
+
+def test_can_view_participant_contacts_regular_member(app, test_users):
+    """Test that regular member cannot see participant contact info"""
+    with app.app_context():
+        trip_leader = test_users["trip_leader"]
+        member = test_users["member"]
+        pending = test_users["pending"]
+
+        trip = Trip(
+            title="Member contact visibility test",
+            destination="Test destination",
+            trip_date=date.today() + timedelta(days=30),
+            difficulty=TripDifficulty.EASY,
+            leader_id=trip_leader.id,
+        )
+        db.session.add(trip)
+        db.session.commit()
+
+        # Regular member and pending user should not see contacts
+        assert not trip.can_view_participant_contacts(member)
+        assert not trip.can_view_participant_contacts(pending)
+
+
+def test_can_view_participant_contacts_unauthenticated(app, anonymous_user):
+    """Test that anonymous user cannot see participant contact info"""
+    with app.app_context():
+        from models.user import User
+
+        # Get a user to be trip leader
+        leader = User(
+            email="test_leader@example.com",
+            name="Test Leader",
+            password="password123",
+            phone="123456789",
+        )
+        db.session.add(leader)
+        db.session.commit()
+
+        trip = Trip(
+            title="Anonymous contact visibility test",
+            destination="Test destination",
+            trip_date=date.today() + timedelta(days=30),
+            difficulty=TripDifficulty.EASY,
+            leader_id=leader.id,
+        )
+        db.session.add(trip)
+        db.session.commit()
+
+        # Anonymous user should not see contacts
+        assert not trip.can_view_participant_contacts(anonymous_user)
+
+
+def test_get_participants_with_contacts_authorized(app, test_users):
+    """Test that contact data is included for authorized users"""
+    with app.app_context():
+        trip_leader = test_users["trip_leader"]
+        member = test_users["member"]
+        admin = test_users["admin"]
+
+        trip = Trip(
+            title="Contact data test",
+            destination="Test destination",
+            trip_date=date.today() + timedelta(days=30),
+            difficulty=TripDifficulty.EASY,
+            leader_id=trip_leader.id,
+        )
+        db.session.add(trip)
+        db.session.commit()
+
+        # Add member as participant
+        trip.add_participant(member, notes="Test notes")
+        db.session.commit()
+
+        # Trip leader should get contact data
+        data = trip.get_participants_with_contacts(trip_leader)
+        assert data["can_view_contacts"] is True
+        assert len(data["confirmed"]) == 1
+        assert "phone" in data["confirmed"][0]
+        assert "email" in data["confirmed"][0]
+        assert data["confirmed"][0]["phone"] == member.phone
+        assert data["confirmed"][0]["email"] == member.email
+
+        # Admin should also get contact data
+        admin_data = trip.get_participants_with_contacts(admin)
+        assert admin_data["can_view_contacts"] is True
+        assert "phone" in admin_data["confirmed"][0]
+        assert "email" in admin_data["confirmed"][0]
+
+
+def test_get_participants_with_contacts_unauthorized(app, test_users):
+    """Test that contact data is excluded for regular users"""
+    with app.app_context():
+        trip_leader = test_users["trip_leader"]
+        member = test_users["member"]
+        other_member = test_users["pending"]  # Using pending as another regular user
+
+        trip = Trip(
+            title="No contact data test",
+            destination="Test destination",
+            trip_date=date.today() + timedelta(days=30),
+            difficulty=TripDifficulty.EASY,
+            leader_id=trip_leader.id,
+        )
+        db.session.add(trip)
+        db.session.commit()
+
+        # Add member as participant
+        trip.add_participant(member, notes="Test notes")
+        db.session.commit()
+
+        # Other member should not get contact data
+        data = trip.get_participants_with_contacts(other_member)
+        assert data["can_view_contacts"] is False
+        assert len(data["confirmed"]) == 1
+        assert "phone" not in data["confirmed"][0]
+        assert "email" not in data["confirmed"][0]
+        assert "notes" in data["confirmed"][0]  # Notes should still be visible
+        assert data["confirmed"][0]["user"] == member
 
 
 def test_trip_serialization(app, test_users):

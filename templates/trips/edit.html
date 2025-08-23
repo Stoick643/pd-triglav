@@ -71,9 +71,10 @@
                                 {% endfor %}
                             </div>
                             
+                            
                             <div class="col-md-4 mb-3">
                                 {{ form.meeting_time.label(class="form-label") }}
-                                {{ form.meeting_time(class="form-control" + (" is-invalid" if form.meeting_time.errors else "")) }}
+                                {{ form.meeting_time(class="form-select" + (" is-invalid" if form.meeting_time.errors else "")) }}
                                 {% for error in form.meeting_time.errors %}
                                     <div class="invalid-feedback">{{ error }}</div>
                                 {% endfor %}
@@ -81,7 +82,7 @@
                             
                             <div class="col-md-4 mb-3">
                                 {{ form.return_time.label(class="form-label") }}
-                                {{ form.return_time(class="form-control" + (" is-invalid" if form.return_time.errors else "")) }}
+                                {{ form.return_time(class="form-select" + (" is-invalid" if form.return_time.errors else "")) }}
                                 {% for error in form.return_time.errors %}
                                     <div class="invalid-feedback">{{ error }}</div>
                                 {% endfor %}
@@ -148,6 +149,37 @@
                         </div>
                         {% endif %}
                         
+                        <!-- Registration Settings -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-muted mb-3">Nastavitve prijave</h5>
+                            </div>
+                            
+                            <div class="col-12 mb-2">
+                                <label class="form-label">Rok prijave</label>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.registration_deadline_date(class="form-control" + (" is-invalid" if form.registration_deadline_date.errors else ""), id="registration_deadline_date") }}
+                                {% for error in form.registration_deadline_date.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                                {% if form.registration_deadline_date.description %}
+                                    <div class="form-text">{{ form.registration_deadline_date.description }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.registration_deadline_time(class="form-select" + (" is-invalid" if form.registration_deadline_time.errors else "")) }}
+                                {% for error in form.registration_deadline_time.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                                {% if form.registration_deadline_time.description %}
+                                    <div class="form-text">{{ form.registration_deadline_time.description }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
                         <!-- Form Actions -->
                         <div class="row">
                             <div class="col-12">
@@ -191,4 +223,15 @@
     box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set min date to today for registration deadline
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('registration_deadline_date');
+    if (dateInput) {
+        dateInput.min = today;
+    }
+});
+</script>
 {% endblock %}
