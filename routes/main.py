@@ -19,6 +19,7 @@ def index():
     todays_event = None
     recent_events = []
     daily_news = []
+    upcoming_trips = []
 
     # Import hero utilities
     from utils.hero_utils import (
@@ -31,6 +32,18 @@ def index():
     hero_messaging = get_user_specific_messaging(current_user)
     club_stats = get_club_stats()
     hero_image = get_hero_image_for_season()
+
+    # Get upcoming trips for authenticated users
+    if current_user.is_authenticated and current_user.can_access_content():
+        from models.trip import Trip, TripStatus
+        from datetime import date
+
+        upcoming_trips = (
+            Trip.query.filter(Trip.trip_date >= date.today(), Trip.status == TripStatus.ANNOUNCED)
+            .order_by(Trip.trip_date.asc())
+            .limit(5)
+            .all()
+        )
 
     # Get today's historical event (temporarily for everyone)
     if True:  # Temporarily show to everyone
@@ -77,6 +90,7 @@ def index():
         todays_event=todays_event,
         recent_events=recent_events,
         daily_news=daily_news,
+        upcoming_trips=upcoming_trips,
         hero_messaging=hero_messaging,
         club_stats=club_stats,
         hero_image=hero_image,

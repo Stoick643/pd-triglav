@@ -43,7 +43,7 @@
                                 </div>
                                 <div class="col-auto">
                                     <div class="stat-item">
-                                        <strong>{{ club_stats.years_active }}</strong>
+                                        <strong>{{ club_stats.years_active }}.</strong>
                                         <small>jubilejno leto</small>
                                     </div>
                                 </div>
@@ -68,6 +68,27 @@
         </div>
     </div>
     
+    <!-- Content Preview Bar -->
+    <div class="hero-content-preview">
+        <div class="preview-item">
+            <i class="bi bi-clock-history"></i>
+            {% if todays_event %}
+                <span>Danes: {{ todays_event.title[:35] }}{% if todays_event.title|length > 35 %}...{% endif %}</span>
+            {% else %}
+                <span>Zgodovina se pripravlja...</span>
+            {% endif %}
+        </div>
+        <div class="preview-divider">•</div>
+        <div class="preview-item">
+            <i class="bi bi-newspaper"></i>
+            {% if daily_news and daily_news[0] %}
+                <span>Novice: {{ daily_news[0].title[:35] }}{% if daily_news[0].title|length > 35 %}...{% endif %}</span>
+            {% else %}
+                <span>Novice se nalagajo...</span>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Scroll Indicator -->
     <div class="hero-scroll-indicator">
         <div class="scroll-arrow bounce">
@@ -77,8 +98,10 @@
     </div>
 </section>
 
-<div class="row">
-    <!-- Quick Info for Non-Members -->
+<!-- Main Content Section -->
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Quick Info for Non-Members -->
     {% if not current_user.is_authenticated or current_user.is_pending() %}
     <div class="col-md-4">
         <div class="card h-100">
@@ -138,8 +161,50 @@
                 <h5><i class="bi bi-calendar3"></i> Prihajajoči izleti</h5>
             </div>
             <div class="card-body">
-                <p class="text-muted">Trenutno ni objavljenih izletov.</p>
-                <!-- This will be populated when we implement trips -->
+                {% if upcoming_trips %}
+                    {% for trip in upcoming_trips %}
+                    <div class="mb-3 {% if not loop.last %}border-bottom pb-3{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="text-decoration-none">
+                                        {{ trip.title }}
+                                    </a>
+                                </h6>
+                                <p class="mb-1 text-body-secondary small">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ trip.destination }}
+                                </p>
+                                <small class="text-body-secondary">
+                                    <i class="bi bi-calendar3 me-1"></i>{{ trip.trip_date.strftime('%-d. %-m. %Y') }}
+                                    {% if trip.meeting_time %}
+                                        • {{ trip.meeting_time.strftime('%H:%M') }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="ms-2">
+                                <span class="badge bg-{{ 'success' if trip.difficulty.value == 'easy' else 'warning' if trip.difficulty.value == 'moderate' else 'danger' if trip.difficulty.value == 'difficult' else 'dark' }}">
+                                    {{ trip.difficulty.slovenian_name }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('trips.list_trips') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-calendar-event me-1"></i>Vsi izleti
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-calendar-x display-6 text-body-secondary mb-2"></i>
+                        <p class="text-body-secondary">Trenutno ni objavljenih izletov.</p>
+                        {% if current_user.role.value in ['trip_leader', 'admin'] %}
+                        <a href="{{ url_for('trips.create_trip') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i>Objavi nov izlet
+                        </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -156,15 +221,22 @@
         </div>
     </div>
     {% endif %}
+    </div>
 </div>
 
 <!-- Historical Events and Daily News Section -->
+<div class="container-fluid mt-4">
 {% if True %} <!-- Temporarily show to everyone for testing -->
 <div class="row mt-4">
     <!-- Historical Event Section (Left Column) -->
     <div class="col-lg-6 col-12 mb-4">
+        {% if todays_event %}
         <div class="card border-primary">
             <div class="card-header bg-primary text-white">
+        {% else %}
+        <div class="card border-secondary">
+            <div class="card-header bg-secondary text-white">
+        {% endif %}
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="bi bi-clock-history me-2"></i>Na ta dan v zgodovini
@@ -259,12 +331,25 @@
                         </div>
                     </div>
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="bi bi-clock-history display-4 text-muted mb-3"></i>
-                        <h6 class="text-muted">Zgodovinski dogodek se pripravlja...</h6>
-                        <p class="text-muted">
-                            Vsebina se ustvarja vsak dan ob 6:05. Preverite pozneje ali povejte nam o dogodku, ki ga poznate.
-                        </p>
+                    <!-- Loading Skeleton for Historical Events -->
+                    <div class="skeleton-loading">
+                        <div class="skeleton-header">
+                            <div class="skeleton-date"></div>
+                            <div class="skeleton-badge"></div>
+                        </div>
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text short"></div>
+                        <div class="skeleton-meta">
+                            <div class="skeleton-meta-item"></div>
+                            <div class="skeleton-meta-item"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-fallback text-center py-3 mt-3">
+                        <small class="text-body-secondary">
+                            <i class="bi bi-clock-history me-1"></i>
+                            Vsebina se ustvarja vsak dan ob 6:05
+                        </small>
                     </div>
                 {% endif %}
             </div>
@@ -323,7 +408,7 @@
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div class="text-center py-3 text-muted">
+                    <div class="text-center py-3 text-body-secondary">
                         <i class="bi bi-info-circle me-2"></i>Ni zgodovinskih dogodkov za prikaz.
                     </div>
                     {% endif %}
@@ -387,17 +472,250 @@
                     {% endif %}
                 </div>
             </div>
-            <div class="card-body text-center">
-                <i class="bi bi-newspaper display-4 text-muted mb-3"></i>
-                <h6 class="text-muted">Novice se nalagajo...</h6>
-                <p class="text-muted small">
-                    Novice se posodabljajo vsak dan ob 6:00. Preverite pozneje.
-                </p>
+            <div class="card-body">
+                <!-- Loading Skeleton for News -->
+                <div class="skeleton-loading">
+                    <div class="skeleton-news-item">
+                        <div class="skeleton-news-title"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-news-meta"></div>
+                    </div>
+                    <div class="skeleton-divider"></div>
+                    <div class="skeleton-news-item">
+                        <div class="skeleton-news-title"></div>
+                        <div class="skeleton-text short"></div>
+                        <div class="skeleton-news-meta"></div>
+                    </div>
+                    <div class="skeleton-divider"></div>
+                    <div class="skeleton-news-item">
+                        <div class="skeleton-news-title"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-news-meta"></div>
+                    </div>
+                </div>
+                <div class="skeleton-fallback text-center py-3 mt-3">
+                    <small class="text-body-secondary">
+                        <i class="bi bi-newspaper me-1"></i>
+                        Novice se posodabljajo vsak dan ob 6:00
+                    </small>
+                </div>
             </div>
         </div>
         {% endif %}
     </div>
 </div>
+</div>
+
+<!-- Advanced Parallax Effects JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Advanced parallax effects
+    const heroBackground = document.querySelector('.hero-background');
+    const heroContent = document.querySelector('.hero-content');
+    const heroStats = document.querySelector('.hero-stats');
+    const heroButtons = document.querySelector('.hero-cta-buttons');
+    
+    if (heroBackground && heroContent) {
+        let ticking = false;
+        
+        function updateParallax() {
+            const scrolled = window.pageYOffset;
+            const viewportHeight = window.innerHeight;
+            const elementTop = 0; // Hero is at top
+            const elementHeight = viewportHeight;
+            
+            // Only apply parallax when hero is visible
+            if (scrolled < elementHeight) {
+                const scrollProgress = scrolled / elementHeight;
+                
+                // Background moves slower (classic parallax)
+                const bgTransform = scrolled * 0.5;
+                heroBackground.style.transform = `translate3d(0, ${bgTransform}px, 0)`;
+                
+                // Content elements move at different speeds for depth
+                const contentTransform = scrolled * 0.2;
+                heroContent.style.transform = `translate3d(0, ${contentTransform}px, 0)`;
+                
+                // Stats move slightly faster for layered effect
+                if (heroStats) {
+                    const statsTransform = scrolled * 0.15;
+                    heroStats.style.transform = `translate3d(0, ${statsTransform}px, 0)`;
+                }
+                
+                // Buttons move fastest for depth separation
+                if (heroButtons) {
+                    const buttonsTransform = scrolled * 0.1;
+                    heroButtons.style.transform = `translate3d(0, ${buttonsTransform}px, 0)`;
+                }
+                
+                // Fade out content as user scrolls
+                const fadeProgress = Math.min(scrollProgress * 1.5, 1);
+                heroContent.style.opacity = 1 - fadeProgress;
+            }
+            
+            ticking = false;
+        }
+        
+        function requestTick() {
+            if (!ticking && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+                requestAnimationFrame(updateParallax);
+                ticking = true;
+            }
+        }
+        
+        // Throttled scroll listener
+        window.addEventListener('scroll', requestTick, { passive: true });
+        
+        // Initial call
+        updateParallax();
+    }
+});
+</script>
+
+<!-- Advanced Hero Content Preview JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const previewBar = document.querySelector('.hero-content-preview');
+    if (previewBar) {
+        let isScrolling = false;
+        
+        // Enhanced smooth scroll with visual feedback
+        previewBar.addEventListener('click', function(e) {
+            // Add click animation
+            previewBar.style.transform = 'translateX(-50%) scale(0.95)';
+            setTimeout(() => {
+                previewBar.style.transform = 'translateX(-50%) scale(1)';
+            }, 150);
+            
+            // Smooth scroll to content
+            const targetSection = document.querySelector('.container-fluid.mt-4');
+            if (targetSection) {
+                targetSection.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+                
+                // Visual feedback during scroll
+                previewBar.classList.add('preview-scrolling');
+                setTimeout(() => {
+                    previewBar.classList.remove('preview-scrolling');
+                }, 1000);
+            }
+        });
+        
+        // Enhanced entrance animation with stagger effect
+        setTimeout(function() {
+            previewBar.style.opacity = '0';
+            previewBar.style.animation = 'previewSlideUp 0.8s ease-out forwards';
+            previewBar.style.animationDelay = '2.5s';
+            
+            // Animate individual preview items with stagger
+            const previewItems = previewBar.querySelectorAll('.preview-item');
+            previewItems.forEach((item, index) => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(10px)';
+                item.style.animation = `previewItemFade 0.6s ease-out forwards`;
+                item.style.animationDelay = `${3 + (index * 0.2)}s`;
+            });
+        }, 100);
+        
+        // Scroll-responsive preview bar
+        let lastScrollY = 0;
+        window.addEventListener('scroll', function() {
+            if (!isScrolling) {
+                window.requestAnimationFrame(function() {
+                    const currentScrollY = window.pageYOffset;
+                    const viewportHeight = window.innerHeight;
+                    
+                    // Only affect preview bar in hero section
+                    if (currentScrollY < viewportHeight * 0.8) {
+                        const scrollProgress = currentScrollY / (viewportHeight * 0.5);
+                        const opacity = Math.max(0.3, 1 - scrollProgress);
+                        
+                        // Fade and slightly shrink as user scrolls
+                        previewBar.style.opacity = opacity;
+                        previewBar.style.transform = `translateX(-50%) scale(${Math.max(0.9, 1 - scrollProgress * 0.1)})`;
+                        
+                        // Subtle blur effect
+                        if (scrollProgress > 0.5) {
+                            previewBar.style.filter = `blur(${(scrollProgress - 0.5) * 4}px)`;
+                        } else {
+                            previewBar.style.filter = 'none';
+                        }
+                    } else {
+                        // Hide completely when past hero
+                        previewBar.style.opacity = '0';
+                        previewBar.style.pointerEvents = 'none';
+                    }
+                    
+                    lastScrollY = currentScrollY;
+                    isScrolling = false;
+                });
+                isScrolling = true;
+            }
+        }, { passive: true });
+        
+        // Hover micro-interactions
+        previewBar.addEventListener('mouseenter', function() {
+            if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+                previewBar.style.animation = 'previewPulse 0.6s ease-in-out';
+            }
+        });
+        
+        previewBar.addEventListener('mouseleave', function() {
+            previewBar.style.animation = 'none';
+        });
+    }
+});
+
+// Enhanced CSS animations for preview bar
+const previewAnimationStyles = document.createElement('style');
+previewAnimationStyles.textContent = `
+    @keyframes previewSlideUp {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+    
+    @keyframes previewItemFade {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes previewPulse {
+        0%, 100% {
+            transform: translateX(-50%) scale(1);
+        }
+        50% {
+            transform: translateX(-50%) scale(1.02);
+        }
+    }
+    
+    .preview-scrolling {
+        animation: previewScrollFeedback 1s ease-out !important;
+    }
+    
+    @keyframes previewScrollFeedback {
+        0% { transform: translateX(-50%) scale(1); }
+        20% { transform: translateX(-50%) scale(0.98); opacity: 0.8; }
+        40% { transform: translateX(-50%) scale(1.02); opacity: 1; }
+        60% { transform: translateX(-50%) scale(0.99); }
+        100% { transform: translateX(-50%) scale(1); }
+    }
+`;
+document.head.appendChild(previewAnimationStyles);
+</script>
 
 <!-- Historical Events JavaScript -->
 <script>

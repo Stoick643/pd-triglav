@@ -9,76 +9,51 @@ from flask import current_app
 
 
 def get_hero_image_for_season():
-    """Returns seasonal and time-based hero image path with enhanced rotation system."""
+    """Returns randomly selected hero image that changes every hour."""
+    import random
+
     now = datetime.now()
-    current_month = now.month
     current_hour = now.hour
 
-    # Define seasonal mapping with time-based variations
-    seasonal_images = {
-        "winter": {
-            "dawn": "hero/hero-winter-dawn.jpg",  # 5-9 AM
-            "day": "hero/hero-winter.jpg",  # 9 AM - 5 PM
-            "dusk": "hero/hero-winter-dusk.jpg",  # 5-10 PM
-            "night": "hero/hero-winter-night.jpg",  # 10 PM - 5 AM
-        },
-        "spring": {
-            "dawn": "hero/hero-primary-dawn.jpg",  # 5-9 AM
-            "day": "hero/hero-primary.jpg",  # 9 AM - 6 PM
-            "dusk": "hero/hero-primary-dusk.jpg",  # 6-10 PM
-            "night": "hero/hero-primary-night.jpg",  # 10 PM - 5 AM
-        },
-        "summer": {
-            "dawn": "hero/hero-summer-dawn.jpg",  # 4-8 AM
-            "day": "hero/hero-summer.jpg",  # 8 AM - 7 PM
-            "dusk": "hero/hero-summer-dusk.jpg",  # 7-11 PM
-            "night": "hero/hero-summer-night.jpg",  # 11 PM - 4 AM
-        },
-        "autumn": {
-            "dawn": "hero/hero-secondary-dawn.jpg",  # 6-9 AM
-            "day": "hero/hero-secondary.jpg",  # 9 AM - 5 PM
-            "dusk": "hero/hero-secondary-dusk.jpg",  # 5-9 PM
-            "night": "hero/hero-secondary-night.jpg",  # 9 PM - 6 AM
-        },
-    }
+    # Get all hero images from the hero directory
+    hero_dir = os.path.join(current_app.static_folder, "images", "hero")
 
-    # Determine season based on month
-    if current_month in [12, 1, 2]:
-        season = "winter"
-    elif current_month in [3, 4, 5]:
-        season = "spring"
-    elif current_month in [6, 7, 8]:
-        season = "summer"
-    else:  # 9, 10, 11
-        season = "autumn"
+    try:
+        # Get all image files in hero directory
+        if os.path.exists(hero_dir):
+            all_files = os.listdir(hero_dir)
+            hero_images = [
+                f for f in all_files if f.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
+            ]
 
-    # Determine time period based on hour and season
-    time_period = get_time_period(current_hour, season)
+            if hero_images:
+                # Use hour as seed for consistent hourly rotation
+                # This ensures same image is shown for the entire hour
+                random.seed(current_hour)
+                selected_image = random.choice(hero_images)
+                image_path = f"hero/{selected_image}"
 
-    # Get the time-specific image for the season
-    season_images = seasonal_images[season]
-    image_path = season_images.get(time_period, season_images["day"])
-
-    # Verify image exists, fallback through time periods then to base seasonal image
-    full_path = os.path.join(current_app.static_folder, "images", image_path)
-    if not os.path.exists(full_path):
-        current_app.logger.info(
-            f"Time-specific hero image not found: {image_path}, trying base seasonal"
-        )
-
-        # Try the base seasonal image (day version)
-        base_image = season_images["day"]
-        base_path = os.path.join(current_app.static_folder, "images", base_image)
-
-        if os.path.exists(base_path):
-            image_path = base_image
+                current_app.logger.info(
+                    f"Selected hero image for hour {current_hour}: {selected_image}"
+                )
+                return f"/static/images/{image_path}"
+            else:
+                current_app.logger.warning("No hero images found in hero directory")
         else:
-            current_app.logger.warning(
-                f"Base seasonal hero image not found: {base_image}, using primary fallback"
-            )
-            image_path = "hero/hero-primary.jpg"
+            current_app.logger.warning("Hero directory does not exist")
 
-    return f"/static/images/{image_path}"
+    except Exception as e:
+        current_app.logger.error(f"Error selecting hero image: {e}")
+
+    # Fallback to primary hero image
+    fallback_path = "hero/hero-primary.jpg"
+    fallback_full_path = os.path.join(current_app.static_folder, "images", fallback_path)
+
+    if os.path.exists(fallback_full_path):
+        return f"/static/images/{fallback_path}"
+    else:
+        current_app.logger.error("Even fallback hero image not found")
+        return "/static/images/hero/hero-primary.jpg"  # Return path anyway as last resort
 
 
 def get_user_specific_messaging(user):
@@ -134,37 +109,6 @@ def get_user_specific_messaging(user):
                 "class": "btn-outline-light",
             },
         }
-
-
-def get_time_period(hour, season):
-    """Determines time period (dawn/day/dusk/night) based on hour and season."""
-    # Seasonal time boundaries - daylight hours vary by season
-    time_boundaries = {
-        "winter": {"dawn": (5, 9), "day": (9, 17), "dusk": (17, 22), "night": (22, 5)},
-        "spring": {"dawn": (5, 9), "day": (9, 18), "dusk": (18, 22), "night": (22, 5)},
-        "summer": {"dawn": (4, 8), "day": (8, 19), "dusk": (19, 23), "night": (23, 4)},
-        "autumn": {"dawn": (6, 9), "day": (9, 17), "dusk": (17, 21), "night": (21, 6)},
-    }
-
-    boundaries = time_boundaries[season]
-
-    # Check each time period
-    for period, (start, end) in boundaries.items():
-        if period == "night":
-            # Night spans midnight (e.g., 22-5 means 22:00-23:59 and 00:00-04:59)
-            if start > end:  # Crosses midnight
-                if hour >= start or hour < end:
-                    return "night"
-            else:  # Doesn't cross midnight (shouldn't happen for night, but safety)
-                if start <= hour < end:
-                    return "night"
-        else:
-            # Regular time periods
-            if start <= hour < end:
-                return period
-
-    # Default fallback
-    return "day"
 
 
 def get_club_stats():
