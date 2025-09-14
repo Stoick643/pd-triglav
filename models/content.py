@@ -663,39 +663,60 @@ class DailyNews(db.Model):
     @staticmethod
     def get_todays_news():
         """Get cached news for today, returns None if not found"""
-        today = date.today()
-        daily_news = DailyNews.query.filter_by(news_date=today).first()
-        return daily_news.articles if daily_news else None
+        try:
+            today = date.today()
+            daily_news = DailyNews.query.filter_by(news_date=today).first()
+            return daily_news.articles if daily_news else None
+        except Exception as e:
+            # Rollback any failed transaction
+            db.session.rollback()
+            # Log the error but don't crash
+            from flask import current_app
+            current_app.logger.error(f"Error fetching today's news: {e}")
+            return None
 
     @staticmethod
     def get_or_create_todays_news():
         """Get today's news from cache, or create empty entry for caching"""
-        today = date.today()
-        daily_news = DailyNews.query.filter_by(news_date=today).first()
+        try:
+            today = date.today()
+            daily_news = DailyNews.query.filter_by(news_date=today).first()
 
-        if not daily_news:
-            daily_news = DailyNews(news_date=today, articles=[], articles_count=0)
-            db.session.add(daily_news)
-            db.session.commit()
+            if not daily_news:
+                daily_news = DailyNews(news_date=today, articles=[], articles_count=0)
+                db.session.add(daily_news)
+                db.session.commit()
 
-        return daily_news
+            return daily_news
+        except Exception as e:
+            db.session.rollback()
+            from flask import current_app
+            current_app.logger.error(f"Error getting/creating today's news: {e}")
+            # Return a temporary object that won't be persisted
+            return DailyNews(news_date=date.today(), articles=[], articles_count=0)
 
     @staticmethod
     def cache_todays_news(articles_list):
         """Cache articles for today's date"""
-        today = date.today()
-        daily_news = DailyNews.query.filter_by(news_date=today).first()
+        try:
+            today = date.today()
+            daily_news = DailyNews.query.filter_by(news_date=today).first()
 
-        if not daily_news:
-            daily_news = DailyNews(news_date=today)
-            db.session.add(daily_news)
+            if not daily_news:
+                daily_news = DailyNews(news_date=today)
+                db.session.add(daily_news)
 
-        daily_news.articles = articles_list
-        daily_news.articles_count = len(articles_list)
-        daily_news.updated_at = datetime.utcnow()
+            daily_news.articles = articles_list
+            daily_news.articles_count = len(articles_list)
+            daily_news.updated_at = datetime.utcnow()
 
-        db.session.commit()
-        return daily_news
+            db.session.commit()
+            return daily_news
+        except Exception as e:
+            db.session.rollback()
+            from flask import current_app
+            current_app.logger.error(f"Error caching today's news: {e}")
+            return None
 
     @staticmethod
     def cleanup_old_news(days_to_keep=30):

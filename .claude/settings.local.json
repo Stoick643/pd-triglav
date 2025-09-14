@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(source:*)",
+      "Bash(flask db:*)",
+      "Bash(python3:*)",
+      "Bash(python -m pytest tests/test_trip_model.py tests/test_oauth.py -v)",
+      "Bash(rm:*)",
+      "Bash(pip install:*)",
+      "Bash(pip-sync:*)",
+      "Bash(pytest:*)",
+      "Bash(python:*)",
+      "Bash(echo:*)",
+      "Bash(ls:*)",
+      "Bash(timeout:*)",
+      "Bash(git add:*)",
+      "Bash(ruff check:*)",
+      "Bash(mypy:*)",
+      "Bash(pre-commit run:*)",
+      "Bash(cp:*)",
+      "Bash(sqlite3:*)",
+      "Bash(git commit:*)",
+      "Bash(pkill:*)",
+      "Bash(FLASK_RUN_PORT=5001 python3 app.py)",
+      "Bash(FLASK_RUN_PORT=5002 python3 app.py)",
+      "Bash(grep:*)",
+      "Bash(true)"
+    ],
+    "deny": []
+  }
+}

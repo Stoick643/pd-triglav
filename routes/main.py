@@ -76,12 +76,21 @@ def index():
 
     # Get daily climbing news (from cache or API fallback)
     try:
+        from models.user import db
         from utils.daily_news import get_daily_mountaineering_news_for_homepage
+
+        # Ensure clean transaction state before attempting to get news
+        db.session.rollback()
 
         daily_news = get_daily_mountaineering_news_for_homepage()
         if not daily_news:
             current_app.logger.info("No cached news found, this is normal on first run")
     except Exception as e:
+        # Rollback again to ensure clean state
+        try:
+            db.session.rollback()
+        except:
+            pass
         current_app.logger.error(f"Failed to get daily news: {e}")
         daily_news = []
 
