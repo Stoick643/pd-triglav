@@ -212,3 +212,6 @@ migrations/versions/*.pyc
 *.backup
 
 fromOutside/
+
+# Claude Code local settings
+.claude/settings.local.json
