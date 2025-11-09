@@ -233,14 +233,15 @@ class TripCommentForm(FlaskForm):
     """Form for adding comments to trip announcements"""
 
     content = TextAreaField(
-        "Komentar",
+        "Vprašanje ali komentar",
         validators=[
             DataRequired(message="Komentar ne more biti prazen."),
             Length(min=1, max=1000, message="Komentar mora biti dolg med 1 in 1000 znakov."),
         ],
+        description="Javno vprašanje o izletu ali splošna razprava",
     )
 
-    submit = SubmitField("Objavi komentar")
+    submit = SubmitField("Objavi")
 
 
 class TripDiscussionForm(FlaskForm):
@@ -252,10 +253,10 @@ class TripDiscussionForm(FlaskForm):
             DataRequired(message="Sporočilo ne more biti prazno."),
             Length(min=1, max=1000, message="Sporočilo mora biti dolgo med 1 in 1000 znakov."),
         ],
-        description="Vprašanja, dogovori za prevoz, logistika...",
+        description="Dogovori za prevoz, srečanje, oprema, logistika...",
     )
 
-    submit = SubmitField("Objavi sporočilo")
+    submit = SubmitField("Pošlji")
 
 
 class TripFilterForm(FlaskForm):

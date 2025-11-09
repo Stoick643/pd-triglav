@@ -146,32 +146,45 @@
             
             <!-- Comments section -->
             <div class="card">
-                <div class="card-header">
+                <div class="card-header{% if comments|length == 0 %} cursor-pointer{% endif %}" {% if comments|length == 0 %}data-bs-toggle="collapse" data-bs-target="#commentsSection" aria-expanded="false" aria-controls="commentsSection"{% endif %}>
                     <h5 class="mb-0">
                         <i class="bi bi-chat-dots me-2"></i>
-                        Komentarji ({{ comments|length }})
+                        Vprašanja in razprava ({{ comments|length }})
+                        {% if comments|length == 0 %}
+                        <i class="bi bi-chevron-down float-end"></i>
+                        {% endif %}
                     </h5>
+                    <small class="text-muted">Javna razprava o izletu</small>
                 </div>
-                
-                <div class="card-body">
-                    <!-- Add comment form for logged-in users -->
+
+                <div class="card-body{% if comments|length == 0 %} collapse{% endif %}" id="commentsSection">
+                    <!-- Add comment form for logged-in users (only for active trips) -->
                     {% if current_user.is_authenticated and comment_form %}
                     <form method="POST" action="{{ url_for('trips.add_comment', trip_id=trip.id) }}" class="mb-4">
                         {{ comment_form.hidden_tag() }}
-                        
+
                         <div class="mb-3">
                             {{ comment_form.content.label(class="form-label") }}
                             {{ comment_form.content(class="form-control", rows="3", placeholder="Vaš komentar ali vprašanje...") }}
+                            {% if comment_form.content.description %}
+                            <div class="form-text">{{ comment_form.content.description }}</div>
+                            {% endif %}
                             {% for error in comment_form.content.errors %}
                                 <div class="text-danger small">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="d-flex justify-content-end">
                             {{ comment_form.submit(class="btn btn-primary") }}
                         </div>
                     </form>
                     <hr>
+                    {% elif current_user.is_authenticated and trip.is_past %}
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Ta izlet je že potekel. Nova vprašanja niso več mogoča.
+                    </div>
+                    {% if comments|length > 0 %}<hr>{% endif %}
                     {% endif %}
                     
                     <!-- Comments list -->
@@ -218,9 +231,9 @@
                 <div class="card-header">
                     <h5 class="mb-0">
                         <i class="bi bi-people me-2"></i>
-                        Razprava udeležencev ({{ discussions|length }})
+                        Koordinacija udeležencev ({{ discussions|length }})
                     </h5>
-                    <small class="text-muted">Samo za potrjene udeležence</small>
+                    <small class="text-muted">Samo za potrjene udeležence · Logistika, prevoz, vprašanja</small>
                 </div>
 
                 <div class="card-body">

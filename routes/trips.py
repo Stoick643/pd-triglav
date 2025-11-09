@@ -111,8 +111,11 @@ def view_trip(trip_id):
             )
 
     # Forms for logged-in users
+    # Only show comment form for active/future trips
     signup_form = TripSignupForm() if current_user.is_authenticated else None
-    comment_form = TripCommentForm() if current_user.is_authenticated else None
+    comment_form = (
+        TripCommentForm() if current_user.is_authenticated and not trip.is_past else None
+    )
     discussion_form = TripDiscussionForm() if can_view_discussion else None
 
     return render_template(
