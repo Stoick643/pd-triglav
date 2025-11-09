@@ -175,7 +175,7 @@
                                     <i class="bi bi-geo-alt me-1"></i>{{ trip.destination }}
                                 </p>
                                 <small class="text-body-secondary">
-                                    <i class="bi bi-calendar3 me-1"></i>{{ trip.trip_date.strftime('%-d. %-m. %Y') }}
+                                    <i class="bi bi-calendar3 me-1"></i>{{ trip.trip_date.strftime('%d. %m. %Y') }}
                                     {% if trip.meeting_time %}
                                         • {{ trip.meeting_time.strftime('%H:%M') }}
                                     {% endif %}
@@ -326,7 +326,7 @@
                             <small class="text-muted">
                                 <i class="bi bi-robot me-1"></i>
                                 Vsebina je bila {{ 'avtomatsko generirana' if todays_event.is_generated else 'ročno dodana' }}
-                                {{ todays_event.created_at.strftime('%-d. %-m. %Y') if todays_event.created_at else '' }}
+                                {{ todays_event.created_at.strftime('%d. %m. %Y') if todays_event.created_at else '' }}
                             </small>
                         </div>
                     </div>
