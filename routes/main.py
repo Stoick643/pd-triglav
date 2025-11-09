@@ -39,7 +39,9 @@ def index():
         from datetime import date
 
         upcoming_trips = (
-            Trip.query.filter(Trip.trip_date >= date.today(), Trip.status == TripStatus.ANNOUNCED)
+            Trip.query
+            .filter(Trip.trip_date >= date.today())
+            .filter(Trip.status == TripStatus.ANNOUNCED)
             .order_by(Trip.trip_date.asc())
             .limit(5)
             .all()
