@@ -70,24 +70,41 @@
                             <label for="signupNotes" class="form-label">
                                 Opombe <span class="text-muted">(izbirno)</span>
                             </label>
-                            <textarea 
-                                id="signupNotes" 
-                                name="notes" 
-                                class="form-control" 
-                                rows="3" 
+                            <textarea
+                                id="signupNotes"
+                                name="notes"
+                                class="form-control"
+                                rows="3"
                                 placeholder="Posebne potrebe, izkušnje, kontakt v sili, itd.">
                             </textarea>
                             <div class="form-text">
                                 Te informacije bo videl vodnik izleta
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <div class="form-check">
-                                <input 
-                                    class="form-check-input" 
-                                    type="checkbox" 
-                                    id="signupTerms" 
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="notifyDiscussion"
+                                    name="notify_discussion"
+                                    checked>
+                                <label class="form-check-label" for="notifyDiscussion">
+                                    Obveščaj me o sporočilih v razpravi udeležencev
+                                </label>
+                                <div class="form-text">
+                                    Prejemaj e-pošto, ko udeleženci objavijo sporočila
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="signupTerms"
                                     required>
                                 <label class="form-check-label" for="signupTerms">
                                     Strinjam se s <a href="#" target="_blank">pravili PD Triglav</a> in prevzemam odgovornost za svojo varnost

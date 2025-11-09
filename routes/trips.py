@@ -6,9 +6,22 @@ from datetime import date, datetime
 from sqlalchemy import or_
 
 from models.user import db, UserRole
-from models.trip import Trip, TripDifficulty, TripStatus, TripParticipant, ParticipantStatus
+from models.trip import (
+    Trip,
+    TripDifficulty,
+    TripStatus,
+    TripParticipant,
+    ParticipantStatus,
+    TripDiscussion,
+)
 from models.content import Comment, CommentType
-from forms.trip_forms import TripForm, TripSignupForm, TripCommentForm, TripFilterForm
+from forms.trip_forms import (
+    TripForm,
+    TripSignupForm,
+    TripCommentForm,
+    TripDiscussionForm,
+    TripFilterForm,
+)
 
 bp = Blueprint("trips", __name__)
 
@@ -85,9 +98,22 @@ def view_trip(trip_id):
     # Get enhanced participant data with contact info for authorized users
     participants_data = trip.get_participants_with_contacts(current_user)
 
+    # Get discussions for confirmed participants
+    discussions = []
+    can_view_discussion = False
+    if current_user.is_authenticated:
+        can_view_discussion = trip.can_user_view_discussion(current_user)
+        if can_view_discussion:
+            discussions = (
+                TripDiscussion.query.filter_by(trip_id=trip_id)
+                .order_by(TripDiscussion.created_at.asc())
+                .all()
+            )
+
     # Forms for logged-in users
     signup_form = TripSignupForm() if current_user.is_authenticated else None
     comment_form = TripCommentForm() if current_user.is_authenticated else None
+    discussion_form = TripDiscussionForm() if can_view_discussion else None
 
     return render_template(
         "trips/detail.html",
@@ -96,7 +122,10 @@ def view_trip(trip_id):
         user_status=user_status,
         signup_form=signup_form,
         comment_form=comment_form,
+        discussion_form=discussion_form,
         participants_data=participants_data,
+        discussions=discussions,
+        can_view_discussion=can_view_discussion,
     )
 
 
@@ -262,8 +291,10 @@ def signup_for_trip(trip_id):
         return redirect(url_for("trips.view_trip", trip_id=trip_id))
 
     try:
-        participant = trip.add_participant(current_user)
+        participant = trip.add_participant(current_user, notes=form.notes.data)
         if participant:
+            # Set notification preference
+            participant.notify_discussion = form.notify_discussion.data
             db.session.commit()
 
             if participant.status == ParticipantStatus.CONFIRMED:
@@ -324,12 +355,15 @@ def signup_for_trip_ajax(trip_id):
         return jsonify({"success": False, "error": "Na ta izlet se ne morete prijaviti."}), 400
 
     try:
-        # Get optional notes from request
+        # Get optional notes and notification preference from request
         data = request.get_json() or {}
         notes = data.get("notes", "")
+        notify_discussion = data.get("notify_discussion", True)
 
         participant = trip.add_participant(current_user, notes=notes)
         if participant:
+            # Set notification preference
+            participant.notify_discussion = notify_discussion
             db.session.commit()
 
             # Prepare response data
@@ -477,6 +511,51 @@ def add_comment(trip_id):
         flash("Napaka pri dodajanju komentarja. Preverite vnešene podatke.", "error")
 
     return redirect(url_for("trips.view_trip", trip_id=trip_id))
+
+
+@bp.route("/<int:trip_id>/discussion", methods=["POST"])
+@login_required
+def post_discussion(trip_id):
+    """Post message to trip participant discussion"""
+    trip = Trip.query.get_or_404(trip_id)
+
+    # Check if user can post in discussion
+    if not trip.can_user_post_discussion(current_user):
+        flash("Samo potrjeni udeleženci lahko objavljajo v razpravi.", "error")
+        return redirect(url_for("trips.view_trip", trip_id=trip_id))
+
+    form = TripDiscussionForm()
+
+    if form.validate_on_submit():
+        discussion = TripDiscussion(
+            trip_id=trip_id,
+            user_id=current_user.id,
+            message=form.message.data,
+        )
+
+        try:
+            db.session.add(discussion)
+            db.session.commit()
+
+            # Send email notifications to participants
+            from utils.email_service import (
+                get_discussion_notification_recipients,
+                send_discussion_notification,
+            )
+
+            recipients = get_discussion_notification_recipients(trip, current_user.id)
+            if recipients:
+                send_discussion_notification(trip, discussion, current_user, recipients)
+
+            flash("Sporočilo je bilo uspešno objavljeno!", "success")
+
+        except Exception as e:
+            db.session.rollback()
+            flash("Napaka pri objavi sporočila. Poskusite znova.", "error")
+    else:
+        flash("Napaka pri objavi sporočila. Preverite vnešene podatke.", "error")
+
+    return redirect(url_for("trips.view_trip", trip_id=trip_id) + "#razprava")
 
 
 @bp.route("/dashboard")

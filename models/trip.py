@@ -84,6 +84,9 @@ class Trip(db.Model):
     )
     reports = db.relationship("TripReport", backref="trip", lazy=True, cascade="all, delete-orphan")
     comments = db.relationship("Comment", backref="trip", lazy=True, cascade="all, delete-orphan")
+    discussions = db.relationship(
+        "TripDiscussion", backref="trip", lazy=True, cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<Trip {self.title} - {self.trip_date}>"
@@ -290,6 +293,25 @@ class Trip(db.Model):
 
         return result
 
+    def can_user_view_discussion(self, user):
+        """Check if user can view trip discussions.
+
+        Only confirmed participants can view and post in trip discussions.
+        Waitlisted participants cannot access discussions.
+        """
+        if not user or not user.is_authenticated:
+            return False
+
+        participant = TripParticipant.query.filter_by(trip_id=self.id, user_id=user.id).first()
+        return participant and participant.status == ParticipantStatus.CONFIRMED
+
+    def can_user_post_discussion(self, user):
+        """Check if user can post in trip discussions.
+
+        Same permission as viewing - only confirmed participants.
+        """
+        return self.can_user_view_discussion(user)
+
     def to_dict(self):
         """Convert trip to dictionary for JSON serialization"""
         return {
@@ -337,6 +359,9 @@ class TripParticipant(db.Model):
     )
     signup_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     notes = db.Column(db.Text)  # Special requirements, emergency contact, etc.
+    notify_discussion = db.Column(
+        db.Boolean, default=True, nullable=False
+    )  # Email notifications for discussions
 
     # Relationships
     user = db.relationship("User", backref="trip_participations", lazy=True)
@@ -371,4 +396,46 @@ class TripParticipant(db.Model):
             "status": self.status.value,
             "signup_date": self.signup_date.isoformat() if self.signup_date else None,
             "notes": self.notes,
+        }
+
+
+class TripDiscussion(db.Model):
+    """Trip discussion model for participant communication"""
+
+    __tablename__ = "trip_discussions"
+
+    # Primary key
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Foreign keys
+    trip_id = db.Column(db.Integer, db.ForeignKey("trips.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    # Message content
+    message = db.Column(db.Text, nullable=False)
+
+    # Timestamp
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    author = db.relationship("User", backref="trip_discussions", lazy=True)
+
+    def __repr__(self):
+        return f"<TripDiscussion {self.id} - Trip {self.trip_id} by User {self.user_id}>"
+
+    @property
+    def is_from_leader(self):
+        """Check if message is from trip leader"""
+        return self.trip.leader_id == self.user_id
+
+    def to_dict(self):
+        """Convert discussion message to dictionary for JSON serialization"""
+        return {
+            "id": self.id,
+            "trip_id": self.trip_id,
+            "author_id": self.user_id,
+            "author_name": self.author.name,
+            "message": self.message,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "is_from_leader": self.is_from_leader,
         }

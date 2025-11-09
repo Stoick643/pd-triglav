@@ -1,0 +1,27 @@
+PD TRIGLAV - NOVO SPOROČILO V RAZPRAVI
+
+Pozdravljeni {{ recipient.name }},
+
+Novo sporočilo je bilo objavljeno v razpravi za izlet, na katerega ste prijavljeni:
+
+{{ trip.title }}
+Datum: {{ trip.trip_date.strftime('%d. %m. %Y') }}
+
+────────────────────────────────────────────────────────────────
+
+{{ author.name }}{% if author.id == trip.leader_id %} (Vodnik){% endif %}:
+
+{{ message.message }}
+
+────────────────────────────────────────────────────────────────
+
+Za ogled celotne razprave obiščite:
+{{ url_for('trips.view_trip', trip_id=trip.id, _external=True) }}#razprava
+
+───
+
+To sporočilo ste prejeli, ker ste prijavljeni na izlet in imate omogočena
+obvestila za razprave. Za odjavo od obvestil pojdite na stran izleta in
+uredite nastavitve prijave.
+
+PD Triglav

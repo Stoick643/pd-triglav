@@ -248,7 +248,8 @@ class TripModalManager {
         try {
             const formData = new FormData(form);
             const data = {
-                notes: formData.get('notes') || ''
+                notes: formData.get('notes') || '',
+                notify_discussion: formData.get('notify_discussion') === 'on'
             };
             
             const response = await fetch(`/trips/${this.currentTripId}/signup-ajax`, {

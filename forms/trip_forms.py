@@ -10,6 +10,7 @@ from wtforms import (
     SelectField,
     IntegerField,
     FloatField,
+    BooleanField,
     SubmitField,
 )
 from wtforms.validators import DataRequired, Length, Optional, NumberRange, ValidationError
@@ -219,6 +220,12 @@ class TripSignupForm(FlaskForm):
         description="Posebne potrebe, izkušnje, kontakt v sili, itd.",
     )
 
+    notify_discussion = BooleanField(
+        "Obveščaj me o sporočilih v razpravi",
+        default=True,
+        description="Prejemaj e-pošto, ko udeleženci objavijo sporočila v razpravi izleta",
+    )
+
     submit = SubmitField("Prijavi se na izlet")
 
 
@@ -234,6 +241,21 @@ class TripCommentForm(FlaskForm):
     )
 
     submit = SubmitField("Objavi komentar")
+
+
+class TripDiscussionForm(FlaskForm):
+    """Form for posting messages in trip participant discussions"""
+
+    message = TextAreaField(
+        "Sporočilo",
+        validators=[
+            DataRequired(message="Sporočilo ne more biti prazno."),
+            Length(min=1, max=1000, message="Sporočilo mora biti dolgo med 1 in 1000 znakov."),
+        ],
+        description="Vprašanja, dogovori za prevoz, logistika...",
+    )
+
+    submit = SubmitField("Objavi sporočilo")
 
 
 class TripFilterForm(FlaskForm):

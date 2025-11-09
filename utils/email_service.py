@@ -1,0 +1,105 @@
+"""Email service for sending notifications"""
+
+import threading
+from flask import current_app, render_template
+from flask_mail import Message
+from app import mail
+
+
+def send_async_email(app, msg):
+    """Send email asynchronously in a separate thread"""
+    with app.app_context():
+        try:
+            mail.send(msg)
+        except Exception as e:
+            app.logger.error(f"Failed to send email: {e}")
+
+
+def send_email(subject, recipient, template_html, template_txt, **kwargs):
+    """Send email with both HTML and plain text versions
+
+    Args:
+        subject: Email subject line
+        recipient: Recipient email address
+        template_html: Path to HTML template
+        template_txt: Path to plain text template
+        **kwargs: Template variables
+    """
+    app = current_app._get_current_object()
+
+    # Create message
+    msg = Message(
+        subject=subject,
+        recipients=[recipient],
+        sender=app.config.get('MAIL_DEFAULT_SENDER')
+    )
+
+    # Render templates
+    msg.html = render_template(template_html, **kwargs)
+    msg.body = render_template(template_txt, **kwargs)
+
+    # Send asynchronously
+    thread = threading.Thread(target=send_async_email, args=(app, msg))
+    thread.start()
+
+    return thread
+
+
+def send_discussion_notification(trip, message, author, recipients):
+    """Send notification to trip participants about new discussion message
+
+    Args:
+        trip: Trip object
+        message: TripDiscussion message object
+        author: User who posted the message
+        recipients: List of user objects to notify (excluding author)
+    """
+    app = current_app._get_current_object()
+
+    # Don't send if no recipients
+    if not recipients:
+        return
+
+    subject = f"Novo sporočilo za izlet: {trip.title}"
+
+    # Send individual emails to each recipient
+    threads = []
+    for recipient_user in recipients:
+        if recipient_user.email:
+            thread = send_email(
+                subject=subject,
+                recipient=recipient_user.email,
+                template_html='emails/discussion_notification.html',
+                template_txt='emails/discussion_notification.txt',
+                trip=trip,
+                message=message,
+                author=author,
+                recipient=recipient_user
+            )
+            threads.append(thread)
+
+    return threads
+
+
+def get_discussion_notification_recipients(trip, exclude_user_id):
+    """Get list of users who should receive discussion notifications
+
+    Args:
+        trip: Trip object
+        exclude_user_id: User ID to exclude (typically the message author)
+
+    Returns:
+        List of User objects who have notification enabled and are confirmed participants
+    """
+    from models.trip import ParticipantStatus
+
+    recipients = []
+
+    for participant in trip.participants:
+        # Only notify confirmed participants who have notifications enabled
+        if (participant.status == ParticipantStatus.CONFIRMED and
+            participant.notify_discussion and
+            participant.user_id != exclude_user_id):
+            recipients.append(participant.user)
+
+    return recipients

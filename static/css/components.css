@@ -481,9 +481,35 @@ Specialized components for the mountaineering club
   .btn-mountain {
     border: 2px solid var(--pd-white);
   }
-  
+
   .difficulty-badge,
   .status-badge {
     border: 1px solid currentColor;
   }
+}
+
+/* === TRIP DISCUSSION === */
+
+.discussion-leader {
+  background: rgba(227, 30, 36, 0.05);
+  border-left: 3px solid var(--pd-primary, #E31E24);
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding-left: 1rem;
+}
+
+.discussion-leader-message {
+  font-weight: 500;
+}
+
+/* Smooth scroll behavior for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Discussion card anchor target */
+#razprava {
+  scroll-margin-top: 20px;
 }

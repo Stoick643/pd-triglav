@@ -1,11 +1,13 @@
 from flask import Flask
 from flask_login import LoginManager
+from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from config import Config
 
 # Initialize Flask extensions
 login_manager = LoginManager()
+mail = Mail()
 migrate = Migrate()
 csrf = CSRFProtect()
 
@@ -21,6 +23,7 @@ def create_app(config_class=Config):
     # Initialize extensions with app
     db.init_app(app)
     login_manager.init_app(app)
+    mail.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
 

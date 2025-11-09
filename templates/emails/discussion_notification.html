@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novo sporočilo v razpravi izleta</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #E31E24;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+        }
+        .trip-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2B2B2B;
+            margin-bottom: 10px;
+        }
+        .message-box {
+            background-color: white;
+            border-left: 4px solid #E31E24;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .author {
+            font-weight: bold;
+            color: #2B2B2B;
+        }
+        .message-text {
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        .button {
+            display: inline-block;
+            background-color: #E31E24;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .footer {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="margin: 0;">PD Triglav</h1>
+        <p style="margin: 5px 0 0 0;">Novo sporočilo v razpravi</p>
+    </div>
+
+    <div class="content">
+        <p>Pozdravljeni {{ recipient.name }},</p>
+
+        <p>Novo sporočilo je bilo objavljeno v razpravi za izlet, na katerega ste prijavljeni:</p>
+
+        <div class="trip-title">{{ trip.title }}</div>
+        <p style="color: #666;">Datum: {{ trip.trip_date.strftime('%d. %m. %Y') }}</p>
+
+        <div class="message-box">
+            <div class="author">{{ author.name }}{% if author.id == trip.leader_id %} (Vodnik){% endif %}</div>
+            <div class="message-text">{{ message.message }}</div>
+        </div>
+
+        <a href="{{ url_for('trips.view_trip', trip_id=trip.id, _external=True) }}#razprava" class="button">
+            Poglej razpravo
+        </a>
+
+        <div class="footer">
+            <p>To sporočilo ste prejeli, ker ste prijavljeni na izlet in imate omogočena obvestila za razprave.</p>
+            <p>Za odjavo od obvestil pojdite na stran izleta in uredite nastavitve prijave.</p>
+        </div>
+    </div>
+</body>
+</html>

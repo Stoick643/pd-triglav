@@ -211,8 +211,79 @@
                     {% endif %}
                 </div>
             </div>
+
+            <!-- Participant Discussion section (only for confirmed participants) -->
+            {% if can_view_discussion %}
+            <div class="card mt-4" id="razprava">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people me-2"></i>
+                        Razprava udeležencev ({{ discussions|length }})
+                    </h5>
+                    <small class="text-muted">Samo za potrjene udeležence</small>
+                </div>
+
+                <div class="card-body">
+                    <!-- Add discussion message form -->
+                    {% if discussion_form %}
+                    <form method="POST" action="{{ url_for('trips.post_discussion', trip_id=trip.id) }}" class="mb-4">
+                        {{ discussion_form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ discussion_form.message.label(class="form-label") }}
+                            {{ discussion_form.message(class="form-control", rows="3", placeholder="Vprašanja, dogovori za prevoz, logistika...") }}
+                            {% if discussion_form.message.description %}
+                            <div class="form-text">{{ discussion_form.message.description }}</div>
+                            {% endif %}
+                            {% for error in discussion_form.message.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            {{ discussion_form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                    <hr>
+                    {% endif %}
+
+                    <!-- Discussion messages list -->
+                    {% if discussions %}
+                        {% for discussion in discussions %}
+                        <div class="d-flex mb-3 {% if discussion.is_from_leader %}discussion-leader{% endif %}">
+                            <div class="flex-shrink-0">
+                                <div class="{% if discussion.is_from_leader %}bg-danger{% else %}bg-secondary{% endif %} text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    {{ discussion.author.name[0].upper() }}
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>{{ discussion.author.name }}</strong>
+                                        {% if discussion.is_from_leader %}
+                                        <span class="badge bg-danger ms-2">Vodnik</span>
+                                        {% endif %}
+                                        <small class="text-muted ms-2">{{ discussion.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                    </div>
+                                </div>
+                                <div class="mt-1 {% if discussion.is_from_leader %}discussion-leader-message{% endif %}">
+                                    {{ discussion.message|replace('\n', '<br>')|safe }}
+                                </div>
+                            </div>
+                        </div>
+                        {% if not loop.last %}<hr>{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-people display-4"></i>
+                            <p class="mt-2">Še ni sporočil v razpravi. Bodite prvi!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
-        
+
         <!-- Sidebar -->
         <div class="col-lg-4">
             <!-- Signup/withdrawal actions -->
