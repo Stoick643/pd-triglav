@@ -17,8 +17,23 @@
                 <h5><i class="bi bi-calendar3"></i> Prihajajoči izleti</h5>
             </div>
             <div class="card-body">
-                <p class="text-muted">Trenutno ni objavljenih izletov.</p>
-                <!-- This will be populated when we implement trips -->
+                {% if upcoming_trips %}
+                    <div class="list-group list-group-flush">
+                        {% for trip in upcoming_trips %}
+                        <a href="{{ url_for('trips.view_trip', trip_id=trip.id) }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ trip.title }}</h6>
+                                <small class="text-muted">{{ trip.trip_date.strftime('%d. %m. %Y') }}</small>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-geo-alt"></i> {{ trip.location }}
+                            </small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Trenutno ni objavljenih izletov.</p>
+                {% endif %}
             </div>
         </div>
     </div>

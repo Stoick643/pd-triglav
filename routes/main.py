@@ -135,7 +135,20 @@ def dashboard():
     if current_user.is_pending():
         return render_template("pending_approval.html")
 
-    return render_template("dashboard.html")
+    # Get upcoming trips for authenticated members
+    from models.trip import Trip, TripStatus
+    from datetime import date
+
+    upcoming_trips = (
+        Trip.query
+        .filter(Trip.trip_date >= date.today())
+        .filter(Trip.status == TripStatus.ANNOUNCED)
+        .order_by(Trip.trip_date.asc())
+        .limit(5)
+        .all()
+    )
+
+    return render_template("dashboard.html", upcoming_trips=upcoming_trips)
 
 
 @bp.route("/admin")
