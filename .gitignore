@@ -215,3 +215,6 @@ fromOutside/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Generated visualization graphs
+docs/*.png
