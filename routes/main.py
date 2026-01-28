@@ -13,6 +13,12 @@ from flask_login import current_user, login_required
 bp = Blueprint("main", __name__)
 
 
+@bp.route("/health")
+def health_check():
+    """Health check endpoint for Fly.io monitoring"""
+    return {"status": "healthy"}, 200
+
+
 @bp.route("/")
 def index():
     """Home page with hero landing page and role-based content"""

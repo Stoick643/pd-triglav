@@ -89,6 +89,14 @@ class ProductionConfig(Config):
     DEBUG = False
     SQLALCHEMY_ECHO = False
 
+    # Database configuration (SQLite on Fly.io volume)
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:////data/pd_triglav.db")
+
+    # Email configuration (Amazon SES)
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "email-smtp.eu-north-1.amazonaws.com")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
+    MAIL_USE_TLS = True
+
     # Additional production settings
     PREFERRED_URL_SCHEME = "https"
     SESSION_COOKIE_SECURE = True

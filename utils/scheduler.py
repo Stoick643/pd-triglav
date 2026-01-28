@@ -69,6 +69,7 @@ def init_scheduler(app):
         id="fetch_daily_news",
         name="Fetch daily mountaineering news",
         replace_existing=True,
+        misfire_grace_time=43200,  # 12 hours - allows job to run when machine wakes up
     )
 
     scheduler.add_job(
@@ -77,6 +78,7 @@ def init_scheduler(app):
         id="generate_historical_event",
         name="Generate today's historical event",
         replace_existing=True,
+        misfire_grace_time=43200,  # 12 hours - allows job to run when machine wakes up
     )
 
     # Weekly cleanup on Sundays at 2:00 AM
@@ -86,6 +88,7 @@ def init_scheduler(app):
         id="cleanup_old_data",
         name="Cleanup old cached data",
         replace_existing=True,
+        misfire_grace_time=86400,  # 24 hours - allows job to run when machine wakes up
     )
 
     try:

@@ -555,7 +555,97 @@ flask db migrate -m "Fix migration"
 
 ## Deployment Notes
 
-### Render Configuration
+### Fly.io Deployment (Current)
+
+**App Configuration:**
+- **App Name**: pd-triglav-si
+- **Region**: ams (Amsterdam)
+- **Domain**: pdtriglav.si
+- **Database**: SQLite at /data/pd_triglav.db (persistent volume)
+- **Email**: Amazon SES (eu-north-1)
+- **Storage**: AWS S3 (eu-north-1)
+
+**Essential Commands:**
+```bash
+# Deploy application
+flyctl deploy
+
+# View application logs
+flyctl logs
+
+# SSH into running machine
+flyctl ssh console
+
+# Restart application
+flyctl machine restart
+
+# List secrets
+flyctl secrets list
+```
+
+**Database Operations (via SSH):**
+```bash
+# SSH into machine
+flyctl ssh console
+
+# Run migrations
+flask db upgrade
+
+# Seed production data (admin only)
+python scripts/seed_db_prod.py
+```
+
+**Volume Management:**
+```bash
+# Create persistent volume (one-time setup)
+flyctl volumes create pd_triglav_data --region ams --size 1
+
+# List volumes
+flyctl volumes list
+
+# Snapshot volume (backup)
+flyctl volumes snapshots create pd_triglav_data
+```
+
+**Required Secrets:**
+```bash
+flyctl secrets set SECRET_KEY="..."
+flyctl secrets set GOOGLE_CLIENT_ID="..."
+flyctl secrets set GOOGLE_CLIENT_SECRET="..."
+flyctl secrets set AWS_ACCESS_KEY_ID="..."
+flyctl secrets set AWS_SECRET_ACCESS_KEY="..."
+flyctl secrets set AWS_REGION="eu-north-1"
+flyctl secrets set AWS_S3_BUCKET="..."
+flyctl secrets set AWS_S3_ENDPOINT_URL="https://s3.eu-north-1.amazonaws.com"
+flyctl secrets set MAIL_SERVER="email-smtp.eu-north-1.amazonaws.com"
+flyctl secrets set MAIL_USERNAME="..."
+flyctl secrets set MAIL_PASSWORD="..."
+flyctl secrets set MAIL_DEFAULT_SENDER="..."
+flyctl secrets set LLM_API_KEY="..."
+flyctl secrets set LLM_API_URL="..."
+flyctl secrets set NEWS_API_KEY="..."
+```
+
+**Custom Domain Setup:**
+```bash
+# Add SSL certificate for custom domain
+flyctl certs create pdtriglav.si
+
+# Check certificate status
+flyctl certs show pdtriglav.si
+```
+
+**Health Check:**
+- Endpoint: `/health`
+- Interval: 30 seconds
+- Timeout: 5 seconds
+
+**Auto-scaling:**
+- Minimum machines: 0 (auto-stop when idle)
+- Auto-start on first request
+- Scheduled tasks run when machine wakes up (12-24 hour grace period)
+
+### Render Configuration (Legacy)
 - Uses `render.yaml` for deployment configuration
 - Environment variables set in Render dashboard
 - Automatic deployments on git push to main
@@ -565,8 +655,9 @@ flask db migrate -m "Fix migration"
 - Set `FLASK_ENV=production` in production
 - Use strong `SECRET_KEY` value
 - Configure proper error logging
-- Set up database backups
+- Set up database backups (Fly.io volume snapshots)
 - Monitor AWS S3 usage and costs
+- Monitor Amazon SES sending limits and bounce rates
 
 ## Testing Strategy
 
