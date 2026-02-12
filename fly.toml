@@ -2,7 +2,7 @@
 # Deployed at: pd-triglav-si.fly.dev
 # Custom domain: pdtriglav.si
 
-app = 'pd-triglav-si'
+app = 'pd-triglav'
 primary_region = 'ams'
 
 [build]
