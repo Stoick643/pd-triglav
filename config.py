@@ -38,13 +38,13 @@ class Config:
     AWS_S3_BUCKET = os.environ.get("AWS_S3_BUCKET")
     AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
 
-    # Email configuration
-    MAIL_SERVER = os.environ.get("MAIL_SERVER")
-    MAIL_PORT = int(os.environ.get("MAIL_PORT") or 587)
+    # Email configuration (supports both MAIL_* and EMAIL_* naming conventions)
+    MAIL_SERVER = os.environ.get("MAIL_SERVER") or os.environ.get("EMAIL_HOST")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT") or os.environ.get("EMAIL_PORT") or 587)
     MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "True").lower() in ["true", "1", "yes"]
-    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
-    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
-    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER")
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME") or os.environ.get("EMAIL_USER")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD") or os.environ.get("EMAIL_PASS")
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER") or os.environ.get("EMAIL_USER")
 
     # LLM API configuration
     LLM_API_KEY = os.environ.get("LLM_API_KEY")
@@ -92,10 +92,13 @@ class ProductionConfig(Config):
     # Database configuration (SQLite on Fly.io volume)
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:////data/pd_triglav.db")
 
-    # Email configuration (Amazon SES)
-    MAIL_SERVER = os.environ.get("MAIL_SERVER", "email-smtp.eu-north-1.amazonaws.com")
-    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
+    # Email configuration (supports both MAIL_* and EMAIL_* naming conventions)
+    MAIL_SERVER = os.environ.get("MAIL_SERVER") or os.environ.get("EMAIL_HOST") or "email-smtp.eu-north-1.amazonaws.com"
+    MAIL_PORT = int(os.environ.get("MAIL_PORT") or os.environ.get("EMAIL_PORT") or 587)
     MAIL_USE_TLS = True
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME") or os.environ.get("EMAIL_USER")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD") or os.environ.get("EMAIL_PASS")
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER") or os.environ.get("EMAIL_USER")
 
     # Additional production settings
     PREFERRED_URL_SCHEME = "https"

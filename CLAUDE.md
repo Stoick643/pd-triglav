@@ -6,19 +6,20 @@
 - Python Flask web app for Slovenian mountaineering club (~200 members)
 - Features: Member management, trip announcements, trip reports, photo galleries
 - AI-powered historical content and mountaineering news
-- Deployment: Render platform with GitHub integration
-- Database: PostgreSQL (production), SQLite (development)
+- Deployment: Fly.io with buildpacks (auto-detect Python)
+- Database: SQLite (production on persistent volume, development local)
 - File Storage: AWS S3 for photos
 
 ## Key Decisions Made
 
 ### Technology Stack
-- **Backend**: Flask + SQLAlchemy + PostgreSQL
+- **Backend**: Flask + SQLAlchemy + SQLite
 - **Frontend**: Jinja2 + Bootstrap 5 + HTMX + TinyMCE
 - **Auth**: Flask-Login + Authlib (Google OAuth)
 - **File Storage**: AWS S3 + Boto3 + Pillow
-- **Email**: Flask-Mail with threading
+- **Email**: Flask-Mail with Amazon SES
 - **Testing**: pytest + coverage
+- **Deployment**: Fly.io with buildpacks (no Docker)
 
 ### User Roles & Permissions
 1. **Pending Member**: Limited access until admin approval
@@ -70,21 +71,32 @@ pip-sync requirements.txt
 **Important**: Always edit `requirements.in`, never `requirements.txt` directly.
 
 ### Database Operations
+
+**Production (Fly.io):**
 ```bash
-# Initialize database
-flask db init
+# Database is auto-initialized on deploy via release_command
+# Manual re-init (if needed):
+flyctl ssh console
+python scripts/init_db.py
+```
 
-# Create migration
-flask db migrate -m "Description"
+**Development (Local):**
+```bash
+# Initialize database (creates tables from models)
+python scripts/init_db.py
 
-# Apply migrations  
-flask db upgrade
-
-# Seed development data (full test data)
+# Seed development data (admin, member, guide, pending user + sample trips)
 python3 scripts/seed_db.py
 
 # OR seed production data (admin only)
 python3 scripts/seed_db_prod.py
+```
+
+**Flask-Migrate (optional, for dev schema changes):**
+```bash
+flask db init      # First time only
+flask db migrate -m "Description"
+flask db upgrade
 ```
 
 ### Development Server
@@ -278,7 +290,8 @@ pd-triglav/
 ├── migrations/           # Database migrations
 ├── tests/               # Test files
 ├── scripts/
-│   ├── seed_db.py      # Development data seeding
+│   ├── init_db.py      # Production DB init (db.create_all + admin)
+│   ├── seed_db.py      # Development data seeding (full test data)
 │   └── seed_db_prod.py # Production data seeding (admin only)
 └── docs/               # Documentation
 ```
@@ -533,14 +546,15 @@ function animateHeroContent():
 ```bash
 # Reset database (development only)
 rm databases/pd_triglav.db  # Remove development database
-flask db upgrade
+python scripts/init_db.py   # Recreate tables
 
 # Reset test database
 rm databases/test.db
 
-# Fix migration conflicts
-flask db stamp head
-flask db migrate -m "Fix migration"
+# Reset production database (Fly.io) - CAUTION: destroys data!
+flyctl ssh console
+rm /data/pd_triglav.db
+python scripts/init_db.py
 ```
 
 ### AWS S3 Issues
@@ -564,6 +578,13 @@ flask db migrate -m "Fix migration"
 - **Database**: SQLite at /data/pd_triglav.db (persistent volume)
 - **Email**: Amazon SES (eu-north-1)
 - **Storage**: AWS S3 (eu-north-1)
+- **Build**: Paketo buildpacks (auto-detect Python from requirements.txt)
+- **No Dockerfile**: Uses buildpacks instead
+
+**How Deployment Works:**
+1. `flyctl deploy` triggers build via buildpacks
+2. `release_command` runs `python scripts/init_db.py` (creates tables + admin)
+3. App starts with gunicorn
 
 **Essential Commands:**
 ```bash
@@ -588,12 +609,15 @@ flyctl secrets list
 # SSH into machine
 flyctl ssh console
 
-# Run migrations
-flask db upgrade
+# Re-run database initialization (idempotent)
+python scripts/init_db.py
 
-# Seed production data (admin only)
-python scripts/seed_db_prod.py
+# Seed full dev data (if needed)
+python scripts/seed_db.py
 ```
+
+**Note:** Database tables are created automatically via `db.create_all()` in 
+`scripts/init_db.py`. No Flask-Migrate/Alembic in production.
 
 **Volume Management:**
 ```bash
@@ -652,12 +676,13 @@ flyctl certs show pdtriglav.si
 - PostgreSQL database managed by Render
 
 ### Production Considerations
-- Set `FLASK_ENV=production` in production
-- Use strong `SECRET_KEY` value
+- Set `FLASK_ENV=production` (configured in fly.toml)
+- Use strong `SECRET_KEY` value (set via `flyctl secrets`)
 - Configure proper error logging
 - Set up database backups (Fly.io volume snapshots)
 - Monitor AWS S3 usage and costs
 - Monitor Amazon SES sending limits and bounce rates
+- Delete old `Dockerfile` after confirming deployment works
 
 ## Testing Strategy
 

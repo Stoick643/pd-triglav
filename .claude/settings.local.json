@@ -24,7 +24,9 @@
       "Bash(FLASK_RUN_PORT=5001 python3 app.py)",
       "Bash(FLASK_RUN_PORT=5002 python3 app.py)",
       "Bash(grep:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "WebFetch(domain:www.zsa.si)",
+      "Bash(dir /b \"C:\\projects\\Claude\\pd-triglav\\migrations\\versions\")"
     ],
     "deny": []
   }

@@ -459,6 +459,6 @@ if __name__ == "__main__":
     end_date_str = "November 30"
 
     scraper = HistoryScraper()
-    # Scrape first 75 new articles (increased from 50 for round 2)
+    # Scrape first 30 new articles (reduced to 30 for round 3 - conservative approach)
     # Using 5s delays to avoid rate limiting
-    scraper.run(limit=75, start_date=start_date_str, end_date=end_date_str)
+    scraper.run(limit=30, start_date=start_date_str, end_date=end_date_str)

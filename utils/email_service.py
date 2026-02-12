@@ -1,9 +1,26 @@
 """Email service for sending notifications"""
 
+import logging
 import threading
 from flask import current_app, render_template
 from flask_mail import Message
 from app import mail
+
+logger = logging.getLogger(__name__)
+
+
+def is_mail_configured():
+    """Check if email service is properly configured.
+    
+    Returns:
+        bool: True if mail server and credentials are configured
+    """
+    app = current_app._get_current_object()
+    mail_server = app.config.get('MAIL_SERVER')
+    mail_username = app.config.get('MAIL_USERNAME')
+    
+    # Check if essential mail settings are present
+    return bool(mail_server and mail_username)
 
 
 def send_async_email(app, msg):
@@ -24,7 +41,15 @@ def send_email(subject, recipient, template_html, template_txt, **kwargs):
         template_html: Path to HTML template
         template_txt: Path to plain text template
         **kwargs: Template variables
+        
+    Returns:
+        Thread object if email was sent, None if mail not configured
     """
+    # Skip if mail service is not configured
+    if not is_mail_configured():
+        logger.info(f"Mail not configured - skipping email to {recipient}: {subject}")
+        return None
+    
     app = current_app._get_current_object()
 
     # Create message
@@ -76,7 +101,8 @@ def send_discussion_notification(trip, message, author, recipients):
                 author=author,
                 recipient=recipient_user
             )
-            threads.append(thread)
+            if thread:  # Only append if email was actually sent
+                threads.append(thread)
 
     return threads
 
