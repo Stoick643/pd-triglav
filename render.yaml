@@ -1,3 +1,11 @@
+# ============================================
+# DEPRECATED - Migrated to Fly.io
+# ============================================
+# This file is kept for reference only.
+# Production deployment now uses fly.toml
+# See CLAUDE.md for Fly.io deployment docs.
+# ============================================
+
 services:
   - type: web
     name: pd-triglav
