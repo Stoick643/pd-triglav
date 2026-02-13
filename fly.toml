@@ -1,8 +1,8 @@
 # fly.toml - Fly.io configuration for PD Triglav
-# Deployed at: pd-triglav-si.fly.dev
+# Deployed at: pd-triglav.fly.dev
 # Custom domain: pdtriglav.si
 
-app = 'pd-triglav-si'
+app = 'pd-triglav'
 primary_region = 'ams'
 
 [build]
