@@ -17,9 +17,8 @@ primary_region = 'ams'
   destination = "/data"
 
 [deploy]
-  # Run database initialization before each deployment
-  # Creates tables and seeds admin user (idempotent)
-  release_command = "python scripts/init_db.py"
+  # Database initialization moved to app startup (app.py)
+  # This avoids volume mounting issues with release_command
 
 [processes]
   app = "gunicorn 'app:create_app()' --bind 0.0.0.0:8080 --workers 2 --timeout 120"

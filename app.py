@@ -91,8 +91,28 @@ def create_app(config_class=Config):
     except Exception as e:
         app.logger.error(f"Failed to initialize scheduler: {e}")
 
-    # Database tables are now managed by Flask-Migrate
-    # Use 'flask db upgrade' to create/update tables
+    # Initialize database on startup (for Fly.io deployment)
+    with app.app_context():
+        try:
+            db.create_all()
+            app.logger.info("Database tables created/verified")
+            
+            # Seed admin user if not exists
+            from models.user import UserRole
+            admin_email = "admin@pd-triglav.si"
+            if not User.query.filter_by(email=admin_email).first():
+                admin = User.create_user(
+                    email=admin_email,
+                    name="Administrator PD Triglav",
+                    password="password123",
+                    role=UserRole.ADMIN,
+                )
+                if admin:
+                    admin.approve(UserRole.ADMIN)
+                    db.session.commit()
+                    app.logger.info(f"Admin user created: {admin_email}")
+        except Exception as e:
+            app.logger.error(f"Database initialization error: {e}")
 
     return app
 
