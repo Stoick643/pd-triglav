@@ -6,8 +6,7 @@ app = 'pd-triglav'
 primary_region = 'ams'
 
 [build]
-  # Use Paketo buildpacks (full includes SQLite libraries)
-  builder = "paketobuildpacks/builder:full"
+  # Uses Dockerfile in project root
 
 [env]
   FLASK_ENV = "production"
