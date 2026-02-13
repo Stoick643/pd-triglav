@@ -1,29 +1,12 @@
-# fly.toml - Fly.io configuration for PD Triglav
-# Deployed at: pd-triglav-si.fly.dev
-# Custom domain: pdtriglav.si
+# fly.toml app configuration file generated for pd-triglav on 2026-02-13T09:35:59Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
 app = 'pd-triglav'
-primary_region = 'ams'
+primary_region = 'iad'
 
 [build]
-  # Use Paketo buildpacks to auto-detect Python from requirements.txt
-  builder = "paketobuildpacks/builder:base"
-
-[env]
-  FLASK_ENV = "production"
-  DATABASE_URL = "sqlite:////data/pd_triglav.db"
-
-[mounts]
-  source = "pd_triglav_data"
-  destination = "/data"
-
-[deploy]
-  # Run database initialization before each deployment
-  # Creates tables and seeds admin user (idempotent)
-  release_command = "python scripts/init_db.py"
-
-[processes]
-  app = "gunicorn 'app:create_app()' --bind 0.0.0.0:8080 --workers 2 --timeout 120"
 
 [http_service]
   internal_port = 8080
@@ -34,13 +17,7 @@ primary_region = 'ams'
   processes = ['app']
 
 [[vm]]
-  memory = '256mb'
+  memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-
-[checks.status]
-  type = "http"
-  port = 8080
-  path = "/health"
-  interval = "30s"
-  timeout = "5s"
+  memory_mb = 1024
