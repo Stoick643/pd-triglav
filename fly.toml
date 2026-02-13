@@ -6,8 +6,8 @@ app = 'pd-triglav'
 primary_region = 'ams'
 
 [build]
-  # Use Paketo buildpacks to auto-detect Python from requirements.txt
-  builder = "paketobuildpacks/builder:base"
+  # Use Paketo buildpacks (full includes SQLite libraries)
+  builder = "paketobuildpacks/builder:full"
 
 [env]
   FLASK_ENV = "production"
