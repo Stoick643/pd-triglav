@@ -66,14 +66,21 @@ def index():
                 todays_event = None
 
             # Get recent historical events (last 7, excluding today's)
-            from utils.llm_service import format_date_standard
             from datetime import datetime
+            from models.user import db
 
-            today_date = format_date_standard(datetime.now())
+            now = datetime.now()
 
             recent_events = (
-                HistoricalEvent.query.filter(HistoricalEvent.date != today_date)
-                .order_by(HistoricalEvent.date.desc())
+                HistoricalEvent.query.filter(
+                    db.not_(
+                        db.and_(
+                            HistoricalEvent.event_month == now.month,
+                            HistoricalEvent.event_day == now.day,
+                        )
+                    )
+                )
+                .order_by(HistoricalEvent.created_at.desc())
                 .limit(7)
                 .all()
             )
@@ -287,14 +294,11 @@ def regenerate_today_event():
     try:
         from models.content import HistoricalEvent
         from utils.content_generation import HistoricalEventService
-        from utils.llm_service import format_date_standard
         from datetime import datetime
 
-        # Get today's date
-        today = format_date_standard(datetime.now())
-
         # Find existing event for today
-        existing_event = HistoricalEvent.get_event_for_date(today)
+        now = datetime.now()
+        existing_event = HistoricalEvent.get_event_for_date(now.month, now.day)
 
         if existing_event:
             # Regenerate existing event
@@ -315,8 +319,6 @@ def regenerate_today_event():
                         "description": updated_event.description,
                         "location": updated_event.location,
                         "people": updated_event.people_list,
-                        "url": updated_event.url,
-                        "url_secondary": updated_event.url_secondary,
                         "category": updated_event.category.value,
                         "full_date_string": updated_event.full_date_string,
                         "is_generated": updated_event.is_generated,
@@ -342,8 +344,6 @@ def regenerate_today_event():
                         "description": new_event.description,
                         "location": new_event.location,
                         "people": new_event.people_list,
-                        "url": new_event.url,
-                        "url_secondary": new_event.url_secondary,
                         "category": new_event.category.value,
                         "full_date_string": new_event.full_date_string,
                         "is_generated": new_event.is_generated,
@@ -417,13 +417,20 @@ def get_recent_historical_events():
         limit = min(limit, 20)  # Max 20 events per request
 
         # Get recent events (excluding today's event to avoid duplication)
-        from utils.llm_service import format_date_standard
         from datetime import datetime
+        from models.user import db
 
-        today = format_date_standard(datetime.now())
+        now = datetime.now()
+
+        exclude_today = db.not_(
+            db.and_(
+                HistoricalEvent.event_month == now.month,
+                HistoricalEvent.event_day == now.day,
+            )
+        )
 
         events = (
-            HistoricalEvent.query.filter(HistoricalEvent.date != today)
+            HistoricalEvent.query.filter(exclude_today)
             .order_by(HistoricalEvent.created_at.desc(), HistoricalEvent.year.desc())
             .offset(offset)
             .limit(limit)
@@ -436,7 +443,8 @@ def get_recent_historical_events():
             events_data.append(
                 {
                     "id": event.id,
-                    "date": event.date,
+                    "event_month": event.event_month,
+                    "event_day": event.event_day,
                     "year": event.year,
                     "title": event.title,
                     "description": (
@@ -445,7 +453,7 @@ def get_recent_historical_events():
                         else event.description
                     ),
                     "location": event.location,
-                    "people": event.people_list[:3] if event.people_list else [],  # First 3 people
+                    "people": event.people_list[:3] if event.people_list else [],
                     "category": event.category.value,
                     "full_date_string": event.full_date_string,
                     "is_featured": event.is_featured,
@@ -453,7 +461,7 @@ def get_recent_historical_events():
             )
 
         # Check if there are more events
-        total_events = HistoricalEvent.query.filter(HistoricalEvent.date != today).count()
+        total_events = HistoricalEvent.query.filter(exclude_today).count()
         has_more = (offset + limit) < total_events
 
         return jsonify(
@@ -490,23 +498,26 @@ def api_historical_events():
 
         if not date_param:
             # If no date provided, use today's date
-            from utils.llm_service import format_date_standard
-
-            date_param = format_date_standard(datetime.now())
-
-        # Parse date parameter
-        if len(date_param) == 5 and "-" in date_param:
+            now = datetime.now()
+            search_month = now.month
+            search_day = now.day
+        elif "-" in date_param:
             # Format: DD-MM
-            day, month = date_param.split("-")
-            search_date = f"{day} {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][int(month)-1]}"
+            parts = date_param.split("-")
+            search_day = int(parts[0])
+            search_month = int(parts[1])
         else:
-            # Use as-is for other formats
-            search_date = date_param
+            # Try parsing as text format
+            from utils.llm_service import parse_date_string
+            search_month, search_day = parse_date_string(date_param)
+            if search_month is None:
+                return jsonify({"error": "Invalid date format. Use DD-MM."}), 400
 
         # Query events for the specific date
         events = (
-            HistoricalEvent.query.filter(HistoricalEvent.date.ilike(f"%{search_date}%"))
-            .order_by(HistoricalEvent.year.desc(), HistoricalEvent.created_at.desc())
+            HistoricalEvent.query
+            .filter_by(event_month=search_month, event_day=search_day)
+            .order_by(HistoricalEvent.is_generated.asc(), HistoricalEvent.year.desc())
             .limit(limit)
             .all()
         )
@@ -517,7 +528,8 @@ def api_historical_events():
             events_data.append(
                 {
                     "id": event.id,
-                    "date": event.date,
+                    "event_month": event.event_month,
+                    "event_day": event.event_day,
                     "year": event.year,
                     "title": event.title,
                     "description": event.description,
@@ -527,7 +539,6 @@ def api_historical_events():
                     "full_date_string": event.full_date_string,
                     "is_featured": event.is_featured,
                     "url": event.url,
-                    "url_secondary": event.url_secondary,
                 }
             )
 

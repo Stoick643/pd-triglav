@@ -90,13 +90,13 @@ class BaseLLMProvider(ABC):
 
 
 class MoonshotProvider(BaseLLMProvider):
-    """Moonshot AI (Kimi K2) provider using OpenAI client"""
+    """Moonshot AI (Kimi K2.5) provider using OpenAI client"""
 
     def __init__(self):
         super().__init__()
         self.api_key = current_app.config.get("MOONSHOT_API_KEY")
         self.base_url = current_app.config.get("MOONSHOT_API_URL", "https://api.moonshot.ai/v1")
-        self.model = "kimi-k2-0711-preview"
+        self.model = "kimi-k2.5"
 
         if not self.api_key:
             logger.warning("MOONSHOT_API_KEY not configured")
@@ -126,7 +126,7 @@ class MoonshotProvider(BaseLLMProvider):
             params = {
                 "model": self.model,
                 "messages": messages,
-                "temperature": kwargs.get("temperature", 0.3),
+                "temperature": 1,  # Kimi K2.5 only allows temperature=1
                 "max_tokens": kwargs.get("max_tokens", 2000),
             }
 
@@ -174,18 +174,14 @@ class MoonshotProvider(BaseLLMProvider):
     def get_fallback_content(self, content_type: str = "historical") -> Dict:
         """Get fallback content for Moonshot"""
         if content_type == "historical":
-            from utils.llm_service import format_date_standard
-
-            today = format_date_standard(datetime.now())
             return {
-                "date": today,
                 "year": 1953,
                 "title": "First Ascent of Mount Everest",
                 "description": "On May 29, 1953, Edmund Hillary and Tenzing Norgay became the first confirmed climbers to reach the summit of Mount Everest. This achievement marked a pivotal moment in mountaineering history, proving that the world's highest peak could be conquered. Their success opened a new era of high-altitude climbing and inspired generations of mountaineers worldwide.",
                 "location": "Mount Everest, Nepal-Tibet border",
                 "people": ["Edmund Hillary", "Tenzing Norgay"],
-                "url": None,
                 "category": "first_ascent",
+                "confidence": "high",
             }
         else:
             return {
@@ -309,6 +305,129 @@ class DeepSeekProvider(BaseLLMProvider):
         return 0.000001  # Very low cost
 
 
+class AnthropicProvider(BaseLLMProvider):
+    """Anthropic Claude provider for high-accuracy historical content"""
+
+    def __init__(self):
+        super().__init__()
+        self.api_key = current_app.config.get("ANTHROPIC_API_KEY")
+        self.model = "claude-sonnet-4-5"
+
+        if not self.api_key:
+            logger.warning("ANTHROPIC_API_KEY not configured")
+
+    @property
+    def provider_name(self) -> str:
+        return "Anthropic (Claude Sonnet 4.5)"
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(self.api_key)
+
+    def chat_completion(self, messages: List[Dict], **kwargs) -> Dict:
+        """Create chat completion using Anthropic API"""
+        if not self.is_configured:
+            raise LLMError("Anthropic provider not configured")
+
+        try:
+            import anthropic
+            import json
+
+            client = anthropic.Anthropic(api_key=self.api_key)
+
+            # Separate system message from user messages (Anthropic API requirement)
+            system_msg = ""
+            user_messages = []
+            for msg in messages:
+                if msg["role"] == "system":
+                    system_msg = msg["content"]
+                else:
+                    user_messages.append(msg)
+
+            params = {
+                "model": self.model,
+                "max_tokens": kwargs.get("max_tokens", 2000),
+                "messages": user_messages,
+            }
+
+            if system_msg:
+                params["system"] = system_msg
+
+            # Temperature
+            temperature = kwargs.get("temperature", 0.3)
+            if temperature is not None:
+                params["temperature"] = temperature
+
+            logger.info(f"Making Anthropic API request with model {self.model}")
+            response = client.messages.create(**params)
+
+            # Extract content
+            content = response.content[0].text
+            logger.info("Anthropic API request successful")
+
+            # Parse JSON if response_format is json_object
+            response_format = kwargs.get("response_format")
+            if response_format and response_format.get("type") == "json_object":
+                # Claude may wrap JSON in markdown code blocks
+                cleaned = content.strip()
+                if cleaned.startswith("```"):
+                    # Remove ```json ... ``` wrapping
+                    lines = cleaned.split("\n")
+                    # Remove first line (```json) and last line (```)
+                    lines = [l for l in lines if not l.strip().startswith("```")]
+                    cleaned = "\n".join(lines)
+                return json.loads(cleaned)
+            else:
+                return {"content": content}
+
+        except Exception as e:
+            error_msg = f"Anthropic API error: {e}"
+            logger.error(error_msg)
+            raise LLMError(error_msg)
+
+    def test_connection(self) -> bool:
+        """Test Anthropic API connection"""
+        try:
+            messages = [
+                {"role": "system", "content": "You are a test assistant. Respond with valid JSON only."},
+                {
+                    "role": "user",
+                    "content": 'Respond with JSON: {"status": "ok", "message": "test successful"}',
+                },
+            ]
+            result = self.chat_completion(messages, response_format={"type": "json_object"})
+            return result.get("status") == "ok"
+        except Exception as e:
+            logger.error(f"Anthropic connection test failed: {e}")
+            return False
+
+    def get_fallback_content(self, content_type: str = "historical") -> Dict:
+        """Get fallback content for Anthropic"""
+        if content_type == "historical":
+            return {
+                "year": 1953,
+                "title": "First Ascent of Mount Everest",
+                "description": "On May 29, 1953, Edmund Hillary and Tenzing Norgay became the first confirmed climbers to reach the summit of Mount Everest.",
+                "location": "Mount Everest, Nepal-Tibet border",
+                "people": ["Edmund Hillary", "Tenzing Norgay"],
+                "category": "first_ascent",
+                "confidence": "high",
+            }
+        else:
+            return {
+                "title": "Mountaineering News Unavailable",
+                "summary": "Current mountaineering news is temporarily unavailable.",
+                "category": "events",
+                "url": None,
+                "relevance_score": 0.5,
+                "source_name": "System",
+            }
+
+    def get_cost_per_token(self) -> float:
+        """Estimated cost per token for Anthropic Claude Sonnet 4.5"""
+        return 0.000003  # ~$3 per 1M input tokens
+
+
 class ProviderManager:
     """Manages multiple LLM providers with fallback logic"""
 
@@ -318,6 +437,16 @@ class ProviderManager:
 
     def _initialize_providers(self):
         """Initialize all available providers"""
+        try:
+            anthropic_provider = AnthropicProvider()
+            if anthropic_provider.is_configured:
+                self.providers["anthropic"] = anthropic_provider
+                logger.info("Anthropic provider initialized")
+            else:
+                logger.warning("Anthropic provider not configured")
+        except Exception as e:
+            logger.error(f"Failed to initialize Anthropic provider: {e}")
+
         try:
             moonshot = MoonshotProvider()
             if moonshot.is_configured:
@@ -361,12 +490,14 @@ class ProviderManager:
             Dict with response or fallback content
         """
         # Define provider priority by use case
+        # Historical: Claude (accuracy) > Kimi > DeepSeek
+        # Everything else: Kimi (cost) > DeepSeek > Claude
         if use_case == "historical":
-            provider_order = ["moonshot", "deepseek"]
+            provider_order = ["anthropic", "moonshot", "deepseek"]
         elif use_case == "news":
-            provider_order = ["deepseek", "moonshot"]
+            provider_order = ["moonshot", "deepseek", "anthropic"]
         else:
-            provider_order = ["moonshot", "deepseek"]
+            provider_order = ["moonshot", "deepseek", "anthropic"]
 
         last_error = None
 

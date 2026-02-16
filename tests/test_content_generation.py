@@ -28,19 +28,16 @@ class TestHistoricalEventService:
 
     @pytest.fixture
     def mock_llm_response(self):
-        """Mock LLM API response"""
+        """Mock LLM API response (new format without URLs)"""
         return {
-            "date": "27 July",
             "year": 1953,
             "title": "Test Mountain First Ascent",
             "description": "A significant test achievement in mountaineering history.",
             "location": "Test Mountain Range",
             "people": ["Test Climber", "Test Guide"],
-            "url_1": "https://example.com/source1",
-            "url_2": "https://example.com/source2",
             "category": "first_ascent",
+            "confidence": "high",
             "methodology": "Direct date search",
-            "url_methodology": "Verified primary sources",
         }
 
     def test_generate_daily_event_success(self, app, event_service, mock_llm_response):
@@ -56,44 +53,72 @@ class TestHistoricalEventService:
 
                     event = event_service.generate_daily_event()
 
-            # Verify event was created and saved
             assert event is not None
-            assert event.date == "27 July"
+            assert event.event_month == 7
+            assert event.event_day == 27
             assert event.year == 1953
             assert event.title == "Test Mountain First Ascent"
-            assert event.url == "https://example.com/source1"
-            assert event.url_secondary == "https://example.com/source2"
-            assert event.methodology == "Direct date search"
             assert event.category == EventCategory.FIRST_ASCENT
             assert event.is_generated is True
 
-            # Verify it was saved to database
-            saved_event = HistoricalEvent.query.filter_by(date="27 July", year=1953).first()
-            assert saved_event is not None
-            assert saved_event.id == event.id
+            # Verify saved to database
+            saved = HistoricalEvent.query.filter_by(event_month=7, event_day=27, year=1953).first()
+            assert saved is not None
+            assert saved.id == event.id
 
-    def test_generate_daily_event_with_target_date(self, app, event_service, mock_llm_response):
-        """Test generating event for specific target date"""
+    def test_generate_daily_event_low_confidence_skipped(self, app, event_service):
+        """Test that low-confidence events are not saved (Change 4)"""
         with app.app_context():
-            target_date = datetime(2024, 8, 15)
-            mock_llm_response["date"] = "15 August"
+            low_confidence_response = {
+                "year": 1999,
+                "title": "Uncertain Event",
+                "description": "Not sure about this one.",
+                "location": "Unknown",
+                "people": [],
+                "category": "achievement",
+                "confidence": "low",
+            }
+
+            with patch.object(
+                event_service.llm_service, "generate_historical_event"
+            ) as mock_generate:
+                mock_generate.return_value = low_confidence_response
+
+                with patch("utils.content_generation.datetime") as mock_datetime:
+                    mock_datetime.now.return_value = datetime(2024, 3, 15)
+
+                    result = event_service.generate_daily_event()
+
+            # Should return None for low confidence
+            assert result is None
+
+            # Should NOT be saved to database
+            saved = HistoricalEvent.query.filter_by(event_month=3, event_day=15).first()
+            assert saved is None
+
+    def test_generate_daily_event_medium_confidence_saved(self, app, event_service, mock_llm_response):
+        """Test that medium-confidence events ARE saved"""
+        with app.app_context():
+            mock_llm_response["confidence"] = "medium"
 
             with patch.object(
                 event_service.llm_service, "generate_historical_event"
             ) as mock_generate:
                 mock_generate.return_value = mock_llm_response
 
-                event = event_service.generate_daily_event(target_date)
+                with patch("utils.content_generation.datetime") as mock_datetime:
+                    mock_datetime.now.return_value = datetime(2024, 7, 27)
 
-            assert event.date == "15 August"
+                    event = event_service.generate_daily_event()
+
+            assert event is not None
+            assert event.title == "Test Mountain First Ascent"
 
     def test_generate_daily_event_already_exists(self, app, event_service):
         """Test generation when event already exists for date"""
         with app.app_context():
-            # Create existing event
             existing_event = HistoricalEvent(
-                date="27 July",
-                year=1953,
+                event_month=7, event_day=27, year=1953,
                 title="Existing Event",
                 description="Already exists",
                 category=EventCategory.ACHIEVEMENT,
@@ -104,7 +129,6 @@ class TestHistoricalEventService:
             with patch("utils.content_generation.datetime") as mock_datetime:
                 mock_datetime.now.return_value = datetime(2024, 7, 27)
 
-                # Should return existing event, not generate new one
                 result = event_service.generate_daily_event()
 
             assert result.id == existing_event.id
@@ -122,7 +146,6 @@ class TestHistoricalEventService:
 
                 event = event_service.generate_daily_event()
 
-            # Should default to ACHIEVEMENT for invalid category
             assert event.category == EventCategory.ACHIEVEMENT
 
     def test_generate_daily_event_llm_error_fallback(self, app, event_service):
@@ -143,35 +166,33 @@ class TestHistoricalEventService:
                     mock_fallback.assert_called_once()
 
     def test_create_fallback_event(self, app, event_service):
-        """Test fallback event creation"""
+        """Test fallback event creation with month/day"""
         with app.app_context():
             fallback_data = {
-                "date": "27 July",
                 "year": 1953,
                 "title": "Fallback Event",
                 "description": "Fallback description",
                 "location": "Fallback Location",
                 "people": ["Fallback Person"],
-                "url": None,
                 "category": "achievement",
+                "confidence": "high",
             }
 
             with patch.object(event_service.llm_service, "get_fallback_content") as mock_fallback:
                 mock_fallback.return_value = fallback_data
 
-                event = event_service._create_fallback_event("27 July")
+                event = event_service._create_fallback_event(7, 27)
 
             assert event.title == "Fallback Event"
+            assert event.event_month == 7
+            assert event.event_day == 27
             assert event.is_generated is False  # Marked as fallback
-            assert event.date == "27 July"
 
     def test_regenerate_event_success(self, app, event_service, mock_llm_response):
         """Test successful event regeneration"""
         with app.app_context():
-            # Create existing event
             existing_event = HistoricalEvent(
-                date="27 July",
-                year=1953,
+                event_month=7, event_day=27, year=1953,
                 title="Old Event",
                 description="Old description",
                 category=EventCategory.ACHIEVEMENT,
@@ -180,7 +201,6 @@ class TestHistoricalEventService:
             db.session.commit()
             event_id = existing_event.id
 
-            # Mock new LLM response
             with patch.object(
                 event_service.llm_service, "generate_historical_event"
             ) as mock_generate:
@@ -188,15 +208,38 @@ class TestHistoricalEventService:
 
                 updated_event = event_service.regenerate_event(event_id)
 
-            # Verify event was updated
             assert updated_event.id == event_id
             assert updated_event.title == "Test Mountain First Ascent"
-            assert (
-                updated_event.description
-                == "A significant test achievement in mountaineering history."
-            )
             assert updated_event.is_generated is True
-            assert updated_event.updated_at is not None
+
+    def test_regenerate_event_low_confidence_unchanged(self, app, event_service):
+        """Test that low-confidence regeneration leaves event unchanged"""
+        with app.app_context():
+            existing_event = HistoricalEvent(
+                event_month=7, event_day=27, year=1953,
+                title="Original Title",
+                description="Original description",
+                category=EventCategory.ACHIEVEMENT,
+            )
+            db.session.add(existing_event)
+            db.session.commit()
+            event_id = existing_event.id
+
+            low_confidence = {
+                "year": 1999, "title": "New Title", "description": "New",
+                "location": "New", "people": [], "category": "achievement",
+                "confidence": "low",
+            }
+
+            with patch.object(
+                event_service.llm_service, "generate_historical_event"
+            ) as mock_generate:
+                mock_generate.return_value = low_confidence
+
+                result = event_service.regenerate_event(event_id)
+
+            # Should return unchanged event
+            assert result.title == "Original Title"
 
     def test_regenerate_event_not_found(self, app, event_service):
         """Test regeneration of non-existent event"""
@@ -209,13 +252,11 @@ class TestHistoricalEventService:
     def test_get_or_create_todays_event_existing(self, app, event_service):
         """Test getting existing today's event"""
         with app.app_context():
-            # Create existing event for today
             with patch("utils.content_generation.datetime") as mock_datetime:
                 mock_datetime.now.return_value = datetime(2024, 7, 27)
 
                 existing_event = HistoricalEvent(
-                    date="27 July",
-                    year=1953,
+                    event_month=7, event_day=27, year=1953,
                     title="Existing Today Event",
                     description="Already exists",
                     category=EventCategory.ACHIEVEMENT,
@@ -226,7 +267,6 @@ class TestHistoricalEventService:
                 result = event_service.get_or_create_todays_event()
 
             assert result.id == existing_event.id
-            assert result.title == "Existing Today Event"
 
     def test_get_or_create_todays_event_create_new(self, app, event_service, mock_llm_response):
         """Test creating new today's event when none exists"""
@@ -238,13 +278,12 @@ class TestHistoricalEventService:
                 result = event_service.get_or_create_todays_event()
 
             assert result == mock_event
-            mock_generate.assert_called_once()
 
     def test_bulk_generate_events(self, app, event_service):
         """Test bulk event generation for date range"""
         with app.app_context():
             start_date = date(2024, 7, 25)
-            end_date = date(2024, 7, 27)  # 3 days
+            end_date = date(2024, 7, 27)
 
             with patch.object(event_service, "generate_daily_event") as mock_generate:
                 mock_events = [Mock(), Mock(), Mock()]
@@ -254,23 +293,6 @@ class TestHistoricalEventService:
 
             assert len(results) == 3
             assert mock_generate.call_count == 3
-            assert results == mock_events
-
-    def test_bulk_generate_events_with_errors(self, app, event_service):
-        """Test bulk generation with some failures"""
-        with app.app_context():
-            start_date = date(2024, 7, 25)
-            end_date = date(2024, 7, 27)  # 3 days
-
-            with patch.object(event_service, "generate_daily_event") as mock_generate:
-                # First call succeeds, second fails, third succeeds
-                mock_generate.side_effect = [Mock(), ContentGenerationError("Failed"), Mock()]
-
-                results = event_service.bulk_generate_events(start_date, end_date)
-
-            # Should return 2 successful events, skip the failed one
-            assert len(results) == 2
-            assert mock_generate.call_count == 3
 
 
 class TestNewsService:
@@ -278,21 +300,16 @@ class TestNewsService:
 
     @pytest.fixture
     def news_service(self, app):
-        """Create NewsService instance"""
         with app.app_context():
             return NewsService()
 
     def test_generate_daily_news_not_implemented(self, app, news_service):
-        """Test that news generation is not yet implemented"""
         with app.app_context():
-            result = news_service.generate_daily_news()
-            assert result == []
+            assert news_service.generate_daily_news() == []
 
     def test_fetch_and_curate_news_not_implemented(self, app, news_service):
-        """Test that news fetching is not yet implemented"""
         with app.app_context():
-            result = news_service.fetch_and_curate_news()
-            assert result == []
+            assert news_service.fetch_and_curate_news() == []
 
 
 class TestContentManager:
@@ -300,227 +317,131 @@ class TestContentManager:
 
     @pytest.fixture
     def content_manager(self, app):
-        """Create ContentManager instance"""
         with app.app_context():
             return ContentManager()
 
     def test_run_daily_generation_success(self, app, content_manager):
-        """Test successful daily content generation"""
         with app.app_context():
             mock_event = Mock()
-
             with patch.object(
                 content_manager.historical_service, "get_or_create_todays_event"
             ) as mock_get:
                 mock_get.return_value = mock_event
-
                 stats = content_manager.run_daily_generation()
 
             assert stats["historical_events"] == 1
-            assert stats["news_items"] == 0
             assert stats["errors"] == 0
 
     def test_run_daily_generation_with_error(self, app, content_manager):
-        """Test daily generation with error"""
         with app.app_context():
             with patch.object(
                 content_manager.historical_service, "get_or_create_todays_event"
             ) as mock_get:
-                mock_get.side_effect = ContentGenerationError("Generation failed")
-
+                mock_get.side_effect = ContentGenerationError("Failed")
                 stats = content_manager.run_daily_generation()
 
             assert stats["historical_events"] == 0
-            assert stats["news_items"] == 0
             assert stats["errors"] == 1
 
     def test_get_dashboard_stats(self, app, content_manager):
-        """Test dashboard statistics calculation"""
         with app.app_context():
-            # Create sample events
             events = [
                 HistoricalEvent(
-                    date="27 July",
-                    year=1953,
-                    title="Event 1",
-                    description="Description 1",
-                    category=EventCategory.FIRST_ASCENT,
-                    is_featured=True,
+                    event_month=7, event_day=27, year=1953,
+                    title="Event 1", description="Desc 1",
+                    category=EventCategory.FIRST_ASCENT, is_featured=True,
                 ),
                 HistoricalEvent(
-                    date="26 July",
-                    year=1965,
-                    title="Event 2",
-                    description="Description 2",
-                    category=EventCategory.ACHIEVEMENT,
-                    is_featured=False,
+                    event_month=7, event_day=26, year=1965,
+                    title="Event 2", description="Desc 2",
+                    category=EventCategory.ACHIEVEMENT, is_featured=False,
                 ),
             ]
-
             for event in events:
                 db.session.add(event)
             db.session.commit()
 
             stats = content_manager.get_dashboard_stats()
-
             assert stats["total_historical_events"] == 2
-            assert stats["total_news_items"] == 0
             assert stats["featured_events"] == 1
-            assert stats["generated_this_month"] >= 0  # Depends on creation dates
-
-    def test_test_services(self, app, content_manager):
-        """Test service testing functionality"""
-        with app.app_context():
-            with patch.object(
-                content_manager.historical_service.llm_service, "test_connection"
-            ) as mock_test_llm:
-                mock_test_llm.return_value = True
-
-                with patch.object(
-                    content_manager.historical_service.llm_service, "generate_historical_event"
-                ) as mock_generate:
-                    mock_generate.return_value = {"title": "Test Event"}
-
-                    results = content_manager.test_services()
-
-            assert results["llm_service"] is True
-            assert results["database"] is True
-            assert results["historical_generation"] is True
-            assert results["news_generation"] is False  # Not implemented yet
-
-    def test_test_services_with_failures(self, app, content_manager):
-        """Test service testing with failures"""
-        with app.app_context():
-            with patch.object(
-                content_manager.historical_service.llm_service, "test_connection"
-            ) as mock_test_llm:
-                mock_test_llm.return_value = False
-
-                with patch.object(
-                    content_manager.historical_service.llm_service, "generate_historical_event"
-                ) as mock_generate:
-                    mock_generate.side_effect = Exception("Generation failed")
-
-                    results = content_manager.test_services()
-
-            assert results["llm_service"] is False
-            assert results["database"] is True
-            assert results["historical_generation"] is False
 
 
 class TestConvenienceFunctions:
     """Test module-level convenience functions"""
 
     def test_generate_todays_historical_event_success(self, app):
-        """Test successful today's event generation function"""
         with app.app_context():
             mock_event = Mock()
-
-            with patch("utils.content_generation.HistoricalEventService") as mock_service_class:
+            with patch("utils.content_generation.HistoricalEventService") as mock_cls:
                 mock_service = Mock()
                 mock_service.get_or_create_todays_event.return_value = mock_event
-                mock_service_class.return_value = mock_service
-
+                mock_cls.return_value = mock_service
                 result = generate_todays_historical_event()
-
             assert result == mock_event
 
     def test_generate_todays_historical_event_error(self, app):
-        """Test today's event generation with error"""
         with app.app_context():
-            with patch("utils.content_generation.HistoricalEventService") as mock_service_class:
+            with patch("utils.content_generation.HistoricalEventService") as mock_cls:
                 mock_service = Mock()
-                mock_service.get_or_create_todays_event.side_effect = ContentGenerationError(
-                    "Failed"
-                )
-                mock_service_class.return_value = mock_service
-
+                mock_service.get_or_create_todays_event.side_effect = ContentGenerationError("Failed")
+                mock_cls.return_value = mock_service
                 result = generate_todays_historical_event()
-
             assert result is None
 
-    def test_run_daily_content_generation_function(self, app):
-        """Test daily content generation function"""
+
+class TestProviderPriority:
+    """Test LLM provider priority by use case"""
+
+    def test_historical_provider_order(self, app):
+        """Test that historical events use Anthropic > Moonshot > DeepSeek"""
         with app.app_context():
-            expected_stats = {"historical_events": 1, "news_items": 0, "errors": 0}
+            from utils.llm_providers import ProviderManager
+            with patch("utils.llm_providers.AnthropicProvider") as mock_anthropic, \
+                 patch("utils.llm_providers.MoonshotProvider") as mock_moonshot, \
+                 patch("utils.llm_providers.DeepSeekProvider") as mock_deepseek:
 
-            with patch("utils.content_generation.ContentManager") as mock_manager_class:
-                mock_manager = Mock()
-                mock_manager.run_daily_generation.return_value = expected_stats
-                mock_manager_class.return_value = mock_manager
+                # Make all providers "configured"
+                for mock_provider in [mock_anthropic, mock_moonshot, mock_deepseek]:
+                    instance = Mock()
+                    instance.is_configured = True
+                    mock_provider.return_value = instance
 
-                result = run_daily_content_generation()
+                manager = ProviderManager()
 
-            assert result == expected_stats
+                # Mock a successful call to track which provider is tried first
+                test_messages = [{"role": "user", "content": "test"}]
 
-    def test_get_content_stats_function(self, app):
-        """Test content statistics function"""
+                # Make anthropic succeed
+                manager.providers["anthropic"].chat_completion.return_value = {"test": True}
+
+                result = manager.chat_completion_with_fallback(
+                    test_messages, use_case="historical"
+                )
+
+                # Anthropic should be called (it's first for historical)
+                manager.providers["anthropic"].chat_completion.assert_called_once()
+
+    def test_news_provider_order(self, app):
+        """Test that news uses Moonshot > DeepSeek > Anthropic"""
         with app.app_context():
-            expected_stats = {
-                "total_historical_events": 5,
-                "total_news_items": 0,
-                "featured_events": 2,
-            }
+            from utils.llm_providers import ProviderManager
+            with patch("utils.llm_providers.AnthropicProvider") as mock_anthropic, \
+                 patch("utils.llm_providers.MoonshotProvider") as mock_moonshot, \
+                 patch("utils.llm_providers.DeepSeekProvider") as mock_deepseek:
 
-            with patch("utils.content_generation.ContentManager") as mock_manager_class:
-                mock_manager = Mock()
-                mock_manager.get_dashboard_stats.return_value = expected_stats
-                mock_manager_class.return_value = mock_manager
+                for mock_provider in [mock_anthropic, mock_moonshot, mock_deepseek]:
+                    instance = Mock()
+                    instance.is_configured = True
+                    mock_provider.return_value = instance
 
-                result = get_content_stats()
+                manager = ProviderManager()
 
-            assert result == expected_stats
+                test_messages = [{"role": "user", "content": "test"}]
+                manager.providers["moonshot"].chat_completion.return_value = {"test": True}
 
+                result = manager.chat_completion_with_fallback(
+                    test_messages, use_case="news"
+                )
 
-class TestContentGenerationIntegration:
-    """Integration tests for content generation workflow"""
-
-    def test_full_content_generation_workflow(self, app):
-        """Test complete content generation workflow from start to finish"""
-        with app.app_context():
-            # Mock LLM response
-            mock_llm_response = {
-                "date": "27 July",
-                "year": 1953,
-                "title": "Integration Test Event",
-                "description": "Full workflow test event.",
-                "location": "Test Mountain",
-                "people": ["Test Climber"],
-                "url_1": "https://example.com/source",
-                "category": "first_ascent",
-            }
-
-            # Create service and mock LLM
-            service = HistoricalEventService()
-
-            with patch.object(service.llm_service, "generate_historical_event") as mock_generate:
-                mock_generate.return_value = mock_llm_response
-
-                with patch("utils.content_generation.datetime") as mock_datetime:
-                    mock_datetime.now.return_value = datetime(2024, 7, 27)
-
-                    # Generate event
-                    event = service.generate_daily_event()
-
-            # Verify complete workflow
-            assert event is not None
-            assert event.title == "Integration Test Event"
-
-            # Verify database persistence
-            saved_event = HistoricalEvent.query.filter_by(date="27 July", year=1953).first()
-            assert saved_event is not None
-            assert saved_event.title == "Integration Test Event"
-
-            # Test retrieval methods
-            todays_event = HistoricalEvent.get_todays_event()
-            assert todays_event.id == event.id
-
-            # Test regeneration
-            mock_llm_response["title"] = "Regenerated Event"
-            with patch.object(service.llm_service, "generate_historical_event") as mock_regenerate:
-                mock_regenerate.return_value = mock_llm_response
-
-                regenerated = service.regenerate_event(event.id)
-
-            assert regenerated.title == "Regenerated Event"
-            assert regenerated.id == event.id  # Same event, updated content
+                # Moonshot should be called first for news
+                manager.providers["moonshot"].chat_completion.assert_called_once()

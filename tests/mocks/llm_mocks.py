@@ -48,14 +48,12 @@ class MockLLMProvider:
                             {
                                 "year": 1953,
                                 "title": "Mock Historical Mountaineering Event",
-                                "description": "A significant mock event in mountaineering history that demonstrates the testing capabilities of our application.",
+                                "description": "A significant mock event in mountaineering history.",
                                 "location": "Mock Mountain Range, Test Alps",
                                 "people": ["Mock Climber", "Test Mountaineer"],
-                                "url_1": "https://mock.example.com/source1",
-                                "url_2": "https://mock.example.com/source2",
                                 "category": "first_ascent",
+                                "confidence": "high",
                                 "methodology": "Mock historical research methodology",
-                                "url_methodology": "Verified through mock testing procedures",
                             }
                         ),
                     },
@@ -137,18 +135,17 @@ class MockLLMService:
         self.provider_manager = MockProviderManager()
         self._generated_events = []
 
-    def generate_historical_event(self, date: str, target_date: Optional[datetime] = None) -> Dict:
+    def generate_historical_event(self, date: str = None, target_date: Optional[datetime] = None) -> Dict:
         """Generate mock historical event"""
         event_data = {
             "year": 1953 + len(self._generated_events),
-            "title": f"Mock Event for {date}",
-            "description": f"A mock historical mountaineering event that occurred on {date}.",
+            "title": f"Mock Event {len(self._generated_events) + 1}",
+            "description": "A mock historical mountaineering event.",
             "location": f"Mock Location {len(self._generated_events) + 1}",
             "people": [f"Mock Person {i+1}" for i in range(2)],
-            "url_1": f"https://mock.example.com/event/{len(self._generated_events)}",
             "category": "first_ascent",
+            "confidence": "high",
             "methodology": "Mock methodology",
-            "url_methodology": "Mock verification",
         }
 
         self._generated_events.append(event_data)
@@ -201,8 +198,8 @@ MOCK_RESPONSES = {
         "description": "A mock event for testing",
         "location": "Mock Location",
         "people": ["Mock Person 1", "Mock Person 2"],
-        "url_1": "https://mock.example.com/1",
         "category": "first_ascent",
+        "confidence": "high",
     },
     "historical_event_minimal": {
         "year": 1960,
@@ -211,6 +208,7 @@ MOCK_RESPONSES = {
         "location": "Test Location",
         "people": ["Test Person"],
         "category": "achievement",
+        "confidence": "medium",
     },
     "historical_event_invalid_category": {
         "year": 1970,
@@ -219,6 +217,7 @@ MOCK_RESPONSES = {
         "location": "Test Location",
         "people": ["Test Person"],
         "category": "invalid_category",
+        "confidence": "high",
     },
     "news_response": [
         {

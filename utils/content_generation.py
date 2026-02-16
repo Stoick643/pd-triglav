@@ -28,7 +28,7 @@ class HistoricalEventService:
     def __init__(self):
         self.llm_service = LLMService()
 
-    def generate_daily_event(self, target_date: Optional[datetime] = None) -> HistoricalEvent:
+    def generate_daily_event(self, target_date: Optional[datetime] = None) -> Optional[HistoricalEvent]:
         """
         Generate historical event for a specific date
 
@@ -36,7 +36,7 @@ class HistoricalEventService:
             target_date: Date to generate event for. If None, uses today.
 
         Returns:
-            HistoricalEvent: Created database record
+            HistoricalEvent: Created database record, or None if low confidence
 
         Raises:
             ContentGenerationError: If generation fails
@@ -44,19 +44,26 @@ class HistoricalEventService:
         if target_date is None:
             target_date = datetime.now()
 
-        date_string = target_date.strftime("%B %d")
+        month = target_date.month
+        day = target_date.day
 
         # Check if event already exists for this date
-        existing_event = HistoricalEvent.get_event_for_date(date_string)
+        existing_event = HistoricalEvent.get_event_for_date(month, day)
         if existing_event:
-            logger.info(f"Historical event already exists for {date_string}")
+            logger.info(f"Historical event already exists for {day} {target_date.strftime('%B')}")
             return existing_event
 
         try:
-            logger.info(f"Generating new historical event for {date_string}")
+            logger.info(f"Generating new historical event for {day} {target_date.strftime('%B')}")
 
             # Generate content using LLM
             event_data = self.llm_service.generate_historical_event()
+
+            # Change 4: Skip low-confidence results
+            confidence = event_data.get("confidence", "medium")
+            if confidence == "low":
+                logger.warning(f"Skipping low-confidence event: {event_data.get('title', 'unknown')}")
+                return None
 
             # Convert category string to enum
             try:
@@ -65,21 +72,17 @@ class HistoricalEventService:
                 logger.warning(f"Invalid category '{event_data['category']}', using ACHIEVEMENT")
                 category = EventCategory.ACHIEVEMENT
 
-            # Create database record
+            # Create database record with structured date
             event = HistoricalEvent(
-                date=event_data["date"],
+                event_month=month,
+                event_day=day,
                 year=event_data["year"],
                 title=event_data["title"],
                 description=event_data["description"],
                 location=event_data["location"],
                 people=event_data["people"],
-                url=event_data.get(
-                    "url_1", event_data.get("url")
-                ),  # Handle both old and new format
-                url_secondary=event_data.get("url_2"),
                 category=category,
                 methodology=event_data.get("methodology"),
-                url_methodology=event_data.get("url_methodology"),
                 is_generated=True,
             )
 
@@ -93,7 +96,7 @@ class HistoricalEventService:
         except LLMError as e:
             logger.error(f"LLM service failed: {e}")
             # Try to create fallback content
-            return self._create_fallback_event(date_string)
+            return self._create_fallback_event(month, day)
 
         except Exception as e:
             db.session.rollback()
@@ -101,31 +104,28 @@ class HistoricalEventService:
             logger.error(error_msg)
             raise ContentGenerationError(error_msg)
 
-    def _create_fallback_event(self, date_string: str) -> HistoricalEvent:
+    def _create_fallback_event(self, month: int, day: int) -> HistoricalEvent:
         """Create fallback historical event when LLM fails"""
         try:
             fallback_data = self.llm_service.get_fallback_content("historical")
-            fallback_data["date"] = date_string  # Override with requested date
 
             event = HistoricalEvent(
-                date=fallback_data["date"],
+                event_month=month,
+                event_day=day,
                 year=fallback_data["year"],
                 title=fallback_data["title"],
                 description=fallback_data["description"],
                 location=fallback_data["location"],
                 people=fallback_data["people"],
-                url=fallback_data.get("url_1", fallback_data.get("url")),
-                url_secondary=fallback_data.get("url_2"),
                 category=EventCategory(fallback_data["category"]),
                 methodology=fallback_data.get("methodology"),
-                url_methodology=fallback_data.get("url_methodology"),
                 is_generated=False,  # Mark as fallback content
             )
 
             db.session.add(event)
             db.session.commit()
 
-            logger.info(f"Created fallback historical event for {date_string}")
+            logger.info(f"Created fallback historical event for {day}/{month}")
             return event
 
         except Exception as e:
@@ -152,7 +152,7 @@ class HistoricalEventService:
             raise ContentGenerationError(f"Historical event {event_id} not found")
 
         try:
-            logger.info(f"Regenerating historical event {event_id} for {event.date}")
+            logger.info(f"Regenerating historical event {event_id} for {event.event_day}/{event.event_month}")
 
             # Generate new content
             new_data = self.llm_service.generate_historical_event()
@@ -160,6 +160,12 @@ class HistoricalEventService:
                 f"Generated data keys: {list(new_data.keys()) if isinstance(new_data, dict) else type(new_data)}"
             )
             logger.debug(f"Generated data: {new_data}")
+
+            # Change 4: Skip low-confidence results
+            confidence = new_data.get("confidence", "medium")
+            if confidence == "low":
+                logger.warning(f"Skipping low-confidence regeneration: {new_data.get('title', 'unknown')}")
+                return event  # Return unchanged event
 
             # Update existing record
             try:
@@ -179,10 +185,7 @@ class HistoricalEventService:
                     f"Generated data is not a dictionary: {type(new_data)} = {repr(new_data)}"
                 )
                 raise ContentGenerationError(f"Invalid generated data format: {e}")
-            event.url = new_data.get("url_1", new_data.get("url"))
-            event.url_secondary = new_data.get("url_2")
             event.methodology = new_data.get("methodology")
-            event.url_methodology = new_data.get("url_methodology")
 
             try:
                 event.category = EventCategory(new_data["category"])
@@ -211,10 +214,7 @@ class HistoricalEventService:
                 event.description = fallback_data["description"]
                 event.location = fallback_data["location"]
                 event.people = fallback_data["people"]
-                event.url = fallback_data.get("url")
-                event.url_secondary = None
                 event.methodology = "Fallback content used due to LLM service unavailability"
-                event.url_methodology = None
                 event.category = EventCategory(fallback_data["category"])
                 event.is_generated = False  # Mark as fallback
                 event.updated_at = datetime.utcnow()
@@ -233,13 +233,16 @@ class HistoricalEventService:
             logger.error(error_msg)
             raise ContentGenerationError(error_msg)
 
-    def get_or_create_todays_event(self) -> HistoricalEvent:
-        """Get today's historical event, creating if it doesn't exist"""
+    def get_or_create_todays_event(self) -> Optional[HistoricalEvent]:
+        """Get today's historical event, creating if it doesn't exist.
+        
+        Priority: curated (is_generated=False) > existing AI > generate new.
+        Returns None if LLM returns low confidence.
+        """
         today = datetime.now()
-        date_string = today.strftime("%B %d")
 
-        # Try to get existing event
-        event = HistoricalEvent.get_event_for_date(date_string)
+        # get_event_for_date already prioritizes curated over AI (Change 2)
+        event = HistoricalEvent.get_event_for_date(today.month, today.day)
         if event:
             return event
 

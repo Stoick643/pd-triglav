@@ -192,6 +192,107 @@ class HistoricalEvent(db.Model):
 - Admin can manage and refresh content
 - Error handling with fallback content works
 
+#### Phase 3A.1: Historical Events Data Quality (February 2026)
+**Status**: Planned
+**Goal**: Fix data quality issues, improve reliability, upgrade LLM providers
+
+##### Change 1: Structured Date Storage
+**Problem**: Dates stored as free-form strings in mixed formats — Slovenian ("Julij 15"), English ("09 November"), inconsistent day padding. Lookups for today's event fail when formats don't match.
+
+**Solution**: Replace string `date` column with structured integer fields.
+- Add `event_month` (Integer, 1-12) and `event_day` (Integer, 1-31) columns
+- Keep `date` column temporarily for migration, then drop or keep as display cache
+- Update `get_event_for_date()` / `get_todays_event()` to use `WHERE event_month=X AND event_day=Y`
+- Migration script: parse existing `date` strings → populate `event_month`, `event_day`
+- Display: Jinja2 filter or model property for Slovenian output ("16. februar")
+
+**Files**: `models/content.py`, migration script, templates
+
+**Tests**:
+- Model storage and retrieval by month/day integers
+- `get_todays_event()` lookup using int fields
+- Slovenian display formatting
+- Migration script correctly parses all existing date formats
+
+##### Change 2: Prioritize Curated Over AI Events
+**Problem**: `get_todays_event()` returns first match — could return AI-generated event even when a curated (scraped) event exists for the same date.
+
+**Solution**: Update `get_event_for_date()` in `models/content.py` to `order_by(is_generated.asc())`. Curated events (False=0) sort before AI (True=1).
+
+**Files**: `models/content.py`
+
+**Tests**:
+- Insert curated + AI event for same date, verify curated returned first
+
+##### Change 3: Rewrite LLM Prompt
+**Problem**: Current prompt asks LLM to provide URLs (biggest hallucination source). Allows vague multi-day events (step 3a). No confidence indicator for filtering unreliable results.
+
+**Solution**:
+- Remove: URL generation (steps 5a-5e, url_1, url_2), step 3a (multi-day events), url_methodology field
+- Add: `"confidence": "high"|"medium"|"low"` field
+- Add: Explicit constraint — "Only return events you are highly confident occurred on this exact date"
+- Simplify: Focus on well-documented events (Everest, K2, major Alps ascents, famous tragedies)
+
+**Files**: `utils/history_prompt.md`
+
+**Tests**:
+- Validate expected JSON structure from prompt (mock LLM response)
+
+##### Change 4: Update Content Generation Logic
+**Problem**: No distinction between curated/AI when serving events. No way to skip unreliable AI output.
+
+**Solution**:
+- `get_or_create_todays_event()`: check curated first → existing AI → generate new
+- If LLM returns `confidence: "low"` → don't save, return None
+- Mark saved AI events with `is_generated=True`
+- Remove URL processing from `llm_service.py` (url_1, url_2, url_methodology)
+
+**Files**: `utils/content_generation.py`, `utils/llm_service.py`
+
+**Tests**:
+- Mock LLM returning `confidence: "low"` → verify event not saved
+- Mock LLM returning `confidence: "high"` → verify event saved
+- Curated-first lookup logic
+
+##### Change 5: Upgrade LLM Providers
+**Problem**: Moonshot uses outdated `kimi-k2-0711-preview`. No Anthropic provider. Provider priority is not use-case-dependent.
+
+**Solution**:
+- Moonshot: `kimi-k2-0711-preview` → `kimi-k2.5`
+- DeepSeek: keep `deepseek-chat`
+- Add `AnthropicProvider` for `claude-sonnet-4-5`
+- Add `ANTHROPIC_API_KEY` to `config.py` and `.env.example`
+- Use-case-dependent provider priority in `ProviderManager`
+
+**Provider priority by use case**:
+
+| Priority | Historical events | Everything else |
+|----------|-------------------|-----------------|
+| 1st      | Claude Sonnet 4.5 | Kimi K2.5       |
+| 2nd      | Kimi K2.5         | DeepSeek        |
+| 3rd      | DeepSeek          | Claude Sonnet 4.5 |
+
+**Files**: `utils/llm_providers.py`, `config.py`, `.env.example`
+
+**Tests**:
+- Anthropic provider initialization and connection test
+- Provider fallback order for `historical` vs `other` use cases
+- Fallback works when a provider is unavailable
+
+##### Documentation Updates
+- `docs/specification.md` — add LLM providers section with priority table
+- `.env.example` — add `ANTHROPIC_API_KEY`, `MOONSHOT_API_KEY`, `DEEPSEEK_API_KEY`
+- `CLAUDE.md` — update env vars reference
+
+##### Execution Order
+1. Change 1 (structured dates) — foundation, everything else depends on lookups
+2. Change 2 (curated priority) — quick win, one line
+3. Change 5 (providers) — needed before prompt changes
+4. Change 3 (prompt rewrite)
+5. Change 4 (generation logic) — ties it all together
+
+---
+
 #### Phase 3B: News Curation (Future Implementation)
 **Status**: Architecture ready, implementation pending
 **Goal**: Daily curation of 5 relevant mountaineering news items

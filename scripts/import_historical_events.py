@@ -10,9 +10,26 @@ from models.user import db
 from models.content import HistoricalEvent, EventCategory
 from app import create_app
 
+
+def parse_date_to_month_day(date_str):
+    """
+    Parse a date string to (month, day) integers.
+    
+    Handles mixed formats:
+      - "16 February" / "02 February" (English)
+      - "Februar 16" / "Julij 15" (Slovenian)
+      - "April 23" (shared EN/SL)
+    
+    Returns (month, day) or (None, None) if unparseable.
+    """
+    from utils.llm_service import parse_date_string
+    return parse_date_string(date_str)
+
+
 def import_events_to_db(json_file_path='scraped_history.json'):
     """
     Imports historical events from a JSON file into the database.
+    Normalizes date strings to structured month/day integers on import.
     """
     app = create_app()
     with app.app_context():
@@ -50,23 +67,33 @@ def import_events_to_db(json_file_path='scraped_history.json'):
                 skipped_count += 1
                 continue
 
+            # Parse date string to month/day integers
+            month, day = parse_date_to_month_day(date_str)
+            if month is None or day is None:
+                print(f"Skipping event with unparseable date '{date_str}': {title}")
+                skipped_count += 1
+                continue
+
             # Check for existing event to prevent duplicates
-            existing_event = HistoricalEvent.query.filter_by(date=date_str, year=year).first()
+            existing_event = HistoricalEvent.query.filter_by(
+                event_month=month, event_day=day, year=int(year)
+            ).first()
             if existing_event:
-                print(f"Skipping existing event: {title} ({date_str}, {year})")
+                print(f"Skipping existing event: {title} ({day}/{month}, {year})")
                 skipped_count += 1
                 continue
 
             try:
                 # Ensure category is a valid EventCategory enum member
-                category_value = event_data.get('category', 'achievement') # Changed to lowercase
+                category_value = event_data.get('category', 'achievement')
                 if category_value not in [e.value for e in EventCategory]:
                     print(f"Warning: Invalid category '{category_value}' for event '{title}'. Defaulting to 'achievement'.")
-                    category_value = 'achievement' # Changed to lowercase
+                    category_value = 'achievement'
                 
                 new_event = HistoricalEvent(
-                    date=date_str,
-                    year=int(year),  # Ensure year is integer
+                    event_month=month,
+                    event_day=day,
+                    year=int(year),
                     title=title,
                     description=event_data.get('description', ''),
                     location=event_data.get('location'),
@@ -85,7 +112,7 @@ def import_events_to_db(json_file_path='scraped_history.json'):
                 imported_count += 1
             except Exception as e:
                 db.session.rollback()
-                print(f"Error importing event '{title} ({date_str}, {year})': {e}")
+                print(f"Error importing event '{title} ({day}/{month}, {year})': {e}")
                 skipped_count += 1
                 continue
         

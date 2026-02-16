@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 
 def format_date_standard(date_obj: datetime) -> str:
     """
-    Format date as '27 July' - day and month for historical events
+    Format date as '27 July' - day and month for historical events.
+    
+    DEPRECATED: Use date_obj.month and date_obj.day directly for lookups.
+    Kept for backward compatibility with prompt generation.
 
     Args:
         date_obj: datetime object
@@ -24,6 +27,59 @@ def format_date_standard(date_obj: datetime) -> str:
         str: Formatted date like '27 July'
     """
     return date_obj.strftime("%d %B")
+
+
+def parse_date_string(date_str: str) -> tuple:
+    """
+    Parse a date string in various formats to (month, day) integers.
+    
+    Handles:
+      - "16 February" / "02 February" (English DD Month)
+      - "February 16" (English Month DD)
+      - "Februar 16" / "Julij 15" (Slovenian)
+      
+    Returns:
+        tuple: (month: int, day: int) or (None, None) if unparseable
+    """
+    import re
+    
+    if not date_str or not isinstance(date_str, str):
+        return None, None
+    
+    date_str = date_str.strip()
+    
+    # Month name mappings (English + Slovenian)
+    MONTH_LOOKUP = {
+        # English
+        'january': 1, 'february': 2, 'march': 3, 'april': 4,
+        'may': 5, 'june': 6, 'july': 7, 'august': 8,
+        'september': 9, 'october': 10, 'november': 11, 'december': 12,
+        # Slovenian
+        'januar': 1, 'februar': 2, 'marec': 3,
+        'maj': 5, 'junij': 6, 'julij': 7, 'avgust': 8,
+        'oktober': 10,
+    }
+    
+    # Try "DD Month" (e.g., "16 February", "Julij 15" reversed)
+    match = re.match(r'^(\d{1,2})\s+([A-Za-z\u010d\u0161\u017e]+)$', date_str)
+    if match:
+        day = int(match.group(1))
+        month_name = match.group(2).lower()
+        month = MONTH_LOOKUP.get(month_name)
+        if month and 1 <= day <= 31:
+            return month, day
+    
+    # Try "Month DD" (e.g., "February 16", "Julij 15")
+    match = re.match(r'^([A-Za-z\u010d\u0161\u017e]+)\s+(\d{1,2})$', date_str)
+    if match:
+        month_name = match.group(1).lower()
+        day = int(match.group(2))
+        month = MONTH_LOOKUP.get(month_name)
+        if month and 1 <= day <= 31:
+            return month, day
+    
+    logger.warning(f"Could not parse date string: '{date_str}'")
+    return None, None
 
 
 class LLMError(Exception):
@@ -145,10 +201,8 @@ Respond in JSON format:
                     return self.get_fallback_content("historical")
 
             # Handle optional fields
-            result.setdefault("url_1", result.get("url"))
-            result.setdefault("url_2", None)
+            result.setdefault("confidence", "medium")
             result.setdefault("methodology", None)
-            result.setdefault("url_methodology", None)
 
             # Validate category
             valid_categories = ["first_ascent", "tragedy", "discovery", "achievement", "expedition"]
@@ -164,9 +218,6 @@ Respond in JSON format:
                     result["people"] = [name.strip() for name in result["people"].split(",")]
                 else:
                     result["people"] = []
-
-            # Add date field
-            result["date"] = current_date
 
             logger.info(f"Successfully generated historical event: {result['title']}")
             return result
@@ -301,16 +352,14 @@ Assign relevance_score from 0.0 to 1.0 based on importance to mountaineering com
 
         # Absolute fallback if no providers available
         if content_type == "historical":
-            today = format_date_standard(datetime.now())
             return {
-                "date": today,
                 "year": 1953,
                 "title": "First Ascent of Mount Everest",
                 "description": "On May 29, 1953, Edmund Hillary and Tenzing Norgay became the first confirmed climbers to reach the summit of Mount Everest. This achievement marked a pivotal moment in mountaineering history, proving that the world's highest peak could be conquered. Their success opened a new era of high-altitude climbing and inspired generations of mountaineers worldwide.",
                 "location": "Mount Everest, Nepal-Tibet border",
                 "people": ["Edmund Hillary", "Tenzing Norgay"],
-                "url": None,
                 "category": "first_ascent",
+                "confidence": "high",
             }
         else:
             return {

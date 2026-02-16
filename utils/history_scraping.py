@@ -91,10 +91,10 @@ class EventParser:
         }
         
         # New reverse mapping for output
-        output_month_names = { # Slovenian month names
-            '01': 'Januar', '02': 'Februar', '03': 'Marec', '04': 'April',
-            '05': 'Maj', '06': 'Junij', '07': 'Julij', '08': 'Avgust',
-            '09': 'September', '10': 'Oktober', '11': 'November', '12': 'December'
+        output_month_names = { # English month names for normalized storage
+            '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+            '05': 'May', '06': 'June', '07': 'July', '08': 'August',
+            '09': 'September', '10': 'October', '11': 'November', '12': 'December'
         }
         
         # Date patterns: day first (Slovenian), then month first (English)

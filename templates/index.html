@@ -258,7 +258,7 @@
                     <div class="row">
                         <div class="col-md-8">
                             <h6 class="text-primary mb-2">
-                                {{ todays_event.full_date_string }}
+                                {{ todays_event.date_sl }} {{ todays_event.year }}
                                 <span class="badge bg-{{ 'success' if todays_event.category.value == 'first_ascent' else 'warning' if todays_event.category.value == 'achievement' else 'info' if todays_event.category.value == 'expedition' else 'secondary' if todays_event.category.value == 'discovery' else 'danger' }} ms-2">
                                     {% if todays_event.category.value == 'first_ascent' %}Prva vzpon
                                     {% elif todays_event.category.value == 'achievement' %}Dosežek

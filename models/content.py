@@ -374,17 +374,30 @@ class HistoricalEvent(db.Model):
 
     __tablename__ = "historical_events"
     __table_args__ = (
-        db.UniqueConstraint("date", "year", name="unique_event_per_date"),
-        db.Index("idx_historical_events_date", "date"),
+        db.UniqueConstraint("event_month", "event_day", "year", name="unique_event_per_date"),
+        db.Index("idx_historical_events_month_day", "event_month", "event_day"),
         db.Index("idx_historical_events_year", "year"),
         db.Index("idx_historical_events_category", "category"),
     )
 
+    # English month names for display and parsing
+    MONTH_NAMES_EN = [
+        "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+
+    # Slovenian month names for localized display
+    MONTH_NAMES_SL = [
+        "", "januar", "februar", "marec", "april", "maj", "junij",
+        "julij", "avgust", "september", "oktober", "november", "december",
+    ]
+
     # Primary key
     id = db.Column(db.Integer, primary_key=True)
 
-    # Event timing
-    date = db.Column(db.String(10), nullable=False)  # Format: "July 26"
+    # Event timing — structured integers for reliable lookups
+    event_month = db.Column(db.Integer, nullable=False)  # 1-12
+    event_day = db.Column(db.Integer, nullable=False)     # 1-31
     year = db.Column(db.Integer, nullable=False)
 
     # Event content
@@ -396,7 +409,7 @@ class HistoricalEvent(db.Model):
     people = db.Column(db.JSON, default=list)  # ["name1", "name2"]
 
     # Source and categorization
-    url = db.Column(db.String(500))  # Primary source URL (backward compatibility)
+    url = db.Column(db.String(500))  # Primary source URL (curated events)
     url_secondary = db.Column(db.String(500))  # Secondary source URL
     category = db.Column(db.Enum(EventCategory), nullable=False)
 
@@ -413,12 +426,27 @@ class HistoricalEvent(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):
-        return f"<HistoricalEvent {self.date} {self.year}: {self.title}>"
+        return f"<HistoricalEvent {self.event_day} {self.MONTH_NAMES_EN[self.event_month]} {self.year}: {self.title}>"
+
+    @property
+    def date_en(self):
+        """Get date in English format: '16 February'"""
+        return f"{self.event_day} {self.MONTH_NAMES_EN[self.event_month]}"
+
+    @property
+    def date_sl(self):
+        """Get date in Slovenian format: '16. februar'"""
+        return f"{self.event_day}. {self.MONTH_NAMES_SL[self.event_month]}"
 
     @property
     def full_date_string(self):
-        """Get formatted date string"""
-        return f"{self.date}, {self.year}"
+        """Get formatted date string in Slovenian: '16. februar 1953'"""
+        return f"{self.date_sl} {self.year}"
+
+    @property
+    def full_date_string_en(self):
+        """Get formatted date string in English: '16 February, 1953'"""
+        return f"{self.date_en}, {self.year}"
 
     @property
     def people_list(self):
@@ -433,18 +461,30 @@ class HistoricalEvent(db.Model):
         return ", ".join(self.people)
 
     @staticmethod
-    def get_event_for_date(date_string):
-        """Get historical event for specific date (e.g., 'July 26')"""
-        return HistoricalEvent.query.filter_by(date=date_string).first()
+    def get_event_for_date(month, day):
+        """Get historical event for specific month/day, preferring curated over AI-generated"""
+        return (
+            HistoricalEvent.query
+            .filter_by(event_month=month, event_day=day)
+            .order_by(HistoricalEvent.is_generated.asc())  # Change 2: curated first
+            .first()
+        )
+
+    @staticmethod
+    def get_all_events_for_date(month, day):
+        """Get all historical events for specific month/day"""
+        return (
+            HistoricalEvent.query
+            .filter_by(event_month=month, event_day=day)
+            .order_by(HistoricalEvent.is_generated.asc(), HistoricalEvent.year.desc())
+            .all()
+        )
 
     @staticmethod
     def get_todays_event():
         """Get historical event for today's date"""
-        from datetime import datetime
-        from utils.llm_service import format_date_standard
-
-        today = format_date_standard(datetime.now())
-        return HistoricalEvent.get_event_for_date(today)
+        today = datetime.now()
+        return HistoricalEvent.get_event_for_date(today.month, today.day)
 
     @staticmethod
     def get_featured_events(limit=5):
@@ -483,7 +523,8 @@ class HistoricalEvent(db.Model):
         """Convert event to dictionary for JSON serialization"""
         return {
             "id": self.id,
-            "date": self.date,
+            "event_month": self.event_month,
+            "event_day": self.event_day,
             "year": self.year,
             "title": self.title,
             "description": self.description,
@@ -493,6 +534,8 @@ class HistoricalEvent(db.Model):
             "category": self.category.value,
             "is_featured": self.is_featured,
             "full_date": self.full_date_string,
+            "date_en": self.date_en,
+            "date_sl": self.date_sl,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
