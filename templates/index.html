@@ -347,8 +347,8 @@
                     </div>
                     <div class="skeleton-fallback text-center py-3 mt-3">
                         <small class="text-body-secondary">
-                            <i class="bi bi-clock-history me-1"></i>
-                            Vsebina se ustvarja vsak dan ob 6:05
+                            <i class="bi bi-hourglass-split me-1 skeleton-spinner"></i>
+                            Zgodovinski dogodek se nalaga...
                         </small>
                     </div>
                 {% endif %}
@@ -495,8 +495,8 @@
                 </div>
                 <div class="skeleton-fallback text-center py-3 mt-3">
                     <small class="text-body-secondary">
-                        <i class="bi bi-newspaper me-1"></i>
-                        Novice se posodabljajo vsak dan ob 6:00
+                        <i class="bi bi-hourglass-split me-1 skeleton-spinner"></i>
+                        Novice se nalagajo...
                     </small>
                 </div>
             </div>
@@ -868,4 +868,174 @@ document.head.appendChild(style);
 
 
 {% endif %}
+
+<!-- Background content polling -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const POLL_INTERVAL = 5000;  // 5 seconds
+    const POLL_TIMEOUT = 120000; // 2 minutes max
+    const startTime = Date.now();
+
+    let eventReady = {{ 'true' if todays_event else 'false' }};
+    let newsReady = {{ 'true' if daily_news else 'false' }};
+    let pollTimer = null;
+
+    // Category display mappings
+    const categoryBadge = {
+        'first_ascent': { cls: 'bg-success', text: 'Prva vzpon', icon: 'bi-mountain' },
+        'achievement': { cls: 'bg-warning', text: 'Dosežek', icon: 'bi-trophy' },
+        'expedition': { cls: 'bg-info', text: 'Odprava', icon: 'bi-compass' },
+        'discovery': { cls: 'bg-secondary', text: 'Odkritje', icon: 'bi-search' },
+        'tragedy': { cls: 'bg-danger', text: 'Tragedija', icon: 'bi-heart' },
+    };
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
+    function renderEvent(ev) {
+        const cat = categoryBadge[ev.category] || { cls: 'bg-secondary', text: 'Dogodek', icon: 'bi-calendar-event' };
+        const people = (ev.people || []).join(', ');
+        const genLabel = ev.is_generated ? 'avtomatsko generirana' : 'ročno dodana';
+
+        let urlsHtml = '';
+        if (ev.url) {
+            urlsHtml += `<a href="${escapeHtml(ev.url)}" target="_blank" class="btn btn-outline-primary btn-sm me-2"><i class="bi bi-link-45deg me-1"></i>Vir 1</a>`;
+        }
+        if (ev.url_secondary) {
+            urlsHtml += `<a href="${escapeHtml(ev.url_secondary)}" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-link-45deg me-1"></i>Vir 2</a>`;
+        }
+
+        return `
+            <div class="row">
+                <div class="col-md-8">
+                    <h6 class="text-primary mb-2">
+                        ${escapeHtml(ev.date_sl)} ${ev.year}
+                        <span class="badge ${cat.cls} ms-2">${cat.text}</span>
+                    </h6>
+                    <h5 class="mb-3">${escapeHtml(ev.title)}</h5>
+                    <p class="mb-3">${escapeHtml(ev.description)}</p>
+                    <div class="d-flex flex-wrap gap-3 text-muted small">
+                        ${ev.location ? `<div><i class="bi bi-geo-alt me-1"></i><strong>Lokacija:</strong> ${escapeHtml(ev.location)}</div>` : ''}
+                        ${people ? `<div><i class="bi bi-people me-1"></i><strong>Udeleženci:</strong> ${escapeHtml(people)}</div>` : ''}
+                    </div>
+                    ${urlsHtml ? `<div class="mt-3">${urlsHtml}</div>` : ''}
+                </div>
+                <div class="col-md-4 text-center d-flex align-items-center justify-content-center">
+                    <div class="text-primary"><i class="bi ${cat.icon} display-3"></i></div>
+                </div>
+            </div>
+            <div class="mt-3 pt-3 border-top">
+                <small class="text-muted">
+                    <i class="bi bi-robot me-1"></i>Vsebina je bila ${genLabel} ${escapeHtml(ev.created_at)}
+                </small>
+            </div>`;
+    }
+
+    function renderNews(articles) {
+        return articles.map(function(a, i) {
+            const divider = i < articles.length - 1 ? 'border-bottom pb-3' : '';
+            const lang = (a.language || 'en').toUpperCase();
+            const pubDate = a.published_at ? a.published_at.substring(0, 10) : 'Nedavno';
+            const source = a.source_name ? ` &bull; ${escapeHtml(a.source_name)}` : '';
+
+            return `
+                <div class="mb-3 ${divider}">
+                    <h6 class="mb-2">
+                        <a href="${escapeHtml(a.url)}" target="_blank" class="text-decoration-none">${escapeHtml(a.title)}</a>
+                        <span class="badge bg-light text-dark ms-2">${lang}</span>
+                    </h6>
+                    <p class="text-muted small mb-2">${escapeHtml(a.summary)}</p>
+                    <small class="text-muted">
+                        <i class="bi bi-calendar3 me-1"></i>${pubDate}${source}
+                    </small>
+                </div>`;
+        }).join('');
+    }
+
+    function poll() {
+        // Timeout check
+        if (Date.now() - startTime > POLL_TIMEOUT) {
+            stopPolling();
+            // Show timeout messages
+            if (!eventReady) {
+                const eventBody = document.querySelector('.card.border-primary .card-body');
+                if (eventBody && eventBody.querySelector('.skeleton-loading')) {
+                    eventBody.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-clock-history display-4 mb-3 d-block"></i><p>Zgodovinski dogodek danes ni na voljo.</p></div>';
+                }
+            }
+            if (!newsReady) {
+                const newsBody = document.querySelector('.card.border-secondary .card-body');
+                if (newsBody && newsBody.querySelector('.skeleton-loading')) {
+                    newsBody.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-newspaper display-4 mb-3 d-block"></i><p>Novice trenutno niso na voljo.</p></div>';
+                }
+            }
+            return;
+        }
+
+        // Poll for event
+        if (!eventReady) {
+            fetch('/api/todays-event')
+                .then(r => r.json())
+                .then(function(data) {
+                    if (data.ready && data.event) {
+                        eventReady = true;
+                        const eventBody = document.querySelector('.card.border-primary .card-body');
+                        if (eventBody) {
+                            eventBody.innerHTML = renderEvent(data.event);
+                        }
+                        // Update header to primary style
+                        const eventCard = document.querySelector('.card.border-primary');
+                        if (eventCard) {
+                            const header = eventCard.querySelector('.card-header');
+                            if (header) header.className = 'card-header bg-primary text-white';
+                        }
+                        if (eventReady && newsReady) stopPolling();
+                    }
+                })
+                .catch(function() {});
+        }
+
+        // Poll for news
+        if (!newsReady) {
+            fetch('/api/daily-news')
+                .then(r => r.json())
+                .then(function(data) {
+                    if (data.ready && data.articles && data.articles.length > 0) {
+                        newsReady = true;
+                        const newsCard = document.querySelector('.card.border-secondary');
+                        if (newsCard) {
+                            // Update card styling
+                            newsCard.className = 'card border-success h-100';
+                            const header = newsCard.querySelector('.card-header');
+                            if (header) header.className = 'card-header bg-success text-white';
+                            // Update body content
+                            const body = newsCard.querySelector('.card-body');
+                            if (body) body.innerHTML = renderNews(data.articles);
+                        }
+                        if (eventReady && newsReady) stopPolling();
+                    }
+                })
+                .catch(function() {});
+        }
+    }
+
+    function stopPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    // Start polling only if something is missing
+    if (!eventReady || !newsReady) {
+        pollTimer = setInterval(poll, POLL_INTERVAL);
+        // First poll after 3 seconds (give background threads time to start)
+        setTimeout(poll, 3000);
+    }
+});
+</script>
+
 {% endblock %}

@@ -56,14 +56,26 @@ class HistoricalEventService:
         try:
             logger.info(f"Generating new historical event for {day} {target_date.strftime('%B')}")
 
-            # Generate content using LLM
+            # Generate content using LLM, retry on low confidence
             event_data = self.llm_service.generate_historical_event()
-
-            # Change 4: Skip low-confidence results
             confidence = event_data.get("confidence", "medium")
+
             if confidence == "low":
-                logger.warning(f"Skipping low-confidence event: {event_data.get('title', 'unknown')}")
-                return None
+                logger.warning(f"Low-confidence event from primary provider: {event_data.get('title', 'unknown')}")
+                # Retry with fallback providers
+                retry_data = self.llm_service.generate_historical_event(skip_first=True)
+                if retry_data:
+                    retry_confidence = retry_data.get("confidence", "medium")
+                    if retry_confidence != "low":
+                        logger.info(f"Fallback provider returned acceptable event: {retry_data.get('title', 'unknown')}")
+                        event_data = retry_data
+                        confidence = retry_confidence
+                    else:
+                        logger.warning(f"All providers returned low confidence, creating fallback event")
+                        return self._create_fallback_event(month, day)
+                else:
+                    logger.warning(f"Fallback providers failed, creating fallback event")
+                    return self._create_fallback_event(month, day)
 
             # Convert category string to enum
             try:

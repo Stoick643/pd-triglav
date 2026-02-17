@@ -66,8 +66,8 @@ class TestHistoricalEventService:
             assert saved is not None
             assert saved.id == event.id
 
-    def test_generate_daily_event_low_confidence_skipped(self, app, event_service):
-        """Test that low-confidence events are not saved (Change 4)"""
+    def test_generate_daily_event_low_confidence_retries_then_fallback(self, app, event_service):
+        """Test that low-confidence events trigger retry, then fallback (Change 4)"""
         with app.app_context():
             low_confidence_response = {
                 "year": 1999,
@@ -82,6 +82,7 @@ class TestHistoricalEventService:
             with patch.object(
                 event_service.llm_service, "generate_historical_event"
             ) as mock_generate:
+                # Both primary and retry return low confidence
                 mock_generate.return_value = low_confidence_response
 
                 with patch("utils.content_generation.datetime") as mock_datetime:
@@ -89,12 +90,14 @@ class TestHistoricalEventService:
 
                     result = event_service.generate_daily_event()
 
-            # Should return None for low confidence
-            assert result is None
+            # Should create a fallback event when all providers return low confidence
+            assert result is not None
+            assert result.is_generated is False  # Fallback is marked as non-generated
+            assert result.event_month == 3
+            assert result.event_day == 15
 
-            # Should NOT be saved to database
-            saved = HistoricalEvent.query.filter_by(event_month=3, event_day=15).first()
-            assert saved is None
+            # Retry should have been attempted (called twice: first + skip_first)
+            assert mock_generate.call_count == 2
 
     def test_generate_daily_event_medium_confidence_saved(self, app, event_service, mock_llm_response):
         """Test that medium-confidence events ARE saved"""

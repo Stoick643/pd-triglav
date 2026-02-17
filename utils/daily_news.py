@@ -170,28 +170,42 @@ class RSSFeedParser:
 
     # Configuration of RSS sources with metadata
     RSS_SOURCES = {
+        # Slovenian sources (higher credibility for local audience)
+        "pzs": {
+            "url": "https://www.pzs.si/rss.php",
+            "name": "Planinska zveza Slovenije",
+            "credibility": 1.0,
+            "language": "sl",
+        },
+        "gore_ljudje": {
+            "url": "https://www.gore-ljudje.net/feed/",
+            "name": "Gore & Ljudje",
+            "credibility": 0.95,
+            "language": "sl",
+        },
+        # International sources
         "planetmountain": {
             "url": "https://www.planetmountain.com/en/rss.xml",
             "name": "PlanetMountain",
-            "credibility": 1.0,
+            "credibility": 0.9,
             "language": "en",
         },
         "gripped": {
             "url": "https://gripped.com/feed/",
             "name": "Gripped Magazine",
-            "credibility": 0.9,
+            "credibility": 0.85,
             "language": "en",
         },
         "ukclimbing": {
             "url": "https://www.ukclimbing.com/news/rss",
             "name": "UK Climbing",
-            "credibility": 0.85,
+            "credibility": 0.8,
             "language": "en",
         },
         "8a": {
             "url": "https://www.8a.nu/rss/",
             "name": "8a.nu",
-            "credibility": 0.8,
+            "credibility": 0.75,
             "language": "en",
         },
     }
@@ -262,6 +276,7 @@ class RSSFeedParser:
                 for article in articles:
                     article["source_credibility"] = source_config["credibility"]
                     article["source_name"] = source_config["name"]
+                    article["language"] = source_config.get("language", "en")
 
                 all_articles.extend(articles)
 
@@ -746,21 +761,22 @@ class ClimbingNewsAggregator:
                 if keyword in content:
                     score += weight
 
-            # Slovenian content boost
+            # Slovenian language source boost
+            if article.get("language") == "sl":
+                score += 4.0  # Strong boost for Slovenian language content
+
+            # Slovenian content boost (keywords in any language)
             slovenian_terms = [
-                "slovenia",
-                "slovenian",
-                "janja garnbret",
-                "luka lindič",
-                "ljubljana",
-                "bled",
-                "triglav",
-                "julian alps",
+                "slovenia", "slovenian", "slovenija", "slovenski",
+                "janja garnbret", "luka lindič", "domen škofic",
+                "ljubljana", "bled", "triglav", "julian alps",
+                "julijske alpe", "kamniške alpe", "karavanke",
+                "planinska zveza", "gore-ljudje",
             ]
 
             for term in slovenian_terms:
                 if term in content:
-                    score += 2.0  # Strong boost for Slovenian content
+                    score += 2.0  # Boost for Slovenian-related content
                     break
 
             # Famous climbers boost

@@ -476,7 +476,7 @@ class ProviderManager:
         return list(self.providers.keys())
 
     def chat_completion_with_fallback(
-        self, messages: List[Dict], use_case: str = "historical", **kwargs
+        self, messages: List[Dict], use_case: str = "historical", skip_providers: int = 0, **kwargs
     ) -> Dict:
         """
         Try chat completion with fallback logic
@@ -484,6 +484,7 @@ class ProviderManager:
         Args:
             messages: Chat messages
             use_case: 'historical' or 'news'
+            skip_providers: Number of providers to skip from the start (for retries)
             **kwargs: Additional parameters
 
         Returns:
@@ -498,6 +499,11 @@ class ProviderManager:
             provider_order = ["moonshot", "deepseek", "anthropic"]
         else:
             provider_order = ["moonshot", "deepseek", "anthropic"]
+
+        # Skip first N providers (used for retry after low-confidence)
+        if skip_providers > 0:
+            provider_order = provider_order[skip_providers:]
+            logger.info(f"Skipping first {skip_providers} providers, trying: {provider_order}")
 
         last_error = None
 

@@ -226,9 +226,11 @@ class TestHomepageHistoricalEvents:
                 response = client.get("/")
                 assert response.status_code == 200
 
-                # Should show only primary source button
+                # Should show only primary source button in event HTML
                 assert b"Vir 1" in response.data
-                assert b"Vir 2" not in response.data
+                # Vir 2 link should not appear in the rendered event
+                # (it may appear in JS template, so check the actual href)
+                assert b"https://source2.com" not in response.data
 
 
 class TestAdminRoutes:

@@ -143,8 +143,9 @@ Respond in JSON format:
             kwargs.setdefault("response_format", {"type": "json_object"})
 
             # Use provider manager with fallback
+            skip_providers = kwargs.pop("skip_providers", 0)
             result = self.provider_manager.chat_completion_with_fallback(
-                messages=messages, use_case=use_case, **kwargs
+                messages=messages, use_case=use_case, skip_providers=skip_providers, **kwargs
             )
 
             # Handle fallback content
@@ -159,7 +160,7 @@ Respond in JSON format:
             logger.error(error_msg)
             raise LLMError(error_msg)
 
-    def generate_historical_event(self) -> Dict:
+    def generate_historical_event(self, skip_first: bool = False) -> Dict:
         """
         Generate historical mountaineering event for today's date using improved prompt template
 
@@ -187,7 +188,10 @@ Respond in JSON format:
 
         try:
             logger.info(f"Generating historical event for date: {current_date}")
-            result = self._make_api_request(messages, use_case="historical", temperature=0.3)
+            result = self._make_api_request(
+                messages, use_case="historical", temperature=0.3,
+                skip_providers=1 if skip_first else 0
+            )
 
             # Handle fallback content
             if "fallback" in result:
