@@ -7,17 +7,19 @@
 - Features: Member management, trip announcements, trip reports, photo galleries
 - AI-powered historical content and mountaineering news
 - Deployment: Fly.io with buildpacks (auto-detect Python)
-- Database: SQLite (production on persistent volume, development local)
+- Database: SQLite (production on persistent volume at /data/, development local)
 - File Storage: AWS S3 for photos
 
 ## Key Decisions Made
 
 ### Technology Stack
 - **Backend**: Flask + SQLAlchemy + SQLite
-- **Frontend**: Jinja2 + Bootstrap 5 + HTMX + TinyMCE
+- **Frontend**: Jinja2 + Bootstrap 5 + vanilla JS + TinyMCE
 - **Auth**: Flask-Login + Authlib (Google OAuth)
 - **File Storage**: AWS S3 + Boto3 + Pillow
 - **Email**: Flask-Mail with Amazon SES
+- **AI/LLM**: Anthropic Claude + Moonshot Kimi K2.5 + DeepSeek (multi-provider with fallback)
+- **News**: RSS feeds (PZS, Gore & Ljudje, PlanetMountain, etc.) + NewsAPI fallback
 - **Testing**: pytest + coverage
 - **Deployment**: Fly.io with buildpacks (no Docker)
 
@@ -27,11 +29,18 @@
 3. **Trip Leader**: Can create/manage trips + member permissions
 4. **Admin**: Full system access + user management
 
+### LLM Provider Priority (use-case dependent)
+
+| Priority | Historical events | Everything else |
+|----------|-------------------|-----------------|
+| 1st | Claude Sonnet 4.5 | Kimi K2.5 |
+| 2nd | Kimi K2.5 | DeepSeek |
+| 3rd | DeepSeek | Claude Sonnet 4.5 |
+
 ### Development Approach
-- **Phases**: 4 MVP phases (Auth → Trips → Reports → AI features)
 - **Testing**: Unit + integration tests, ~70% coverage target
-- **Language**: Slovenian throughout the application
-- **Design**: Web-first with mobile support
+- **Language**: Slovenian throughout the application (including AI-generated content)
+- **Design**: Web-first with mobile support, corporate design identity
 
 ## Essential Commands
 
@@ -52,19 +61,12 @@ cp .env.example .env
 
 ### Dependency Management (pip-tools)
 ```bash
-# Add new dependency
-echo "new-package" >> requirements.in
+# Add new dependency: edit requirements.in, then:
 pip-compile requirements.in
 pip-sync requirements.txt
 
-# Update all dependencies to latest versions
+# Update all dependencies
 pip-compile --upgrade requirements.in
-pip-sync requirements.txt
-
-# Generate requirements.txt from requirements.in
-pip-compile requirements.in
-
-# Sync environment to match requirements.txt exactly
 pip-sync requirements.txt
 ```
 
@@ -72,158 +74,83 @@ pip-sync requirements.txt
 
 ### Database Operations
 
-**Production (Fly.io):**
-```bash
-# Database is auto-initialized on deploy via release_command
-# Manual re-init (if needed):
-flyctl ssh console
-python scripts/init_db.py
-```
-
 **Development (Local):**
 ```bash
-# Initialize database (creates tables from models)
-python scripts/init_db.py
-
-# Seed development data (admin, member, guide, pending user + sample trips)
-python3 scripts/seed_db.py
-
-# OR seed production data (admin only)
-python3 scripts/seed_db_prod.py
+python scripts/init_db.py        # Initialize database (create tables)
+python scripts/seed_db.py        # Seed dev data (4 test users + sample trips)
+python scripts/import_historical_events.py  # Import 52 curated events
 ```
 
-**Flask-Migrate (optional, for dev schema changes):**
+**Production (Fly.io):**
 ```bash
-flask db init      # First time only
-flask db migrate -m "Description"
-flask db upgrade
+fly ssh console
+python scripts/init_db.py                    # Re-init (idempotent)
+python scripts/import_historical_events.py   # Import curated events
+python /data/q.py "SELECT * FROM users"      # Query DB (helper script on volume)
 ```
 
 ### Development Server
 ```bash
-# Run Flask development server
-python3 app.py
-
-# Alternative using flask command
-export FLASK_ENV=development
+python app.py
+# or
 flask run --debug
-
-# Or using flask run
-flask run
 ```
 
 ### Testing
 
-**Fast Development Testing (~1-2 minutes):**
+**Fast Development Testing:**
 ```bash
-# Method 1: Using make (recommended)
 make test-fast
-
-# Method 2: Using script
-./scripts/test-runner.sh fast
-
-# Method 3: Direct pytest
+# or
 pytest -m "fast" -v
 ```
 
 **Specific Test Categories:**
 ```bash
-# Security tests only
-make test-security
-
-# API endpoint tests
-make test-api
-
-# Database model tests
-make test-models
-
-# Authentication tests
-make test-auth
+make test-security    # Security tests
+make test-api         # API endpoint tests
+make test-models      # Database model tests
+make test-auth        # Authentication tests
 ```
 
-**Full Test Suite (~8+ minutes):**
+**Full Test Suite:**
 ```bash
-# All tests (use before commits)
 make test-all
-
-# With coverage report
-make test-coverage
+make test-coverage    # With coverage report
 ```
 
-**Test Organization:**
-- **Fast tests** (`pytest -m "fast"`): Models, forms, basic routes - for daily development
-- **Slow tests** (`pytest -m "slow"`): External services (LLM, S3, OAuth) - for CI/pre-commit
-- **Integration tests** (`pytest -m "integration"`): Real API calls - for comprehensive testing
-- **Security tests** (`pytest -m "security"`): CSRF, XSS, authentication bypasses
-
-**Legacy Commands:**
+**Historical Events Tests (60 tests):**
 ```bash
-# Run all tests (old way - slow)
-pytest
-
-# Run specific test file
-pytest tests/test_auth.py
-```
-
-### Code Quality
-```bash
-# Linting (if configured)
-flake8 .
-
-# Code formatting (if configured)  
-black .
-
-# Type checking (if configured)
-mypy .
+pytest tests/test_historical_events_model.py tests/test_content_generation.py tests/test_historical_events_routes.py -v
 ```
 
 ### Git Workflow
 ```bash
-# Standard workflow
 git add .
 git commit -m "Description"
-git push origin main
-
-# Feature branch workflow
-git checkout -b feature/new-feature
-# ... make changes ...
-git add .
-git commit -m "Add new feature"
-git push origin feature/new-feature
-# Create PR on GitHub
+git push origin master    # Auto-deploys to Fly.io via GitHub
 ```
 
 ## Test Users (Development)
 
-When `scripts/seed_db.py` is run, these test users are created:
-
+When `scripts/seed_db.py` is run:
 - **admin@pd-triglav.si** / password123 (Admin role)
 - **clan@pd-triglav.si** / password123 (Member role)
-- **vodnik@pd-triglav.si** / password123 (Trip Leader role)  
+- **vodnik@pd-triglav.si** / password123 (Trip Leader role)
 - **pending@pd-triglav.si** / password123 (Pending approval)
 
 ## Database Organization
 
-All database files are organized in the `databases/` directory:
-
 ```
 databases/
-├── pd_triglav.db        # Main development database
-├── test.db             # Single reusable test database
-├── .gitkeep            # Ensures directory is tracked
-└── README.md           # Database documentation
+├── pd_triglav.db    # Main development database
+├── test.db          # Test database
+└── .gitkeep
 ```
 
-### Database Isolation
-- **Development**: `databases/pd_triglav.db` (persistent, contains seeded data)
-- **Testing**: Hybrid strategy - `databases/test.db` (single mode) or `databases/test_gw*.db` (parallel mode)
-- **Production**: PostgreSQL (managed by Render)
-
-### Key Benefits
-- All project databases in one location
-- Complete test isolation from development
-- Easy cleanup and management
-- Git-controlled structure (but database files ignored)
+- **Development**: `databases/pd_triglav.db` (persistent, seeded data)
+- **Testing**: `databases/test.db` (single mode) or `databases/test_gw*.db` (parallel)
+- **Production**: SQLite at `/data/pd_triglav.db` on Fly.io persistent volume
 
 ## Environment Variables Reference
 
@@ -233,405 +160,125 @@ Required in `.env` file:
 # Flask Core
 SECRET_KEY=your-long-random-secret-key
 FLASK_ENV=development
-DATABASE_URL=postgresql://user:pass@localhost/pd_triglav
 
 # Google OAuth
 GOOGLE_CLIENT_ID=your-google-oauth-client-id
 GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
 
-# AWS S3 Configuration  
+# AWS S3 Configuration
 AWS_ACCESS_KEY_ID=your-aws-access-key-id
 AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key
 AWS_REGION=eu-north-1
 AWS_S3_BUCKET=your-s3-bucket-name
 AWS_S3_ENDPOINT_URL=https://s3.eu-north-1.amazonaws.com
 
-# Email (Render SMTP)
-MAIL_SERVER=smtp.render.com
+# Email (Amazon SES)
+MAIL_SERVER=email-smtp.eu-north-1.amazonaws.com
 MAIL_PORT=587
 MAIL_USE_TLS=True
-MAIL_USERNAME=your-email@domain.com
-MAIL_PASSWORD=your-email-password
+MAIL_USERNAME=your-ses-smtp-username
+MAIL_PASSWORD=your-ses-smtp-password
 MAIL_DEFAULT_SENDER=your-email@domain.com
 
-# LLM Integration (for historical content)
-LLM_API_KEY=your-llm-api-key
-LLM_API_URL=your-llm-api-endpoint
+# LLM Providers (for AI content generation)
+ANTHROPIC_API_KEY=sk-ant-...          # Claude Sonnet 4.5 (primary for historical)
+MOONSHOT_API_KEY=sk-...               # Kimi K2.5 (primary for news/general)
+DEEPSEEK_API_KEY=sk-...               # DeepSeek (fallback)
+
+# News
+NEWS_API_KEY=your-newsapi-key         # NewsAPI fallback
 ```
 
 ## Project Structure
 
 ```
 pd-triglav/
-├── app.py                 # Flask application factory
-├── config.py             # Configuration classes
-├── requirements.txt      # Python dependencies
-├── .env                  # Environment variables (not in git)
+├── app.py                 # Flask application factory + scheduler init
+├── config.py              # Configuration classes
+├── fly.toml               # Fly.io deployment config
+├── requirements.in        # Dependency source (edit this)
+├── requirements.txt       # Compiled dependencies (auto-generated)
 ├── models/
-│   ├── __init__.py
-│   ├── user.py          # User model and auth
-│   ├── trip.py          # Trip and participant models  
-│   └── content.py       # Reports, photos, comments
+│   ├── user.py            # User model, roles, auth
+│   ├── trip.py            # Trip and participant models
+│   └── content.py         # HistoricalEvent, DailyNews, EventCategory
 ├── routes/
-│   ├── __init__.py
-│   ├── auth.py          # Authentication routes
-│   ├── trips.py         # Trip management routes
-│   ├── reports.py       # Trip reports and photos
-│   └── admin.py         # Admin dashboard
+│   ├── main.py            # Homepage, history, news, admin actions, API endpoints
+│   ├── auth.py            # Authentication routes
+│   └── trips.py           # Trip management routes
+├── utils/
+│   ├── llm_providers.py   # AnthropicProvider, MoonshotProvider, DeepSeekProvider, ProviderManager
+│   ├── llm_service.py     # LLMService (prompt loading, event generation, news)
+│   ├── content_generation.py  # HistoricalEventService, ContentManager
+│   ├── daily_news.py      # RSS aggregation, web scraping, NewsAPI fallback
+│   ├── history_prompt.md  # LLM prompt template for historical events (Slovenian)
+│   ├── hero_utils.py      # Hero image selection (seasonal/time-based)
+│   └── scheduler.py       # APScheduler daily tasks (6 AM)
 ├── templates/
-│   ├── base.html        # Base template
-│   ├── auth/            # Authentication templates
-│   ├── trips/           # Trip-related templates
-│   └── reports/         # Report templates
+│   ├── base.html          # Base template with sidebar navigation
+│   ├── index.html         # Hero landing page + events + news (with JS polling)
+│   ├── history/           # Historical event detail
+│   ├── auth/              # Login, register, pending
+│   └── trips/             # Trip templates
 ├── static/
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── migrations/           # Database migrations
-├── tests/               # Test files
+│   ├── css/               # design-system, app, components, sidebar, lightbox, modals
+│   ├── js/                # app, hero, lightbox, confirm-modal, trip-modal
+│   └── images/hero/       # Seasonal hero images
 ├── scripts/
-│   ├── init_db.py      # Production DB init (db.create_all + admin)
-│   ├── seed_db.py      # Development data seeding (full test data)
-│   └── seed_db_prod.py # Production data seeding (admin only)
-└── docs/               # Documentation
+│   ├── init_db.py         # Production DB init (db.create_all + admin)
+│   ├── seed_db.py         # Development data seeding
+│   ├── seed_db_prod.py    # Production seeding (admin only)
+│   ├── import_historical_events.py  # Import 52 curated events from JSON
+│   └── migrate_dates_to_structured.py  # One-time migration (string->int dates)
+├── tests/                 # pytest test files
+├── databases/             # Local SQLite databases
+└── docs/                  # Documentation
 ```
 
-## Development Workflow
+## Development Status
 
-### Phase 1: Authentication & User Management ✅ **COMPLETED**
-- [x] Basic Flask app structure
-- [x] User model with roles
-- [x] Classical + Google OAuth registration
-- [x] Admin approval workflow
-- [x] Role-based access control
+### Completed ✅
+- **Authentication & User Management**: Login, register, Google OAuth, admin approval, roles
+- **Professional Design**: Corporate identity, sidebar navigation, responsive layout
+- **Trip Management**: CRUD, calendar, signup/waitlist, email notifications
+- **Hero Landing Page**: Seasonal images, parallax, user-state messaging, CTAs
+- **Modal System**: Confirmation modals, trip modals, lightbox
+- **Historical Events (Phase 3A)**: 52 curated events, LLM generation, homepage widget, archive
+- **Historical Events Data Quality (Phase 3A.1)**: Structured dates, curated priority, confidence filtering, multi-provider LLM, Slovenian output
+- **Daily News**: RSS aggregation (PZS, Gore & Ljudje + international), homepage widget
+- **Lazy Background Generation**: Both sections generate on first visit, JS polling
 
-### Phase 2: Professional Design Transformation ✅ **COMPLETED**
-- [x] Triglav Insurance corporate design identity adoption
-- [x] Professional vertical sidebar navigation system
-- [x] Dark gray primary (#2B2B2B) with red accent (#E31E24) color scheme
-- [x] Responsive mobile and desktop layouts
-- [x] Navigation stability fixes and optimization
-- [x] Theme system removal for simplified corporate design
-- [x] Color consistency throughout application
+### In Progress / Next
+- **Content polish**: Verify Slovenian RSS sources work reliably
+- **Production monitoring**: Check LLM costs, error rates
 
-### Phase 3: Modal System Implementation **(NEXT)**
-- [ ] Professional modal dialogs for forms and interactions
-- [ ] Confirmation modals for critical actions (delete, logout, etc.)
-- [ ] Image lightbox modals for photo galleries
-- [ ] User profile and settings modal interactions
-- [ ] Responsive modal behavior across devices
-- [ ] Modal accessibility (keyboard navigation, focus management)
+### Future Roadmap
+- **Trip Reports & Photos**: Rich text editing, S3 photo upload, galleries, comments
+- **Advanced AI**: Intelligent search, content recommendations
+- **Performance**: Caching, CDN, image optimization
+- **Accessibility**: Screen readers, keyboard navigation improvements
 
-### Phase 4: Professional Polish **(UPCOMING)**
-- [ ] Micro-interactions and smooth animations
-- [ ] Advanced accessibility features (screen readers, keyboard navigation)
-- [ ] Performance optimizations and loading states
-- [ ] Final UX refinements and user testing feedback
-- [ ] Cross-browser compatibility testing
-- [ ] Mobile-first responsive design improvements
-
-### Phase 5: Trip Management **(FUTURE)**
-- [ ] Trip announcements and CRUD operations
-- [ ] Calendar view implementation
-- [ ] Trip signup system with waitlists
-- [ ] Email notifications for trip updates
-
-### Phase 6: Content & Photos **(FUTURE)**
-- [ ] Trip reports with rich text editing
-- [ ] AWS S3 photo upload and management
-- [ ] Comments system for trips and reports
-- [ ] Photo galleries with lightbox functionality
-
-### Phase 7: AI Features **(FUTURE)**
-- [ ] Historical events integration
-- [ ] Mountaineering news summary
-- [ ] Intelligent search functionality
-
-## Hero Landing Page Implementation
-
-### Overview
-Transform the home page into a compelling hero landing page with stunning mountain photography, optimized messaging, and user-state-aware CTAs. Create an immersive first impression that converts visitors into members while showcasing the club's expertise and community.
-
-### Strategic Decision: Home Page as Hero
-**Why the home page (`/`) is the perfect hero location:**
-- **Universal Landing Point** - All visitors (Google search, direct links, referrals) land here first
-- **Content Visibility** - Historical events and news are already public, creating value for non-members
-- **Conversion Funnel** - Perfect place to convert visitors → members
-- **SEO Benefits** - Search engines will index this compelling content
-
-### Files to Modify
-
-#### Frontend Templates
-- `templates/index.html` - Complete hero section redesign and content restructuring
-- `templates/base.html` - Add hero-specific meta tags and preload directives
-
-#### CSS Styling
-- `static/css/app.css` - Add hero section styles, responsive design, animations
-- `static/css/components.css` - Create reusable hero components and overlays
-- `static/css/design-system.css` - Extend with hero-specific CSS variables
-
-#### Backend Logic
-- `routes/main.py` - Add hero image selection logic and user messaging
-- `utils/hero_utils.py` - NEW: Hero image management and optimization utilities
-
-#### Static Assets
-- `static/images/hero/` - NEW: Organize and optimize hero images
-- `static/js/hero.js` - NEW: Hero animations, parallax, lazy loading
-
-### Function Specifications
-
-#### Backend Functions (`utils/hero_utils.py`)
-```python
-def get_hero_image_for_season():
-    """Returns seasonal and time-based hero image path with enhanced rotation system.
-    
-    Features:
-    - Seasonal rotation (winter, spring, summer, autumn)
-    - Time-based variations (dawn, day, dusk, night)
-    - Intelligent fallback system
-    - Seasonal daylight adjustments
-    """
-
-def get_time_period(hour, season):
-    """Determines time period (dawn/day/dusk/night) based on hour and season.
-    
-    Time boundaries vary by season to match natural daylight patterns:
-    - Winter: Dawn 5-9, Day 9-17, Dusk 17-22, Night 22-5
-    - Spring: Dawn 5-9, Day 9-18, Dusk 18-22, Night 22-5  
-    - Summer: Dawn 4-8, Day 8-19, Dusk 19-23, Night 23-4
-    - Autumn: Dawn 6-9, Day 9-17, Dusk 17-21, Night 21-6
-    """
-
-def get_user_specific_messaging(user):  
-    """Generates personalized hero headline and CTA text based on user authentication state."""
-
-def optimize_hero_images():
-    """Processes uploaded images into multiple sizes and WebP formats for performance."""
-```
-
-#### Frontend Functions (`static/js/hero.js`)
-```javascript
-function initHeroParallax():
-    """Initializes smooth parallax scrolling effect for hero background image."""
-
-function lazyLoadHeroImage():
-    """Implements progressive image loading with blur-to-sharp transition effect."""
-
-function animateHeroContent():
-    """Handles entrance animations for hero text and CTA buttons on page load."""
-```
-
-#### CSS Classes (`static/css/app.css`)
-```css
-.hero-section:
-    """Full-viewport hero container with background image and responsive behavior."""
-
-.hero-overlay:
-    """Dark gradient overlay ensuring text readability over any background image."""
-
-.hero-content:
-    """Centered content container with proper spacing and mobile optimization."""
-```
-
-### Test Specifications
-
-#### Visual & Layout Tests
-- `test_hero_renders_correctly` - Hero section displays with proper dimensions
-- `test_hero_responsive_behavior` - Mobile and desktop layouts work correctly  
-- `test_hero_image_loading` - Background images load and display properly
-- `test_hero_overlay_readability` - Text remains readable over all images
-
-#### User Experience Tests  
-- `test_hero_messaging_by_user_state` - Different messages for logged/not logged users
-- `test_hero_cta_buttons_functional` - All call-to-action buttons navigate correctly
-- `test_hero_animations_smooth` - Entrance animations perform without lag
-- `test_hero_accessibility_compliant` - Proper alt texts and keyboard navigation
-
-#### Performance Tests
-- `test_hero_image_optimization` - Images serve in optimal formats and sizes
-- `test_hero_loading_speed` - Page loads within performance benchmarks
-- `test_hero_lazy_loading` - Non-critical images load after hero content
-- `test_hero_mobile_performance` - Mobile devices load quickly with data savings
-
-#### Content Tests
-- `test_hero_seasonal_images` - Different images display based on season/date
-- `test_hero_messaging_localization` - All text displays in Slovenian correctly
-- `test_hero_social_proof_display` - Member count and stats show accurately
-- `test_hero_fallback_graceful` - Site works even if hero images fail
-
-### Implementation Phases
-
-#### Phase 1: Foundation (High Priority)
-1. Reorganize and optimize hero images
-2. Create basic hero HTML structure in index.html
-3. Implement responsive CSS grid layout
-4. Add user-state messaging logic
-
-#### Phase 2: Enhancement (Medium Priority)  
-1. Add parallax scrolling effects
-2. Implement entrance animations
-3. Create seasonal image rotation
-4. Optimize for performance and accessibility
-
-#### Phase 3: Polish (Lower Priority)
-1. Add advanced lazy loading
-2. Implement A/B testing for messaging
-3. Add analytics tracking for CTAs  
-4. Create admin interface for hero management
-
-### Expected Outcomes
-- **Conversion Rate**: 25-40% increase in registration clicks
-- **Engagement**: 60%+ reduction in bounce rate
-- **Performance**: <2s load time on mobile, >90 Lighthouse score
-- **User Experience**: Immersive, professional first impression that builds trust and excitement
-
-### Hero Content Strategy
-
-#### Messaging Options (Choose Best)
-- **Primary**: "Odkrijte Veličino Slovenskih Gora" (Discover the Majesty of Slovenian Mountains)
-- **Alternative**: "Vaša Planinska Pustolovščina Se Začne Tukaj" (Your Mountain Adventure Starts Here)
-- **Community-focused**: "Pridružite Se Skupnosti Gorskih Raziskovalcev" (Join the Community of Mountain Explorers)
-
-#### Call-to-Action Buttons
-- **Primary CTA**: "Začni Svojo Pustolovščino" (Start Your Adventure) → Register
-- **Secondary CTA**: "Oglej Si Prihajajo Izlete" (View Upcoming Trips) → About/Content
-
-#### User State-Specific Experience
-- **Not logged in**: Adventure-focused registration messaging
-- **Pending approval**: Encourage patience with club highlights and community showcase
-- **Active member**: Personalized welcome with dashboard access and recent activity
-
-#### Social Proof Elements
-- "Pridružilo se nam je že 200+ planincev" (200+ mountaineers have joined us)
-- "50+ izletov letno • Vsi nivoji • 15+ let izkušenj" (50+ trips yearly • All levels • 15+ years experience)
-- Member testimonials and safety record highlights
-
-### Image Asset Requirements
-
-#### Enhanced Hero Image Organization (static/images/hero/)
-**Time-Based Rotation System** - Images change based on both season and time of day:
-
-**Base Seasonal Images (Required):**
-- `hero-winter.jpg` (Dec-Feb, day)
-- `hero-primary.jpg` (Mar-May, day) 
-- `hero-summer.jpg` (Jun-Aug, day)
-- `hero-secondary.jpg` (Sep-Nov, day)
-
-**Time-Based Variations (Optional Enhancement):**
-- `hero-winter-dawn.jpg`, `hero-winter-dusk.jpg`, `hero-winter-night.jpg`
-- `hero-primary-dawn.jpg`, `hero-primary-dusk.jpg`, `hero-primary-night.jpg`
-- `hero-summer-dawn.jpg`, `hero-summer-dusk.jpg`, `hero-summer-night.jpg`
-- `hero-secondary-dawn.jpg`, `hero-secondary-dusk.jpg`, `hero-secondary-night.jpg`
-
-**Intelligent Fallbacks:**
-1. Time-specific image (e.g., `hero-summer-dawn.jpg`)
-2. Base seasonal image (e.g., `hero-summer.jpg`)
-3. Primary fallback (`hero-primary.jpg`)
-
-**Time Boundaries (Seasonal Daylight Adjustment):**
-- **Winter**: Dawn 5-9, Day 9-17, Dusk 17-22, Night 22-5
-- **Spring**: Dawn 5-9, Day 9-18, Dusk 18-22, Night 22-5
-- **Summer**: Dawn 4-8, Day 8-19, Dusk 19-23, Night 23-4
-- **Autumn**: Dawn 6-9, Day 9-17, Dusk 17-21, Night 21-6
-
-#### Optimization Needs
-- Resize to multiple breakpoints (mobile, tablet, desktop)
-- Convert to WebP format for modern browsers
-- Create fallback JPEG versions
-- Implement lazy loading for performance
-
-## Common Issues & Solutions
-
-### Database Issues
-```bash
-# Reset database (development only)
-rm databases/pd_triglav.db  # Remove development database
-python scripts/init_db.py   # Recreate tables
-
-# Reset test database
-rm databases/test.db
-
-# Reset production database (Fly.io) - CAUTION: destroys data!
-flyctl ssh console
-rm /data/pd_triglav.db
-python scripts/init_db.py
-```
-
-### AWS S3 Issues
-- Check bucket permissions and CORS configuration
-- Verify AWS credentials in .env file
-- Test with boto3 client directly
-
-### OAuth Issues  
-- Verify Google OAuth credentials
-- Check redirect URIs in Google Console
-- Ensure HTTPS in production
-
-## Deployment Notes
-
-### Fly.io Deployment (Current)
+## Fly.io Deployment
 
 **App Configuration:**
-- **App Name**: pd-triglav-si
+- **App Name**: pd-triglav
 - **Region**: ams (Amsterdam)
-- **Domain**: pdtriglav.si
+- **Domain**: pd-triglav.fly.dev
 - **Database**: SQLite at /data/pd_triglav.db (persistent volume)
-- **Email**: Amazon SES (eu-north-1)
-- **Storage**: AWS S3 (eu-north-1)
-- **Build**: Paketo buildpacks (auto-detect Python from requirements.txt)
-- **No Dockerfile**: Uses buildpacks instead
+- **Free tier**: Machine auto-stops when idle, auto-starts on request
 
-**How Deployment Works:**
-1. `flyctl deploy` triggers build via buildpacks
-2. `release_command` runs `python scripts/init_db.py` (creates tables + admin)
-3. App starts with gunicorn
+**Deploy**: Automatic via GitHub push to master
 
-**Essential Commands:**
+**Manual deploy**: `flyctl deploy`
+
+**SSH & DB queries:**
 ```bash
-# Deploy application
-flyctl deploy
-
-# View application logs
-flyctl logs
-
-# SSH into running machine
-flyctl ssh console
-
-# Restart application
-flyctl machine restart
-
-# List secrets
-flyctl secrets list
+fly machine start              # Wake machine if stopped
+fly ssh console                # SSH in
+python /data/q.py "SQL HERE"   # Query SQLite (helper on persistent volume)
 ```
 
-**Database Operations (via SSH):**
-```bash
-# SSH into machine
-flyctl ssh console
-
-# Re-run database initialization (idempotent)
-python scripts/init_db.py
-
-# Seed full dev data (if needed)
-python scripts/seed_db.py
-```
-
-**Note:** Database tables are created automatically via `db.create_all()` in 
-`scripts/init_db.py`. No Flask-Migrate/Alembic in production.
-
-**Volume Management:**
-```bash
-# Create persistent volume (one-time setup)
-flyctl volumes create pd_triglav_data --region ams --size 1
-
-# List volumes
-flyctl volumes list
-
-# Snapshot volume (backup)
-flyctl volumes snapshots create pd_triglav_data
-```
-
-**Required Secrets:**
+**Secrets:**
 ```bash
 flyctl secrets set SECRET_KEY="..."
 flyctl secrets set GOOGLE_CLIENT_ID="..."
@@ -645,71 +292,48 @@ flyctl secrets set MAIL_SERVER="email-smtp.eu-north-1.amazonaws.com"
 flyctl secrets set MAIL_USERNAME="..."
 flyctl secrets set MAIL_PASSWORD="..."
 flyctl secrets set MAIL_DEFAULT_SENDER="..."
-flyctl secrets set LLM_API_KEY="..."
-flyctl secrets set LLM_API_URL="..."
+flyctl secrets set ANTHROPIC_API_KEY="..."
+flyctl secrets set MOONSHOT_API_KEY="..."
+flyctl secrets set DEEPSEEK_API_KEY="..."
 flyctl secrets set NEWS_API_KEY="..."
 ```
 
-**Custom Domain Setup:**
-```bash
-# Add SSL certificate for custom domain
-flyctl certs create pdtriglav.si
+**Key behaviors:**
+- `db.create_all()` runs on app startup (creates missing tables, doesn't alter existing)
+- Scheduler fires at 6 AM (news + historical event) but machine may be sleeping
+- Lazy generation: first visitor triggers background generation if content missing
+- JS polling refreshes both sections without page reload
 
-# Check certificate status
-flyctl certs show pdtriglav.si
+## Common Issues & Solutions
+
+### Free Tier Machine Sleeping
+Machine auto-stops when idle. Content generation via scheduler may not fire.
+**Solution**: Lazy background generation on first visit + JS polling.
+
+### Database Schema Changes
+`db.create_all()` won't alter existing tables. For schema changes:
+```bash
+fly ssh console
+python -c "import sqlite3; conn = sqlite3.connect('/data/pd_triglav.db'); conn.execute('DROP TABLE table_name'); conn.commit(); print('Done'); conn.close()"
+# Then restart app — db.create_all() recreates with new schema
 ```
 
-**Health Check:**
-- Endpoint: `/health`
-- Interval: 30 seconds
-- Timeout: 5 seconds
+### LLM Low Confidence
+If all providers return low-confidence events, a fallback event is created.
+Curated events (52 from zsa.si) always take priority over AI-generated ones.
 
-**Auto-scaling:**
-- Minimum machines: 0 (auto-stop when idle)
-- Auto-start on first request
-- Scheduled tasks run when machine wakes up (12-24 hour grace period)
-
-### Render Configuration (Legacy)
-- Uses `render.yaml` for deployment configuration
-- Environment variables set in Render dashboard
-- Automatic deployments on git push to main
-- PostgreSQL database managed by Render
-
-### Production Considerations
-- Set `FLASK_ENV=production` (configured in fly.toml)
-- Use strong `SECRET_KEY` value (set via `flyctl secrets`)
-- Configure proper error logging
-- Set up database backups (Fly.io volume snapshots)
-- Monitor AWS S3 usage and costs
-- Monitor Amazon SES sending limits and bounce rates
-- Delete old `Dockerfile` after confirming deployment works
-
-## Testing Strategy
-
-- **Unit Tests**: Models, utility functions
-- **Integration Tests**: Authentication flows, database operations
-- **Functional Tests**: End-to-end user workflows
-- **API Tests**: AJAX endpoints and external integrations
-
-Target: ~70% test coverage on core functionality.
+### Moonshot Kimi K2.5
+Only allows `temperature=1`. Hardcoded in provider.
 
 ## Security Checklist
 
 - [x] Environment variables for secrets
 - [x] CSRF protection with Flask-WTF
 - [x] SQL injection prevention (SQLAlchemy ORM)
-- [x] Secure password hashing
+- [x] Secure password hashing (scrypt)
 - [x] File upload validation
 - [x] Session security configuration
 
-## Performance Considerations
-
-- Database indexing on frequently queried fields
-- Image compression and thumbnail generation  
-- Pagination for large result sets
-- Caching for static content and repeated queries
-- Background tasks for email sending (threading initially)
-
 ---
 
-*This file serves as a quick reference for development context and common operations. Update as the project evolves.*
+*Last updated: February 2026. See `docs/development-plan.md` for detailed phase specifications.*
