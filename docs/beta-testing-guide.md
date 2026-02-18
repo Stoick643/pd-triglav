@@ -66,6 +66,39 @@ Pojdi na **https://pd-triglav.fly.dev/auth/login** in se prijavi z enim od testn
 
 ---
 
+## ⚙️ Testiranje kot ADMIN (Skrbnik)
+
+*Najprej naredi vse iz članske in vodniške sekcije zgoraj, nato še:*
+
+### 8. Administracija — upravljanje uporabnikov
+- [ ] Pojdi na **Administracija** (v stranskem meniju)
+- [ ] Preglej seznam čakajočih uporabnikov
+- [ ] **Odobri** testnega čakajočega uporabnika (pending@pd-triglav.si)
+- [ ] Preveri da se vloga spremeni
+- [ ] Ustvari novega uporabnika z registracijo (drug email) in ga nato **zavrni**
+
+### 9. Administracija — vsebina
+- [ ] Na domači strani klikni **Regeneriraj** za zgodovinski dogodek dneva
+- [ ] Preveri da se nov dogodek prikaže
+- [ ] Klikni **Osveži novice** za posodobitev novic
+- [ ] Preveri da se novice posodobijo
+
+### 10. Nadzorna plošča
+- [ ] Pojdi na **Nadzorna plošča**
+- [ ] Preglej pregled uporabnikov, izletov, statistike
+
+### 11. Admin + Vodnik kombinacija
+- [ ] Ustvari izlet kot admin
+- [ ] Preveri da se prikaže na seznamu in v koledarju
+
+---
+
+| Vloga | Email | Geslo |
+|-------|-------|-------|
+| ⚙️ **Admin** | admin@pd-triglav.si | *(sporočeno posebej)* |
+
+---
+
 ## 📝 Povratne informacije
 
 Ko najdeš napako ali imaš predlog, zapiši:
