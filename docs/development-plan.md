@@ -60,7 +60,7 @@ This plan serves as a **flexible guideline** rather than rigid requirements. Pha
 4. **Confidence Filtering**: LLM returns `confidence: "high"|"medium"|"low"`. Low confidence triggers retry with fallback providers. If all providers return low, creates a fallback event.
 
 5. **LLM Provider Upgrade**:
-   - Added `AnthropicProvider` for Claude Sonnet 4.5
+   - Added `AnthropicProvider` for Claude Sonnet 4.6
    - Upgraded Moonshot to Kimi K2.5 (temperature=1 required)
    - Use-case-dependent provider priority
    - Historical: Claude > Kimi > DeepSeek

@@ -311,14 +311,14 @@ class AnthropicProvider(BaseLLMProvider):
     def __init__(self):
         super().__init__()
         self.api_key = current_app.config.get("ANTHROPIC_API_KEY")
-        self.model = "claude-sonnet-4-5"
+        self.model = "claude-sonnet-4-6"
 
         if not self.api_key:
             logger.warning("ANTHROPIC_API_KEY not configured")
 
     @property
     def provider_name(self) -> str:
-        return "Anthropic (Claude Sonnet 4.5)"
+        return "Anthropic (Claude Sonnet 4.6)"
 
     @property
     def is_configured(self) -> bool:
@@ -424,7 +424,7 @@ class AnthropicProvider(BaseLLMProvider):
             }
 
     def get_cost_per_token(self) -> float:
-        """Estimated cost per token for Anthropic Claude Sonnet 4.5"""
+        """Estimated cost per token for Anthropic Claude Sonnet 4.6"""
         return 0.000003  # ~$3 per 1M input tokens
 
 

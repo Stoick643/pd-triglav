@@ -33,9 +33,9 @@
 
 | Priority | Historical events | Everything else |
 |----------|-------------------|-----------------|
-| 1st | Claude Sonnet 4.5 | Kimi K2.5 |
+| 1st | Claude Sonnet 4.6 | Kimi K2.5 |
 | 2nd | Kimi K2.5 | DeepSeek |
-| 3rd | DeepSeek | Claude Sonnet 4.5 |
+| 3rd | DeepSeek | Claude Sonnet 4.6 |
 
 ### Development Approach
 - **Testing**: Unit + integration tests, ~70% coverage target
@@ -181,7 +181,7 @@ MAIL_PASSWORD=your-ses-smtp-password
 MAIL_DEFAULT_SENDER=your-email@domain.com
 
 # LLM Providers (for AI content generation)
-ANTHROPIC_API_KEY=sk-ant-...          # Claude Sonnet 4.5 (primary for historical)
+ANTHROPIC_API_KEY=sk-ant-...          # Claude Sonnet 4.6 (primary for historical)
 MOONSHOT_API_KEY=sk-...               # Kimi K2.5 (primary for news/general)
 DEEPSEEK_API_KEY=sk-...               # DeepSeek (fallback)
 
