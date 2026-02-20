@@ -1,6 +1,6 @@
 PD TRIGLAV - NOVO SPOROČILO V RAZPRAVI
 
-Pozdravljeni {{ recipient.name }},
+Pozdravljeni {{ recipient_user.name }},
 
 Novo sporočilo je bilo objavljeno v razpravi za izlet, na katerega ste prijavljeni:
 

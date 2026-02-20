@@ -99,7 +99,7 @@ def send_discussion_notification(trip, message, author, recipients):
                 trip=trip,
                 message=message,
                 author=author,
-                recipient=recipient_user
+                recipient_user=recipient_user
             )
             if thread:  # Only append if email was actually sent
                 threads.append(thread)
