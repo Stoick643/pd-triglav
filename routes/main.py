@@ -210,6 +210,12 @@ def about():
     return render_template("about.html")
 
 
+@bp.route("/changelog")
+def changelog():
+    """What's new / changelog page"""
+    return render_template("changelog.html")
+
+
 @bp.route("/dashboard")
 @login_required
 def dashboard():

@@ -273,7 +273,7 @@
                     </div>
                     <p style="color: rgba(255, 255, 255, 0.6); font-size: var(--pd-text-sm);">
                         &copy; 2025 PD Triglav. Vse pravice pridržane.
-                        <span style="margin-left: 0.5rem;">v{{ app_version }}</span>
+                        <a href="{{ url_for('main.changelog') }}" style="color: rgba(255, 255, 255, 0.6); margin-left: 0.5rem; text-decoration: none;" title="Kaj je novega">v{{ app_version }}</a>
                     </p>
                 </div>
             </div>
