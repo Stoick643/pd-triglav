@@ -40,24 +40,66 @@
     
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-journal-text"></i> Moja poročila</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-journal-text"></i> Moja poročila</h5>
+                <a href="{{ url_for('reports.my_reports') }}" class="btn btn-sm btn-outline-primary">Vsa</a>
             </div>
             <div class="card-body">
-                <p class="text-muted">Niste še napisali nobenega poročila.</p>
-                <!-- This will be populated when we implement trip reports -->
+                {% if my_reports %}
+                    <div class="list-group list-group-flush">
+                        {% for report in my_reports %}
+                        <a href="{{ url_for('reports.view_report', report_id=report.id) }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ report.title }}</h6>
+                                <small class="text-muted">{{ report.created_at.strftime('%d.%m.%Y') }}</small>
+                            </div>
+                            <small>
+                                {% if report.is_published %}
+                                    <span class="badge bg-success">Objavljeno</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Osnutek</span>
+                                {% endif %}
+                                {% if report.photo_count > 0 %}
+                                    <span class="text-muted ms-1"><i class="bi bi-camera"></i> {{ report.photo_count }}</span>
+                                {% endif %}
+                            </small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Niste še napisali nobenega poročila.</p>
+                    <a href="{{ url_for('reports.my_reports') }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i>Napiši poročilo
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>
     
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-images"></i> Zadnje fotografije</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-images"></i> Zadnje fotografije</h5>
+                <a href="{{ url_for('reports.list_reports') }}" class="btn btn-sm btn-outline-primary">Vsa poročila</a>
             </div>
             <div class="card-body">
-                <p class="text-muted">Ni novih fotografij.</p>
-                <!-- This will be populated when we implement photos -->
+                {% if recent_photos %}
+                    <div class="row g-2">
+                        {% for photo in recent_photos %}
+                        <div class="col-3">
+                            <a href="{{ url_for('reports.view_report', report_id=photo.trip_report_id) }}" title="{{ photo.caption or photo.original_filename }}">
+                                <img src="{{ photo.thumbnail_url }}" 
+                                     alt="{{ photo.caption or 'Fotografija' }}" 
+                                     class="img-fluid rounded" 
+                                     style="aspect-ratio: 1; object-fit: cover; width: 100%;">
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Ni novih fotografij.</p>
+                    <p class="text-muted small">Fotografije bodo prikazane, ko bodo objavljena poročila s fotografijami.</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -77,7 +119,9 @@
                     <li>Upravljate s prijavljenimi udeleženci</li>
                     <li>Moderirate komentarje na vaših izletih</li>
                 </ul>
-                <button class="btn" style="background: var(--pd-accent-red); color: var(--pd-white); border: none;" disabled>Objavi nov izlet (kmalu)</button>
+                <a href="{{ url_for('trips.create_trip') }}" class="btn" style="background: var(--pd-accent-red); color: var(--pd-white); border: none;">
+                    <i class="bi bi-plus-circle me-1"></i>Objavi nov izlet
+                </a>
             </div>
         </div>
     </div>

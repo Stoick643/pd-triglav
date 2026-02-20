@@ -1,0 +1,14 @@
+1. add feature for user to change password
+2. OAuth 2.0 does not work since custom domain pdtriglav.si was introduced, see below OAuth error message
+3. Check if email notification is working
+4. Commenting on trip and/or photo has bug: typing space in comment section triggers photo zoom view
+5. Section 'Moja poročila' seems to not work properly: doesn't show any reports (=poročila)
+6. Section 'Zadnje fotografije' seems to not work properly: doesn't show any photos
+7. Check section 'Na ta dan v zgodovini': seems  like reload returns the same event
+8. Section 'Administratorska plošča' needs some work
+9. On 'Administratorska plošča' is text on red background 'Objavi nov izlet (kmalu)'. Button is unresponsive.
+
+OAuth error message
+    V to aplikacijo se ne morete prijaviti, ker ni skladna z Googlovim pravilnikom za standard OAuth 2.0.
+    Če ste razvijalec aplikacije, v konzoli Google Cloud Console registrirajte URI za preusmeritev.
+    Podrobnosti zahteve: redirect_uri=http://pdtriglav.si/auth/google/callback flowName=GeneralOAuthFlow

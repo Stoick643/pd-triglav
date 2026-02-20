@@ -117,19 +117,27 @@ def index():
     # Get today's historical event (temporarily for everyone)
     if True:  # Temporarily show to everyone
         try:
+            from datetime import datetime
             from models.content import HistoricalEvent
+            from models.user import db
+            import random
 
-            todays_event = HistoricalEvent.get_todays_event()
+            now = datetime.now()
+
+            # Get all events for today's date and pick a random one
+            all_todays_events = HistoricalEvent.get_all_events_for_date(
+                now.month, now.day
+            )
+            if all_todays_events:
+                todays_event = random.choice(all_todays_events)
+            else:
+                todays_event = None
 
             # If no event exists, trigger background generation
             if not todays_event:
                 _trigger_background_event_generation()
 
             # Get recent historical events (last 7, excluding today's)
-            from datetime import datetime
-            from models.user import db
-
-            now = datetime.now()
 
             recent_events = (
                 HistoricalEvent.query.filter(
@@ -211,6 +219,7 @@ def dashboard():
 
     # Get upcoming trips for authenticated members
     from models.trip import Trip, TripStatus
+    from models.content import TripReport, Photo
     from datetime import date
 
     upcoming_trips = (
@@ -222,7 +231,31 @@ def dashboard():
         .all()
     )
 
-    return render_template("dashboard.html", upcoming_trips=upcoming_trips)
+    # Get user's reports
+    my_reports = (
+        TripReport.query
+        .filter_by(author_id=current_user.id)
+        .order_by(TripReport.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    # Get latest photos across all published reports
+    recent_photos = (
+        Photo.query
+        .join(TripReport)
+        .filter(TripReport.is_published == True)
+        .order_by(Photo.created_at.desc())
+        .limit(8)
+        .all()
+    )
+
+    return render_template(
+        "dashboard.html",
+        upcoming_trips=upcoming_trips,
+        my_reports=my_reports,
+        recent_photos=recent_photos,
+    )
 
 
 @bp.route("/admin")
@@ -232,7 +265,7 @@ def admin():
     if not current_user.is_admin():
         return render_template("errors/403.html"), 403
 
-    from models.user import User
+    from models.user import User, UserRole
     from forms.admin_forms import UserApprovalForm, UserRejectionForm
 
     pending_users = User.get_pending_users()
@@ -248,11 +281,41 @@ def admin():
         rejection_form = UserRejectionForm()
         rejection_forms[user.id] = rejection_form
 
+    # Gather statistics
+    from models.trip import Trip, TripStatus
+    from models.content import TripReport, Photo
+    from datetime import date
+
+    all_users = User.query.all()
+    total_users = len(all_users)
+    active_users = len([u for u in all_users if u.role.value != 'pending'])
+    total_trips = Trip.query.count()
+    upcoming_trips = Trip.query.filter(Trip.trip_date >= date.today()).count()
+    total_reports = TripReport.query.count()
+    published_reports = TripReport.query.filter_by(is_published=True).count()
+    total_photos = Photo.query.count()
+
+    # Get all registered users for user management
+    registered_users = (
+        User.query
+        .filter(User.role != UserRole.PENDING)
+        .order_by(User.name.asc())
+        .all()
+    )
+
     return render_template(
         "admin/dashboard.html",
         pending_users=pending_users,
         approval_forms=approval_forms,
         rejection_forms=rejection_forms,
+        total_users=total_users,
+        active_users=active_users,
+        total_trips=total_trips,
+        upcoming_trips=upcoming_trips,
+        total_reports=total_reports,
+        published_reports=published_reports,
+        total_photos=total_photos,
+        registered_users=registered_users,
     )
 
 

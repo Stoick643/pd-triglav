@@ -723,6 +723,10 @@ function setupKeyboardNavigation(photos) {
     document.addEventListener('keydown', function(e) {
         if (photos.length === 0) return;
         
+        // Don't intercept keys when user is typing in an input, textarea, or contenteditable
+        const tag = e.target.tagName.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+        
         switch(e.key) {
             case 'ArrowRight':
                 e.preventDefault();

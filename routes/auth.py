@@ -8,10 +8,10 @@ from flask import (
     session,
     current_app,
 )
-from flask_login import login_user, logout_user, current_user
+from flask_login import login_user, logout_user, current_user, login_required
 from authlib.integrations.flask_client import OAuth
 from models.user import User, UserRole, db
-from forms.auth_forms import LoginForm, RegistrationForm
+from forms.auth_forms import LoginForm, RegistrationForm, ChangePasswordForm
 
 bp = Blueprint("auth", __name__)
 
@@ -71,6 +71,33 @@ def logout():
     logout_user()
     flash("Uspešno ste se odjavili.", "info")
     return redirect(url_for("main.index"))
+
+
+@bp.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    """Change password for logged-in users"""
+    form = ChangePasswordForm()
+
+    # Google OAuth users without a password don't need current password
+    has_password = bool(current_user.password_hash)
+    if not has_password:
+        form.current_password.validators = []
+
+    if form.validate_on_submit():
+        # Verify current password (only if user has one)
+        if has_password and not current_user.check_password(form.current_password.data):
+            flash("Trenutno geslo ni pravilno.", "error")
+            return render_template("auth/change_password.html", form=form)
+
+        # Set new password
+        current_user.set_password(form.new_password.data)
+        db.session.commit()
+
+        flash("Geslo je bilo uspešno spremenjeno.", "success")
+        return redirect(url_for("main.dashboard"))
+
+    return render_template("auth/change_password.html", form=form)
 
 
 # Initialize OAuth

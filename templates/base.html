@@ -188,6 +188,12 @@
                         </div>
                     </a>
                     
+                    <!-- Change Password Link -->
+                    <a href="{{ url_for('auth.change_password') }}" class="auth-link" style="margin-bottom: 0.25rem;">
+                        <i class="bi bi-key"></i>
+                        <span>Spremeni geslo</span>
+                    </a>
+
                     <!-- Logout Link -->
                     <a href="{{ url_for('auth.logout') }}" class="auth-link logout">
                         <i class="bi bi-box-arrow-right"></i>
