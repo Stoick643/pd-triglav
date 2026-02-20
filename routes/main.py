@@ -352,6 +352,21 @@ def approve_user(user_id):
         user.role = UserRole.MEMBER
         user.is_approved = True
         db.session.commit()
+
+        # Send welcome email to approved user
+        try:
+            from utils.email_service import send_email
+            send_email(
+                subject="PD Triglav - Vaša registracija je odobrena!",
+                recipient=user.email,
+                template_html="emails/user_approved.html",
+                template_txt="emails/user_approved.txt",
+                user=user,
+            )
+            current_app.logger.info(f"Approval email sent to {user.email}")
+        except Exception as mail_err:
+            current_app.logger.warning(f"Failed to send approval email to {user.email}: {mail_err}")
+
         flash(f"Uporabnik {user.name} je bil uspešno odobren kot član.", "success")
         current_app.logger.info(f"Admin {current_user.email} approved user {user.email}")
     except Exception as e:

@@ -1,0 +1,18 @@
+PD Triglav - Dobrodošli!
+
+Pozdravljeni, {{ user.name }}!
+
+Vaša registracija je bila odobrena. Zdaj imate poln dostop do spletne aplikacije PD Triglav.
+
+Kaj lahko počnete:
+- Pregledujete in se prijavljate na izlete
+- Pišete poročila o izletih
+- Delite fotografije s skupnostjo
+- Sodelujete v razpravah
+
+Odprite aplikacijo: https://pdtriglav.si/dashboard
+
+Veselimo se skupnih planinskih doživetij!
+
+--
+PD Triglav | pdtriglav.si

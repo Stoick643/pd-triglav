@@ -1,9 +1,20 @@
+import os
 from flask import Flask
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from config import Config
+
+
+def get_version():
+    """Read app version from VERSION file"""
+    version_file = os.path.join(os.path.dirname(__file__), "VERSION")
+    try:
+        with open(version_file) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return "0.0"
 
 # Initialize Flask extensions
 login_manager = LoginManager()
@@ -63,6 +74,11 @@ def create_app(config_class=Config):
 
     # Initialize OAuth
     init_oauth(app)
+
+    # Make app version available in all templates
+    @app.context_processor
+    def inject_version():
+        return {"app_version": get_version()}
 
     # Add custom Jinja2 filters
     @app.template_filter("markdown")
