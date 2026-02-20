@@ -527,6 +527,41 @@ def refresh_news():
         )
 
 
+@bp.route("/admin/test-email", methods=["POST"])
+@login_required
+def test_email():
+    """Send a test email to the current admin user"""
+    if not current_user.is_admin():
+        flash("Dostop zavrnjen.", "error")
+        return redirect(url_for("main.index"))
+
+    try:
+        from utils.email_service import is_mail_configured, send_email
+
+        if not is_mail_configured():
+            flash("Email ni konfiguriran. Preverite MAIL_SERVER, MAIL_USERNAME in MAIL_PASSWORD v nastavitvah.", "warning")
+            return redirect(url_for("main.admin"))
+
+        thread = send_email(
+            subject="PD Triglav - Testno sporočilo",
+            recipient=current_user.email,
+            template_html="emails/test_email.html",
+            template_txt="emails/test_email.txt",
+            user=current_user,
+        )
+
+        if thread:
+            flash(f"Testno sporočilo poslano na {current_user.email}. Preverite nabiralnik.", "success")
+        else:
+            flash("Email ni bil poslan. Preverite konfiguracijo.", "warning")
+
+    except Exception as e:
+        current_app.logger.error(f"Test email error: {e}")
+        flash(f"Napaka pri pošiljanju: {str(e)}", "error")
+
+    return redirect(url_for("main.admin"))
+
+
 @bp.route("/api/todays-event")
 def api_todays_event():
     """Polling endpoint: returns today's historical event if available"""

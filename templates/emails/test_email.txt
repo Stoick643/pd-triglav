@@ -1,0 +1,8 @@
+PD Triglav - Testno sporočilo
+
+Pozdravljeni, {{ user.name }}!
+
+To je testno sporočilo iz sistema PD Triglav. Če to berete, email pošiljanje deluje pravilno.
+
+--
+PD Triglav | pdtriglav.si

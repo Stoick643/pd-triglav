@@ -144,6 +144,12 @@
                             <i class="bi bi-newspaper me-2"></i>Osveži dnevne novice
                         </button>
                     </form>
+                    <form method="POST" action="{{ url_for('main.test_email') }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-info w-100 text-start">
+                            <i class="bi bi-envelope-check me-2"></i>Pošlji testni email
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
