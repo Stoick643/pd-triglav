@@ -57,6 +57,22 @@ def register():
             db.session.add(user)
             db.session.commit()
 
+            # Notify admins about new registration
+            try:
+                from utils.email_service import send_email, is_mail_configured
+                if is_mail_configured():
+                    admins = User.query.filter_by(role=UserRole.ADMIN).all()
+                    for admin in admins:
+                        send_email(
+                            subject=f"PD Triglav - Nova registracija: {user.name}",
+                            recipient=admin.email,
+                            template_html="emails/new_registration.html",
+                            template_txt="emails/new_registration.txt",
+                            new_user=user,
+                        )
+            except Exception as e:
+                current_app.logger.warning(f"Failed to notify admins about new registration: {e}")
+
             flash("Registracija uspešna! Čakate na odobritev administratorja.", "success")
             return redirect(url_for("auth.login"))
         else:
@@ -176,6 +192,23 @@ def google_callback():
                 if user:
                     db.session.add(user)
                     db.session.commit()
+
+                    # Notify admins about new registration
+                    try:
+                        from utils.email_service import send_email, is_mail_configured
+                        if is_mail_configured():
+                            admins = User.query.filter_by(role=UserRole.ADMIN).all()
+                            for admin_user in admins:
+                                send_email(
+                                    subject=f"PD Triglav - Nova registracija: {user.name}",
+                                    recipient=admin_user.email,
+                                    template_html="emails/new_registration.html",
+                                    template_txt="emails/new_registration.txt",
+                                    new_user=user,
+                                )
+                    except Exception as e:
+                        current_app.logger.warning(f"Failed to notify admins about new registration: {e}")
+
                     flash(
                         "Račun ustvarjen z Google prijavo. Čakate na odobritev administratorja.",
                         "success",

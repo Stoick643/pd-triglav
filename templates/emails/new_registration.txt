@@ -1,0 +1,12 @@
+PD Triglav - Nova registracija
+
+Nov uporabnik čaka na odobritev:
+
+Ime: {{ new_user.name }}
+Email: {{ new_user.email }}
+Datum: {{ new_user.created_at.strftime('%d.%m.%Y %H:%M') }}
+
+Odprite admin ploščo: https://pdtriglav.si/admin
+
+--
+PD Triglav | pdtriglav.si

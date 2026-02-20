@@ -409,6 +409,21 @@ def reject_user(user_id):
     try:
         user_name = user.name
         user_email = user.email
+
+        # Send rejection email before deleting user
+        try:
+            from utils.email_service import send_email
+            send_email(
+                subject="PD Triglav - Obvestilo o registraciji",
+                recipient=user_email,
+                template_html="emails/user_rejected.html",
+                template_txt="emails/user_rejected.txt",
+                user=user,
+            )
+            current_app.logger.info(f"Rejection email sent to {user_email}")
+        except Exception as mail_err:
+            current_app.logger.warning(f"Failed to send rejection email to {user_email}: {mail_err}")
+
         db.session.delete(user)
         db.session.commit()
         flash(f"Uporabnik {user_name} je bil zavrnjen in odstranjen.", "info")

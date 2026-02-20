@@ -1,0 +1,10 @@
+PD Triglav - Obvestilo o registraciji
+
+Pozdravljeni, {{ user.name }}!
+
+Žal vam sporočamo, da vaša registracija v spletno aplikacijo PD Triglav ni bila odobrena.
+
+Če menite, da gre za napako, nas kontaktirajte na info@pdtriglav.si.
+
+--
+PD Triglav | pdtriglav.si
