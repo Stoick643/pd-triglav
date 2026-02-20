@@ -1,8 +1,8 @@
 """Authentication forms for PD Triglav application"""
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Optional
 from models.user import User
 import re
 
@@ -237,3 +237,35 @@ class ChangePasswordForm(FlaskForm):
         ]
         if pwd.lower() in weak_passwords:
             raise ValidationError("Geslo je preveč pogosto. Izberite drugačno geslo.")
+
+
+class UserSettingsForm(FlaskForm):
+    """User profile and notification settings form"""
+
+    name = StringField(
+        "Ime in priimek",
+        validators=[
+            DataRequired(message="Ime in priimek sta obvezna."),
+            Length(min=2, max=100, message="Ime mora imeti med 2 in 100 znakov."),
+        ],
+    )
+
+    email = StringField(
+        "Email",
+        validators=[
+            DataRequired(message="Email je obvezen."),
+            Email(message="Vnesite veljaven email naslov."),
+        ],
+    )
+
+    # Notification preferences
+    notify_new_trips = BooleanField("Novi izleti", default=True)
+    notify_discussions = BooleanField("Razprave na izletih", default=True)
+    notify_reminders = BooleanField("Opomnik pred izletom", default=True)
+
+    submit = SubmitField("Shrani nastavitve")
+
+    def validate_name(self, name):
+        """Validate name for XSS"""
+        if "<" in name.data or ">" in name.data:
+            raise ValidationError("Ime ne sme vsebovati HTML značk.")

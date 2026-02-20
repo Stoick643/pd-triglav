@@ -121,11 +121,15 @@ def get_discussion_notification_recipients(trip, exclude_user_id):
 
     recipients = []
 
+    from models.user import NotificationType
+
     for participant in trip.participants:
         # Only notify confirmed participants who have notifications enabled
+        # Check both per-trip setting and global user preference
         if (participant.status == ParticipantStatus.CONFIRMED and
             participant.notify_discussion and
-            participant.user_id != exclude_user_id):
+            participant.user_id != exclude_user_id and
+            participant.user.get_notification_preference(NotificationType.DISCUSSIONS)):
             recipients.append(participant.user)
 
     return recipients

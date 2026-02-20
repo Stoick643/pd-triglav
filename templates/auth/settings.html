@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Nastavitve - PD Triglav{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h1 class="mb-4"><i class="bi bi-gear me-2"></i>Nastavitve</h1>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <!-- Profile Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person me-2"></i>Profil</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.name.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.email.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-key me-1"></i>Spremeni geslo
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notification Preferences Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bell me-2"></i>Obvestila po emailu</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Izberite, katera obvestila želite prejemati na email.</p>
+
+                    <div class="form-check form-switch mb-3">
+                        {{ form.notify_new_trips(class="form-check-input", role="switch") }}
+                        {{ form.notify_new_trips.label(class="form-check-label") }}
+                        <div class="form-text">Obvestilo, ko je objavljen nov izlet.</div>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        {{ form.notify_discussions(class="form-check-input", role="switch") }}
+                        {{ form.notify_discussions.label(class="form-check-label") }}
+                        <div class="form-text">Obvestilo ob novem sporočilu v razpravah na izletih, na katere ste prijavljeni.</div>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        {{ form.notify_reminders(class="form-check-input", role="switch") }}
+                        {{ form.notify_reminders.label(class="form-check-label") }}
+                        <div class="form-text">Opomnik dan pred izletom, na katerega ste prijavljeni.</div>
+                    </div>
+
+                    <hr>
+                    <p class="text-muted small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Sistemska obvestila (odobritev registracije ipd.) so vedno vključena.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="d-flex gap-2">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">Nazaj</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

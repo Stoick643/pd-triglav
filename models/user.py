@@ -156,6 +156,26 @@ class User(UserMixin, db.Model):  # type: ignore[name-defined]
         """Get all admin users"""
         return User.query.filter_by(role=UserRole.ADMIN, is_approved=True).all()
 
+    def get_notification_preference(self, notification_type):
+        """Get notification preference for a specific type. Returns True if no preference set."""
+        pref = UserNotificationPreference.query.filter_by(
+            user_id=self.id, notification_type=notification_type
+        ).first()
+        return pref.enabled if pref else True
+
+    def set_notification_preference(self, notification_type, enabled):
+        """Set notification preference for a specific type."""
+        pref = UserNotificationPreference.query.filter_by(
+            user_id=self.id, notification_type=notification_type
+        ).first()
+        if pref:
+            pref.enabled = enabled
+        else:
+            pref = UserNotificationPreference(
+                user_id=self.id, notification_type=notification_type, enabled=enabled
+            )
+            db.session.add(pref)
+
     def to_dict(self):
         """Convert user to dictionary for JSON serialization"""
         return {
@@ -167,3 +187,40 @@ class User(UserMixin, db.Model):  # type: ignore[name-defined]
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "last_login": self.last_login.isoformat() if self.last_login else None,
         }
+
+
+class NotificationType:
+    """Constants for notification types"""
+    NEW_TRIPS = "new_trips"
+    DISCUSSIONS = "discussions"
+    REMINDERS = "reminders"
+
+    ALL = [NEW_TRIPS, DISCUSSIONS, REMINDERS]
+
+    LABELS = {
+        NEW_TRIPS: "Novi izleti",
+        DISCUSSIONS: "Razprave na izletih",
+        REMINDERS: "Opomnik pred izletom",
+    }
+
+
+class UserNotificationPreference(db.Model):
+    """User notification preferences"""
+
+    __tablename__ = "user_notification_preferences"
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "notification_type", name="unique_user_notification"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    notification_type = db.Column(db.String(50), nullable=False)
+    enabled = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    user = db.relationship("User", backref=db.backref("notification_preferences", lazy=True))
+
+    def __repr__(self):
+        return f"<UserNotificationPreference {self.user_id}:{self.notification_type}={self.enabled}>"

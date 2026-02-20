@@ -11,7 +11,7 @@ from flask import (
 from flask_login import login_user, logout_user, current_user, login_required
 from authlib.integrations.flask_client import OAuth
 from models.user import User, UserRole, db
-from forms.auth_forms import LoginForm, RegistrationForm, ChangePasswordForm
+from forms.auth_forms import LoginForm, RegistrationForm, ChangePasswordForm, UserSettingsForm
 
 bp = Blueprint("auth", __name__)
 
@@ -114,6 +114,58 @@ def change_password():
         return redirect(url_for("main.dashboard"))
 
     return render_template("auth/change_password.html", form=form)
+
+
+@bp.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    """User profile and notification settings"""
+    from models.user import NotificationType
+
+    form = UserSettingsForm()
+
+    if form.validate_on_submit():
+        # Check if email changed and is not taken
+        if form.email.data != current_user.email:
+            existing = User.get_by_email(form.email.data)
+            if existing:
+                flash("Ta email naslov je že registriran.", "error")
+                return render_template("auth/settings.html", form=form)
+
+        # Update profile
+        current_user.name = form.name.data
+        current_user.email = form.email.data
+
+        # Update notification preferences
+        current_user.set_notification_preference(
+            NotificationType.NEW_TRIPS, form.notify_new_trips.data
+        )
+        current_user.set_notification_preference(
+            NotificationType.DISCUSSIONS, form.notify_discussions.data
+        )
+        current_user.set_notification_preference(
+            NotificationType.REMINDERS, form.notify_reminders.data
+        )
+
+        db.session.commit()
+        flash("Nastavitve so bile uspešno shranjene.", "success")
+        return redirect(url_for("auth.settings"))
+
+    elif request.method == "GET":
+        # Pre-fill form with current data
+        form.name.data = current_user.name
+        form.email.data = current_user.email
+        form.notify_new_trips.data = current_user.get_notification_preference(
+            NotificationType.NEW_TRIPS
+        )
+        form.notify_discussions.data = current_user.get_notification_preference(
+            NotificationType.DISCUSSIONS
+        )
+        form.notify_reminders.data = current_user.get_notification_preference(
+            NotificationType.REMINDERS
+        )
+
+    return render_template("auth/settings.html", form=form)
 
 
 # Initialize OAuth
